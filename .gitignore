@@ -1,0 +1,7 @@
+.env
+bot.lock
+clock_log.txt
+clock_msg_log.txt
+clock_state.txt
+panel_message_id.txt
+__pycache__/
