@@ -21,7 +21,6 @@ TIMEZONE = os.getenv("TIMEZONE", "Europe/Warsaw").strip()
 PANEL_CHANNEL_ID_RAW = os.getenv("PANEL_CHANNEL_ID", "").strip()
 PANEL_CHANNEL_ID = int(PANEL_CHANNEL_ID_RAW) if PANEL_CHANNEL_ID_RAW.isdigit() else 0
 
-CHANNEL_CLOCK_ID = int(os.getenv("CHANNEL_CLOCK_ID", "0"))
 CHANNEL_DATE_ID = int(os.getenv("CHANNEL_DATE_ID", "0"))
 CHANNEL_GREETING_ID = int(os.getenv("CHANNEL_GREETING_ID", "0"))
 CHANNEL_MOON_ID = int(os.getenv("CHANNEL_MOON_ID", "0"))
@@ -426,7 +425,6 @@ async def update_voice_channels(weather: dict):
     now = get_now()
     weekday = get_polish_weekday(now)
 
-    clock_name = f"🕒 | {now.strftime('%H:%M')}"
     date_name = f"📅 | {weekday} • {now.strftime('%d.%m.%Y')}"
     greeting_name = get_greeting(now.hour)
     moon_name = get_moon_phase_name(now)
@@ -460,7 +458,6 @@ async def update_voice_channels(weather: dict):
     sunrise_name = f"🌅 | Wschód {weather['sunrise']}"
     sunset_name = f"🌇 | Zachód {weather['sunset']}"
 
-    await safe_edit_channel_name(CHANNEL_CLOCK_ID, clock_name)
     await safe_edit_channel_name(CHANNEL_DATE_ID, date_name)
     await safe_edit_channel_name(CHANNEL_GREETING_ID, greeting_name)
     await safe_edit_channel_name(CHANNEL_MOON_ID, moon_name)
