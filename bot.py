@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 
 # =========================
-# ŁADOWANIE .ENV
+# ŁADOWANIE .ENV / VARIABLES
 # =========================
 load_dotenv()
 
@@ -21,6 +21,7 @@ TIMEZONE = os.getenv("TIMEZONE", "Europe/Warsaw").strip()
 PANEL_CHANNEL_ID_RAW = os.getenv("PANEL_CHANNEL_ID", "").strip()
 PANEL_CHANNEL_ID = int(PANEL_CHANNEL_ID_RAW) if PANEL_CHANNEL_ID_RAW.isdigit() else 0
 
+CHANNEL_CLOCK_ID = int(os.getenv("CHANNEL_CLOCK_ID", "0"))
 CHANNEL_DATE_ID = int(os.getenv("CHANNEL_DATE_ID", "0"))
 CHANNEL_GREETING_ID = int(os.getenv("CHANNEL_GREETING_ID", "0"))
 CHANNEL_MOON_ID = int(os.getenv("CHANNEL_MOON_ID", "0"))
@@ -41,7 +42,7 @@ LAT = 50.0413
 LON = 21.9990
 
 if not DISCORD_TOKEN:
-    raise ValueError("Brakuje DISCORD_TOKEN w pliku .env")
+    raise ValueError("Brakuje DISCORD_TOKEN w zmiennych środowiskowych")
 
 
 # =========================
@@ -312,8 +313,6 @@ async def safe_edit_channel_name(channel_id: int, new_name: str):
 
 # =========================
 # PANEL TEKSTOWY
-# ZOSTAWIONY W KODZIE NA PRZYSZŁOŚĆ
-# OBECNIE WYŁĄCZONY
 # =========================
 def build_panel_embed(weather: dict) -> discord.Embed:
     now = get_now()
@@ -427,7 +426,7 @@ async def update_voice_channels(weather: dict):
     now = get_now()
     weekday = get_polish_weekday(now)
 
-    # TYLKO DATA I DZIEŃ TYGODNIA
+    clock_name = f"🕒 | {now.strftime('%H:%M')}"
     date_name = f"📅 | {weekday} • {now.strftime('%d.%m.%Y')}"
     greeting_name = get_greeting(now.hour)
     moon_name = get_moon_phase_name(now)
@@ -461,8 +460,7 @@ async def update_voice_channels(weather: dict):
     sunrise_name = f"🌅 | Wschód {weather['sunrise']}"
     sunset_name = f"🌇 | Zachód {weather['sunset']}"
 
-    print(f"[DATA] Aktualna nazwa daty powinna być: {date_name}")
-
+    await safe_edit_channel_name(CHANNEL_CLOCK_ID, clock_name)
     await safe_edit_channel_name(CHANNEL_DATE_ID, date_name)
     await safe_edit_channel_name(CHANNEL_GREETING_ID, greeting_name)
     await safe_edit_channel_name(CHANNEL_MOON_ID, moon_name)
@@ -530,8 +528,6 @@ async def refresh_all(force_weather: bool = False):
 
     await update_voice_channels(weather_cache)
     await update_server_stats()
-
-    # PANEL WYŁĄCZONY
     # await update_or_create_panel_message(weather_cache)
 
 
@@ -617,7 +613,6 @@ async def on_ready():
     except Exception as e:
         print(f"[BŁĄD READY] {e}")
 
-    # PANEL WYŁĄCZONY
     # if not panel_clock_loop.is_running():
     #     panel_clock_loop.start()
 
