@@ -17,7 +17,8 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 # KONFIGURACJA
 # =========================================================
 
-GUILD_ID = 1479242779138097202  # <- wstaw ID swojego serwera
+GUILD_ID = 1479242779138097202  # ID Twojego serwera
+WARI_ROLE_ID = 1217139174906269747  # ID roli WARIK
 
 CHANNELS = {
     # CZAS / DATA
@@ -234,6 +235,16 @@ def parse_weather(data: dict):
     }
 
 # =========================================================
+# STATUS BOTA
+# =========================================================
+
+async def update_bot_presence():
+    dt = now_warsaw()
+    current_time = dt.strftime("%H:%M:%S")
+    activity = discord.CustomActivity(name=f"🕒 {current_time}")
+    await bot.change_presence(status=discord.Status.online, activity=activity)
+
+# =========================================================
 # AKTUALIZACJE
 # =========================================================
 
@@ -290,13 +301,24 @@ async def update_server_stats():
 
     logging.info("[LOOP] Aktualizacja statystyk serwera...")
 
-    members_count = guild.member_count or 0
+    members_count = 0
     online_count = 0
     voice_count = 0
+
+    wari_role = guild.get_role(WARI_ROLE_ID)
+
+    if wari_role is None:
+        logging.warning(f"Nie znaleziono roli WARIK o ID: {WARI_ROLE_ID}")
+        return
 
     for member in guild.members:
         if member.bot:
             continue
+
+        if wari_role not in member.roles:
+            continue
+
+        members_count += 1
 
         if member.status != discord.Status.offline:
             online_count += 1
@@ -335,6 +357,11 @@ async def stats_loop():
     await update_server_stats()
 
 
+@tasks.loop(seconds=1)
+async def presence_loop():
+    await update_bot_presence()
+
+
 @time_loop.before_loop
 async def before_time_loop():
     await bot.wait_until_ready()
@@ -347,6 +374,11 @@ async def before_weather_loop():
 
 @stats_loop.before_loop
 async def before_stats_loop():
+    await bot.wait_until_ready()
+
+
+@presence_loop.before_loop
+async def before_presence_loop():
     await bot.wait_until_ready()
 
 # =========================================================
@@ -376,6 +408,10 @@ async def on_ready():
     if not stats_loop.is_running():
         stats_loop.start()
 
+    if not presence_loop.is_running():
+        presence_loop.start()
+
+    await update_bot_presence()
     await update_time_channels()
     await update_weather_channels()
     await update_server_stats()
