@@ -16,7 +16,7 @@ load_dotenv()
 TOKEN = os.getenv("PUBLIC_DISCORD_TOKEN")
 CONFIG_FILE = "guilds.json"
 TIMEZONE = "Europe/Warsaw"
-EDIT_DELAY_SECONDS = 15
+EDIT_DELAY_SECONDS = 6
 
 logging.basicConfig(
     level=logging.INFO,
@@ -198,10 +198,10 @@ def parse_weather(data, city):
 
 
 # =========================
-# UPDATE
+# UPDATE HELPERS
 # =========================
 
-async def update_guild(guild):
+async def update_astronomy_channels(guild):
     cfg = get_guild_config(guild.id)
     if not cfg:
         logging.warning(f"[{guild.name}] Brak konfiguracji")
@@ -213,6 +213,13 @@ async def update_guild(guild):
     await edit_channel(get_channel(guild, cfg, "day"), part_of_day(dt.hour))
     await edit_channel(get_channel(guild, cfg, "moon"), moon_phase(dt))
 
+
+async def update_weather_channels(guild):
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        logging.warning(f"[{guild.name}] Brak konfiguracji")
+        return
+
     try:
         weather = await fetch_weather(
             cfg["latitude"],
@@ -222,19 +229,22 @@ async def update_guild(guild):
         w = parse_weather(weather, cfg["city"])
     except Exception as e:
         logging.error(f"[{guild.name}] Błąd pogody: {e}")
-        w = None
+        return
 
-    if w:
-        await edit_channel(get_channel(guild, cfg, "temp"), w["temp"])
-        await edit_channel(get_channel(guild, cfg, "feels"), w["feels"])
-        await edit_channel(get_channel(guild, cfg, "wind"), w["wind"])
-        await edit_channel(get_channel(guild, cfg, "pressure"), w["pressure"])
-        await edit_channel(get_channel(guild, cfg, "sunrise"), w["sunrise"])
-        await edit_channel(get_channel(guild, cfg, "sunset"), w["sunset"])
+    await edit_channel(get_channel(guild, cfg, "temp"), w["temp"])
+    await edit_channel(get_channel(guild, cfg, "feels"), w["feels"])
+    await edit_channel(get_channel(guild, cfg, "rain"), w["rain"])
+    await edit_channel(get_channel(guild, cfg, "wind"), w["wind"])
+    await edit_channel(get_channel(guild, cfg, "pressure"), w["pressure"])
+    await edit_channel(get_channel(guild, cfg, "sunrise"), w["sunrise"])
+    await edit_channel(get_channel(guild, cfg, "sunset"), w["sunset"])
 
-        rain_channel = get_channel(guild, cfg, "rain")
-        if rain_channel is not None:
-            await edit_channel(rain_channel, w["rain"])
+
+async def update_stats_channels(guild):
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        logging.warning(f"[{guild.name}] Brak konfiguracji")
+        return
 
     members = len([m for m in guild.members if not m.bot])
     online = len([m for m in guild.members if m.status != discord.Status.offline and not m.bot])
@@ -245,25 +255,61 @@ async def update_guild(guild):
     await edit_channel(get_channel(guild, cfg, "vc"), f"🎤・Na VC {vc}")
 
 
+async def update_all_channels(guild):
+    await update_astronomy_channels(guild)
+    await update_weather_channels(guild)
+    await update_stats_channels(guild)
+
+
 # =========================
 # LOOPS
 # =========================
 
-@tasks.loop(minutes=20)
-async def update_loop():
-    logging.info("Uruchomiono update_loop")
+@tasks.loop(minutes=10)
+async def astronomy_loop():
+    logging.info("Uruchomiono astronomy_loop")
     config = load_config()
 
     for gid in config:
         guild = bot.get_guild(int(gid))
         if guild:
-            await update_guild(guild)
-        else:
-            logging.warning(f"Bot nie widzi serwera o ID: {gid}")
+            await update_astronomy_channels(guild)
 
 
-@update_loop.before_loop
-async def before_update_loop():
+@astronomy_loop.before_loop
+async def before_astronomy_loop():
+    await bot.wait_until_ready()
+
+
+@tasks.loop(minutes=10)
+async def weather_loop():
+    logging.info("Uruchomiono weather_loop")
+    config = load_config()
+
+    for gid in config:
+        guild = bot.get_guild(int(gid))
+        if guild:
+            await update_weather_channels(guild)
+
+
+@weather_loop.before_loop
+async def before_weather_loop():
+    await bot.wait_until_ready()
+
+
+@tasks.loop(minutes=2)
+async def stats_loop():
+    logging.info("Uruchomiono stats_loop")
+    config = load_config()
+
+    for gid in config:
+        guild = bot.get_guild(int(gid))
+        if guild:
+            await update_stats_channels(guild)
+
+
+@stats_loop.before_loop
+async def before_stats_loop():
     await bot.wait_until_ready()
 
 
@@ -351,11 +397,19 @@ async def setup(interaction: discord.Interaction):
 
         save_config(config)
 
-        await interaction.followup.send("✅ Kosmiczny Zegar został utworzony!", ephemeral=True)
+        await update_all_channels(guild)
+
+        await interaction.followup.send(
+            "✅ Kosmiczny Zegar został utworzony i uzupełniony!",
+            ephemeral=True
+        )
 
     except Exception as e:
         logging.error(f"Błąd /setup: {e}")
-        await interaction.followup.send(f"❌ Błąd podczas tworzenia zegara: {e}", ephemeral=True)
+        await interaction.followup.send(
+            f"❌ Błąd podczas tworzenia zegara: {e}",
+            ephemeral=True
+        )
 
 
 @bot.tree.command(name="setcity")
@@ -387,11 +441,19 @@ async def setcity(
 
         save_config(config)
 
-        await interaction.followup.send(f"✅ Miasto ustawione na **{city}**", ephemeral=True)
+        await update_weather_channels(guild)
+
+        await interaction.followup.send(
+            f"✅ Miasto ustawione na **{city}**",
+            ephemeral=True
+        )
 
     except Exception as e:
         logging.error(f"Błąd /setcity: {e}")
-        await interaction.followup.send(f"❌ Błąd przy zmianie miasta: {e}", ephemeral=True)
+        await interaction.followup.send(
+            f"❌ Błąd przy zmianie miasta: {e}",
+            ephemeral=True
+        )
 
 
 @bot.tree.command(name="status")
@@ -431,8 +493,14 @@ async def on_ready():
     except Exception as e:
         logging.error(f"Błąd synchronizacji slash commands: {e}")
 
-    if not update_loop.is_running():
-        update_loop.start()
+    if not astronomy_loop.is_running():
+        astronomy_loop.start()
+
+    if not weather_loop.is_running():
+        weather_loop.start()
+
+    if not stats_loop.is_running():
+        stats_loop.start()
 
     if not presence_loop.is_running():
         presence_loop.start()
