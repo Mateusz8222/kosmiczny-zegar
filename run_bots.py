@@ -17,7 +17,7 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 # KONFIGURACJA
 # =========================================================
 
-GUILD_ID = 1479242779138097202  # ID Twojego serwera
+GUILD_ID = 1217131470380994651  # ID Twojego serwera
 WARI_ROLE_ID = 1217139174906269747  # ID roli WARIK
 
 CHANNELS = {
