@@ -32,7 +32,6 @@ intents.presences = True
 intents.voice_states = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
-last_channel_names = {}
 
 
 # =========================
@@ -48,7 +47,7 @@ def load_config():
 
 def save_config(data):
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
+        json.dump(data, f, indent=2, ensure_ascii=False)
 
 
 def get_guild_config(guild_id):
@@ -57,10 +56,18 @@ def get_guild_config(guild_id):
 
 
 def get_channel(guild, guild_cfg, key):
-    cid = guild_cfg["channels"].get(key)
+    channels = guild_cfg.get("channels", {})
+    cid = channels.get(key)
+
     if not cid:
+        logging.warning(f"[{guild.name}] Brak ID kanału dla klucza: {key}")
         return None
-    return guild.get_channel(cid)
+
+    channel = guild.get_channel(cid)
+    if channel is None:
+        logging.warning(f"[{guild.name}] Nie znaleziono kanału w cache dla klucza: {key}, id: {cid}")
+
+    return channel
 
 
 def now():
@@ -126,18 +133,25 @@ def moon_phase(dt):
 # =========================
 
 async def edit_channel(channel, name):
-
     if channel is None:
+        logging.warning(f"Nie można zmienić kanału na: {name} -> kanał nie istnieje")
         return
 
     if channel.name == name:
+        logging.info(f"Bez zmian: {channel.name}")
         return
 
     try:
+        old_name = channel.name
         await channel.edit(name=name)
+        logging.info(f"Zmieniono kanał: '{old_name}' -> '{name}'")
         await asyncio.sleep(EDIT_DELAY_SECONDS)
+    except discord.Forbidden:
+        logging.error(f"Brak uprawnień do zmiany kanału: {channel.name}")
+    except discord.HTTPException as e:
+        logging.error(f"Błąd HTTP przy zmianie kanału '{channel.name}': {e}")
     except Exception as e:
-        logging.error(e)
+        logging.error(f"Inny błąd przy zmianie kanału '{channel.name}': {e}")
 
 
 # =========================
@@ -145,7 +159,6 @@ async def edit_channel(channel, name):
 # =========================
 
 async def fetch_weather(lat, lon, tz):
-
     url = (
         "https://api.open-meteo.com/v1/forecast"
         f"?latitude={lat}"
@@ -157,16 +170,22 @@ async def fetch_weather(lat, lon, tz):
 
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as r:
+            r.raise_for_status()
             return await r.json()
 
 
 def parse_weather(data, city):
-
     current = data["current"]
     daily = data["daily"]
 
     sunrise = daily["sunrise"][0].split("T")[1][:5]
     sunset = daily["sunset"][0].split("T")[1][:5]
+
+    precipitation = current.get("precipitation", 0)
+    if precipitation and precipitation > 0:
+        rain_text = f"🌧️・Opady {precipitation} mm"
+    else:
+        rain_text = "☁️・Bez opadów"
 
     return {
         "temp": f"🌡️・{city} {round(current['temperature_2m'])}°C",
@@ -175,6 +194,7 @@ def parse_weather(data, city):
         "pressure": f"🧭・Ciśnienie {round(current['surface_pressure'])} hPa",
         "sunrise": f"🌅・Wschód {sunrise}",
         "sunset": f"🌇・Zachód {sunset}",
+        "rain": rain_text,
     }
 
 
@@ -183,31 +203,40 @@ def parse_weather(data, city):
 # =========================
 
 async def update_guild(guild):
-
     cfg = get_guild_config(guild.id)
     if not cfg:
+        logging.warning(f"[{guild.name}] Brak konfiguracji w guilds.json")
         return
 
+    logging.info(f"[{guild.name}] Start update_guild")
     dt = now()
 
     await edit_channel(get_channel(guild, cfg, "date"), format_date(dt))
     await edit_channel(get_channel(guild, cfg, "day"), part_of_day(dt.hour))
     await edit_channel(get_channel(guild, cfg, "moon"), moon_phase(dt))
 
-    weather = await fetch_weather(
-        cfg["latitude"],
-        cfg["longitude"],
-        cfg["timezone"],
-    )
+    try:
+        weather = await fetch_weather(
+            cfg["latitude"],
+            cfg["longitude"],
+            cfg["timezone"],
+        )
+        w = parse_weather(weather, cfg["city"])
+    except Exception as e:
+        logging.error(f"[{guild.name}] Błąd pobierania pogody: {e}")
+        w = None
 
-    w = parse_weather(weather, cfg["city"])
+    if w:
+        await edit_channel(get_channel(guild, cfg, "temp"), w["temp"])
+        await edit_channel(get_channel(guild, cfg, "feels"), w["feels"])
+        await edit_channel(get_channel(guild, cfg, "wind"), w["wind"])
+        await edit_channel(get_channel(guild, cfg, "pressure"), w["pressure"])
+        await edit_channel(get_channel(guild, cfg, "sunrise"), w["sunrise"])
+        await edit_channel(get_channel(guild, cfg, "sunset"), w["sunset"])
 
-    await edit_channel(get_channel(guild, cfg, "temp"), w["temp"])
-    await edit_channel(get_channel(guild, cfg, "feels"), w["feels"])
-    await edit_channel(get_channel(guild, cfg, "wind"), w["wind"])
-    await edit_channel(get_channel(guild, cfg, "pressure"), w["pressure"])
-    await edit_channel(get_channel(guild, cfg, "sunrise"), w["sunrise"])
-    await edit_channel(get_channel(guild, cfg, "sunset"), w["sunset"])
+        rain_channel = get_channel(guild, cfg, "rain")
+        if rain_channel is not None:
+            await edit_channel(rain_channel, w["rain"])
 
     members = len([m for m in guild.members if not m.bot])
     online = len([m for m in guild.members if m.status != discord.Status.offline and not m.bot])
@@ -217,6 +246,8 @@ async def update_guild(guild):
     await edit_channel(get_channel(guild, cfg, "online"), f"🟢・Online {online}")
     await edit_channel(get_channel(guild, cfg, "vc"), f"🎤・Na VC {vc}")
 
+    logging.info(f"[{guild.name}] Koniec update_guild")
+
 
 # =========================
 # LOOPS
@@ -224,23 +255,38 @@ async def update_guild(guild):
 
 @tasks.loop(minutes=5)
 async def update_loop():
-
+    logging.info("Uruchomiono update_loop")
     config = load_config()
 
     for gid in config:
         guild = bot.get_guild(int(gid))
         if guild:
+            logging.info(f"Aktualizacja serwera: {guild.name}")
             await update_guild(guild)
+        else:
+            logging.warning(f"Bot nie widzi serwera o ID: {gid}")
+
+
+@update_loop.before_loop
+async def before_update_loop():
+    await bot.wait_until_ready()
 
 
 @tasks.loop(seconds=10)
 async def presence_loop():
-
-    await bot.change_presence(
-        activity=discord.CustomActivity(
-            name=f"🕒 {now().strftime('%H:%M:%S')}"
+    try:
+        await bot.change_presence(
+            activity=discord.CustomActivity(
+                name=f"🕒 {now().strftime('%H:%M:%S')}"
+            )
         )
-    )
+    except Exception as e:
+        logging.error(f"Błąd presence_loop: {e}")
+
+
+@presence_loop.before_loop
+async def before_presence_loop():
+    await bot.wait_until_ready()
 
 
 # =========================
@@ -248,7 +294,6 @@ async def presence_loop():
 # =========================
 
 async def create_channels(guild):
-
     category = await guild.create_category("🛰️ Kosmiczny Zegar")
 
     channels = {}
@@ -259,6 +304,7 @@ async def create_channels(guild):
         "moon": "🌙・Faza księżyca",
         "temp": "🌡️・Temperatura",
         "feels": "🥵・Odczuwalna",
+        "rain": "☁️・Opady",
         "wind": "💨・Wiatr",
         "pressure": "🧭・Ciśnienie",
         "sunrise": "🌅・Wschód",
@@ -268,8 +314,8 @@ async def create_channels(guild):
         "vc": "🎤・Na VC",
     }
 
-    for key in names:
-        c = await guild.create_voice_channel(names[key], category=category)
+    for key, channel_name in names.items():
+        c = await guild.create_voice_channel(channel_name, category=category)
         channels[key] = c.id
 
     return category.id, channels
@@ -287,13 +333,15 @@ async def ping(interaction: discord.Interaction):
 @bot.tree.command(name="setup")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setup(interaction: discord.Interaction):
-
     guild = interaction.guild
+
+    if guild is None:
+        await interaction.response.send_message("❌ Ta komenda działa tylko na serwerze.", ephemeral=True)
+        return
 
     category_id, channels = await create_channels(guild)
 
     config = load_config()
-
     config[str(guild.id)] = {
         "city": "Rzeszów",
         "latitude": 50.0413,
@@ -306,7 +354,6 @@ async def setup(interaction: discord.Interaction):
     save_config(config)
 
     await interaction.response.send_message("✅ Kosmiczny Zegar został utworzony!", ephemeral=True)
-
     await update_guild(guild)
 
 
@@ -318,8 +365,12 @@ async def setcity(
     latitude: float,
     longitude: float
 ):
-
     guild = interaction.guild
+
+    if guild is None:
+        await interaction.response.send_message("❌ Ta komenda działa tylko na serwerze.", ephemeral=True)
+        return
+
     config = load_config()
 
     if str(guild.id) not in config:
@@ -333,14 +384,17 @@ async def setcity(
     save_config(config)
 
     await interaction.response.send_message(f"✅ Miasto ustawione na **{city}**", ephemeral=True)
-
     await update_guild(guild)
 
 
 @bot.tree.command(name="status")
 async def status(interaction: discord.Interaction):
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message("❌ Ta komenda działa tylko na serwerze.", ephemeral=True)
+        return
 
-    cfg = get_guild_config(interaction.guild.id)
+    cfg = get_guild_config(guild.id)
 
     if not cfg:
         await interaction.response.send_message("❌ Zegar nie jest ustawiony", ephemeral=True)
@@ -361,11 +415,22 @@ async def status(interaction: discord.Interaction):
 
 @bot.event
 async def on_ready():
-
     logging.info(f"Zalogowano jako {bot.user}")
 
-    synced = await bot.tree.sync()
-    logging.info(f"Slash commands: {len(synced)}")
+    try:
+        synced = await bot.tree.sync()
+        logging.info(f"Slash commands: {len(synced)}")
+    except Exception as e:
+        logging.error(f"Błąd synchronizacji slash commands: {e}")
+
+    config = load_config()
+    for gid in config:
+        guild = bot.get_guild(int(gid))
+        if guild:
+            logging.info(f"Startowa aktualizacja dla serwera: {guild.name}")
+            await update_guild(guild)
+        else:
+            logging.warning(f"Przy starcie nie znaleziono serwera o ID: {gid}")
 
     if not update_loop.is_running():
         update_loop.start()
