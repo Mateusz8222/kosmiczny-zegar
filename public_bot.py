@@ -310,13 +310,44 @@ async def update_stats_channels(guild):
         logging.warning(f"[{guild.name}] Brak konfiguracji")
         return
 
-    members = len([m for m in guild.members if not m.bot])
-    online = len([m for m in guild.members if m.status != discord.Status.offline and not m.bot])
-    vc = len([m for m in guild.members if m.voice and not m.bot])
+    all_members = guild.member_count or len(guild.members)
+    users = len([m for m in guild.members if not m.bot])
+    bots = len([m for m in guild.members if m.bot])
 
-    await edit_channel(get_channel(guild, cfg, "members"), f"👥・Członkowie {members}")
-    await edit_channel(get_channel(guild, cfg, "online"), f"🟢・Online {online}")
-    await edit_channel(get_channel(guild, cfg, "vc"), f"🎤・Na VC {vc}")
+    online = len([
+        m for m in guild.members
+        if m.status != discord.Status.offline
+    ])
+
+    vc = len([
+        m for m in guild.members
+        if m.voice
+    ])
+
+    await edit_channel(
+        get_channel(guild, cfg, "members_all"),
+        f"👥・Wszyscy {all_members}"
+    )
+
+    await edit_channel(
+        get_channel(guild, cfg, "members_users"),
+        f"🙂・Użytkownicy {users}"
+    )
+
+    await edit_channel(
+        get_channel(guild, cfg, "members_bots"),
+        f"🤖・Boty {bots}"
+    )
+
+    await edit_channel(
+        get_channel(guild, cfg, "online"),
+        f"🟢・Online {online}"
+    )
+
+    await edit_channel(
+        get_channel(guild, cfg, "vc"),
+        f"🎤・Na VC {vc}"
+    )
 
 
 async def update_all_channels(guild):
@@ -415,7 +446,9 @@ async def create_channels(guild):
         "pressure": "🧭・Ciśnienie",
         "sunrise": "🌅・Wschód",
         "sunset": "🌇・Zachód",
-        "members": "👥・Członkowie",
+        "members_all": "👥・Wszyscy",
+        "members_users": "🙂・Użytkownicy",
+        "members_bots": "🤖・Boty",
         "online": "🟢・Online",
         "vc": "🎤・Na VC",
     }
