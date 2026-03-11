@@ -15,7 +15,7 @@ load_dotenv()
 
 TOKEN = os.getenv("PUBLIC_DISCORD_TOKEN")
 CONFIG_FILE = "guilds.json"
-DEFAULT_TIMEZONE = "Europe/Warsaw"
+TIMEZONE = "Europe/Warsaw"
 EDIT_DELAY_SECONDS = 6
 
 GEOCODING_API = "https://geocoding-api.open-meteo.com/v1/search"
@@ -26,11 +26,18 @@ logging.basicConfig(
     format="[%(asctime)s] [%(levelname)s] %(message)s",
 )
 
+warsaw_tz = ZoneInfo(TIMEZONE)
+
+# =========================
+# INTENTS
+# =========================
+
 intents = discord.Intents.default()
 intents.guilds = True
 intents.members = True
 intents.presences = True
 intents.voice_states = True
+intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -42,6 +49,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 def load_config():
     if not os.path.exists(CONFIG_FILE):
         return {}
+
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -63,14 +71,16 @@ def set_guild_config(guild_id, data):
 
 
 def now():
-    return datetime.now(ZoneInfo(DEFAULT_TIMEZONE))
+    return datetime.now(warsaw_tz)
 
 
 def get_channel(guild, cfg, key):
     channels = cfg.get("channels", {})
     cid = channels.get(key)
+
     if not cid:
         return None
+
     return guild.get_channel(cid)
 
 
@@ -128,11 +138,13 @@ def moon_phase(dt):
     return phases[phase]
 
 
-def country_code_to_flag(country_code):
-    if not country_code:
+def country_code_to_flag(code):
+    if not code:
         return ""
-    country_code = country_code.upper()
-    return "".join(chr(ord(c) + 127397) for c in country_code)
+
+    code = code.upper()
+
+    return "".join(chr(ord(c) + 127397) for c in code)
 
 
 # =========================
@@ -140,13 +152,17 @@ def country_code_to_flag(country_code):
 # =========================
 
 async def fetch_json(url, params):
+
     async with aiohttp.ClientSession() as session:
         async with session.get(url, params=params) as r:
+
             r.raise_for_status()
+
             return await r.json()
 
 
 async def geocode_city(name):
+
     params = {
         "name": name,
         "count": 1,
@@ -163,15 +179,16 @@ async def geocode_city(name):
 
     return {
         "name": r["name"],
-        "country": r.get("country", ""),
-        "country_code": r.get("country_code", ""),
+        "country": r.get("country"),
+        "country_code": r.get("country_code"),
         "latitude": r["latitude"],
         "longitude": r["longitude"],
-        "timezone": r.get("timezone", DEFAULT_TIMEZONE),
+        "timezone": r.get("timezone", TIMEZONE),
     }
 
 
 async def fetch_weather(lat, lon, tz):
+
     params = {
         "latitude": lat,
         "longitude": lon,
@@ -188,6 +205,7 @@ async def fetch_weather(lat, lon, tz):
 # =========================
 
 async def edit_channel(channel, name):
+
     if not channel:
         return
 
@@ -196,7 +214,9 @@ async def edit_channel(channel, name):
 
     try:
         await channel.edit(name=name)
+
         await asyncio.sleep(EDIT_DELAY_SECONDS)
+
     except:
         pass
 
@@ -208,6 +228,7 @@ async def edit_channel(channel, name):
 async def update_astronomy(guild):
 
     cfg = get_guild_config(guild.id)
+
     if not cfg:
         return
 
@@ -221,6 +242,7 @@ async def update_astronomy(guild):
 async def update_weather(guild):
 
     cfg = get_guild_config(guild.id)
+
     if not cfg:
         return
 
@@ -286,11 +308,14 @@ async def update_weather(guild):
 async def update_stats(guild):
 
     cfg = get_guild_config(guild.id)
+
     if not cfg:
         return
 
     all_members = guild.member_count or len(guild.members)
+
     users = len([m for m in guild.members if not m.bot])
+
     bots = len([m for m in guild.members if m.bot])
 
     online = len([
@@ -355,6 +380,7 @@ async def update_loop():
 
 @update_loop.before_loop
 async def before_loop():
+
     await bot.wait_until_ready()
 
 
@@ -370,6 +396,7 @@ async def presence_loop():
 
 @presence_loop.before_loop
 async def before_presence():
+
     await bot.wait_until_ready()
 
 
@@ -422,9 +449,6 @@ async def setup(interaction: discord.Interaction):
 
     guild = interaction.guild
 
-    if not guild:
-        return
-
     await interaction.response.defer(ephemeral=True)
 
     category_id, channels = await create_channels(guild)
@@ -435,7 +459,7 @@ async def setup(interaction: discord.Interaction):
         "country_code": "PL",
         "latitude": 50.0413,
         "longitude": 21.9990,
-        "timezone": "Europe/Warsaw",
+        "timezone": TIMEZONE,
         "category": category_id,
         "channels": channels,
     }
@@ -451,7 +475,6 @@ async def setup(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="miasto")
-@app_commands.checks.has_permissions(manage_guild=True)
 async def miasto(interaction: discord.Interaction, nazwa: str):
 
     guild = interaction.guild
@@ -469,12 +492,7 @@ async def miasto(interaction: discord.Interaction, nazwa: str):
 
     cfg = get_guild_config(guild.id)
 
-    cfg["city"] = result["name"]
-    cfg["country"] = result["country"]
-    cfg["country_code"] = result["country_code"]
-    cfg["latitude"] = result["latitude"]
-    cfg["longitude"] = result["longitude"]
-    cfg["timezone"] = result["timezone"]
+    cfg.update(result)
 
     set_guild_config(guild.id, cfg)
 
@@ -512,7 +530,9 @@ async def on_ready():
 
     try:
         synced = await bot.tree.sync()
+
         logging.info(f"Slash commands: {len(synced)}")
+
     except:
         pass
 
