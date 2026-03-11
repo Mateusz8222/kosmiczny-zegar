@@ -148,6 +148,17 @@ def moon_phase(dt: datetime):
     return phases.get(phase, "🌙・Księżyc")
 
 
+def country_code_to_flag(country_code: str) -> str:
+    if not country_code or len(country_code) != 2:
+        return ""
+
+    country_code = country_code.upper()
+    if not country_code.isalpha():
+        return ""
+
+    return chr(ord(country_code[0]) + 127397) + chr(ord(country_code[1]) + 127397)
+
+
 # =========================
 # HTTP
 # =========================
@@ -204,6 +215,16 @@ async def fetch_weather(lat: float, lon: float, tz: str):
     return await fetch_json(WEATHER_API, params)
 
 
+def get_city_display(cfg: dict) -> str:
+    city = cfg.get("city", "Miasto")
+    country_code = cfg.get("country_code", "")
+    flag = country_code_to_flag(country_code)
+
+    if flag:
+        return f"{city} {flag}"
+    return city
+
+
 def parse_weather(data, city_display: str):
     current = data["current"]
     daily = data["daily"]
@@ -256,14 +277,6 @@ async def edit_channel(channel, name: str):
 # =========================
 # UPDATE HELPERS
 # =========================
-
-def get_city_display(cfg: dict) -> str:
-    city = cfg.get("city", "Miasto")
-    country = cfg.get("country", "")
-    if country:
-        return f"{city}, {country}"
-    return city
-
 
 async def update_astronomy_channels(guild):
     cfg = get_guild_config(guild.id)
@@ -659,8 +672,9 @@ async def status(interaction: discord.Interaction):
         await interaction.response.send_message("❌ Zegar nie jest ustawiony", ephemeral=True)
         return
 
+    flag = country_code_to_flag(cfg.get("country_code", ""))
     country = cfg.get("country", "")
-    country_part = f", {country}" if country else ""
+    country_part = f" {flag}" if flag else (f", {country}" if country else "")
 
     embed = discord.Embed(
         title="Kosmiczny Zegar",
