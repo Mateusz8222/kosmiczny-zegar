@@ -17,8 +17,7 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 # KONFIGURACJA
 # =========================================================
 
-GUILD_ID = 1217131470380994651  # ID Twojego serwera
-WARI_ROLE_ID = 1217139174906269747  # ID roli WARIK
+GUILD_ID = 1217131470380994651  # Prawidłowe ID serwera Pogaduchy
 
 CHANNELS = {
     # CZAS / DATA
@@ -66,6 +65,7 @@ intents.guilds = True
 intents.members = True
 intents.presences = True
 intents.voice_states = True
+intents.message_content = False
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -305,17 +305,8 @@ async def update_server_stats():
     online_count = 0
     voice_count = 0
 
-    wari_role = guild.get_role(WARI_ROLE_ID)
-
-    if wari_role is None:
-        logging.warning(f"Nie znaleziono roli WARIK o ID: {WARI_ROLE_ID}")
-        return
-
     for member in guild.members:
         if member.bot:
-            continue
-
-        if wari_role not in member.roles:
             continue
 
         members_count += 1
@@ -357,7 +348,7 @@ async def stats_loop():
     await update_server_stats()
 
 
-@tasks.loop(seconds=1)
+@tasks.loop(seconds=5)
 async def presence_loop():
     await update_bot_presence()
 
@@ -429,6 +420,6 @@ async def ping(ctx):
 # =========================================================
 
 if not TOKEN:
-    raise ValueError("Brak DISCORD_TOKEN w pliku .env")
+    raise ValueError("Brak DISCORD_TOKEN w pliku .env lub Variables na Railway")
 
 bot.run(TOKEN)
