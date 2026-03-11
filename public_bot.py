@@ -12,6 +12,7 @@ from discord import app_commands
 from dotenv import load_dotenv
 
 load_dotenv()
+print("=== PUBLIC_BOT_TEST_V4 ===")
 
 TOKEN = os.getenv("PUBLIC_DISCORD_TOKEN")
 CONFIG_FILE = "guilds.json"
@@ -272,7 +273,7 @@ async def presence_loop():
     try:
         await bot.change_presence(
             activity=discord.CustomActivity(
-                name=f"🕒 {now().strftime('%H:%M:%S')}"
+                name="🟥 TEST PUBLIC V4"
             )
         )
     except Exception as e:
