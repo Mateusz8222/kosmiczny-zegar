@@ -334,21 +334,28 @@ async def setup(interaction: discord.Interaction):
         await interaction.response.send_message("❌ Ta komenda działa tylko na serwerze.", ephemeral=True)
         return
 
-    category_id, channels = await create_channels(guild)
+    await interaction.response.defer(ephemeral=True)
 
-    config = load_config()
-    config[str(guild.id)] = {
-        "city": "Rzeszów",
-        "latitude": 50.0413,
-        "longitude": 21.9990,
-        "timezone": "Europe/Warsaw",
-        "category": category_id,
-        "channels": channels,
-    }
+    try:
+        category_id, channels = await create_channels(guild)
 
-    save_config(config)
+        config = load_config()
+        config[str(guild.id)] = {
+            "city": "Rzeszów",
+            "latitude": 50.0413,
+            "longitude": 21.9990,
+            "timezone": "Europe/Warsaw",
+            "category": category_id,
+            "channels": channels,
+        }
 
-    await interaction.response.send_message("✅ Kosmiczny Zegar został utworzony!", ephemeral=True)
+        save_config(config)
+
+        await interaction.followup.send("✅ Kosmiczny Zegar został utworzony!", ephemeral=True)
+
+    except Exception as e:
+        logging.error(f"Błąd /setup: {e}")
+        await interaction.followup.send(f"❌ Błąd podczas tworzenia zegara: {e}", ephemeral=True)
 
 
 @bot.tree.command(name="setcity")
@@ -365,19 +372,26 @@ async def setcity(
         await interaction.response.send_message("❌ Ta komenda działa tylko na serwerze.", ephemeral=True)
         return
 
-    config = load_config()
+    await interaction.response.defer(ephemeral=True)
 
-    if str(guild.id) not in config:
-        await interaction.response.send_message("Najpierw użyj `/setup`", ephemeral=True)
-        return
+    try:
+        config = load_config()
 
-    config[str(guild.id)]["city"] = city
-    config[str(guild.id)]["latitude"] = latitude
-    config[str(guild.id)]["longitude"] = longitude
+        if str(guild.id) not in config:
+            await interaction.followup.send("Najpierw użyj `/setup`", ephemeral=True)
+            return
 
-    save_config(config)
+        config[str(guild.id)]["city"] = city
+        config[str(guild.id)]["latitude"] = latitude
+        config[str(guild.id)]["longitude"] = longitude
 
-    await interaction.response.send_message(f"✅ Miasto ustawione na **{city}**", ephemeral=True)
+        save_config(config)
+
+        await interaction.followup.send(f"✅ Miasto ustawione na **{city}**", ephemeral=True)
+
+    except Exception as e:
+        logging.error(f"Błąd /setcity: {e}")
+        await interaction.followup.send(f"❌ Błąd przy zmianie miasta: {e}", ephemeral=True)
 
 
 @bot.tree.command(name="status")
