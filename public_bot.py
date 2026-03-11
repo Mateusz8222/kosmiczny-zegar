@@ -16,7 +16,7 @@ load_dotenv()
 TOKEN = os.getenv("PUBLIC_DISCORD_TOKEN")
 CONFIG_FILE = "guilds.json"
 TIMEZONE = "Europe/Warsaw"
-EDIT_DELAY_SECONDS = 12
+EDIT_DELAY_SECONDS = 15
 
 logging.basicConfig(
     level=logging.INFO,
@@ -33,6 +33,10 @@ intents.voice_states = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+
+# =========================
+# CONFIG
+# =========================
 
 def load_config():
     if not os.path.exists(CONFIG_FILE):
@@ -69,6 +73,10 @@ def get_channel(guild, guild_cfg, key):
 def now():
     return datetime.now(warsaw_tz)
 
+
+# =========================
+# FORMATY
+# =========================
 
 def format_date(dt):
     dni = ["pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz."]
@@ -120,6 +128,10 @@ def moon_phase(dt):
     return phases.get(phase, "🌙・Księżyc")
 
 
+# =========================
+# SAFE EDIT
+# =========================
+
 async def edit_channel(channel, name):
     if channel is None:
         return
@@ -140,6 +152,10 @@ async def edit_channel(channel, name):
     except Exception as e:
         logging.error(f"Inny błąd przy zmianie kanału '{channel.name}': {e}")
 
+
+# =========================
+# WEATHER
+# =========================
 
 async def fetch_weather(lat, lon, tz):
     url = (
@@ -180,6 +196,10 @@ def parse_weather(data, city):
         "rain": rain_text,
     }
 
+
+# =========================
+# UPDATE
+# =========================
 
 async def update_guild(guild):
     cfg = get_guild_config(guild.id)
@@ -225,7 +245,11 @@ async def update_guild(guild):
     await edit_channel(get_channel(guild, cfg, "vc"), f"🎤・Na VC {vc}")
 
 
-@tasks.loop(minutes=15)
+# =========================
+# LOOPS
+# =========================
+
+@tasks.loop(minutes=20)
 async def update_loop():
     logging.info("Uruchomiono update_loop")
     config = load_config()
@@ -234,6 +258,8 @@ async def update_loop():
         guild = bot.get_guild(int(gid))
         if guild:
             await update_guild(guild)
+        else:
+            logging.warning(f"Bot nie widzi serwera o ID: {gid}")
 
 
 @update_loop.before_loop
@@ -257,6 +283,10 @@ async def presence_loop():
 async def before_presence_loop():
     await bot.wait_until_ready()
 
+
+# =========================
+# SETUP
+# =========================
 
 async def create_channels(guild):
     category = await guild.create_category("🛰️ Kosmiczny Zegar")
@@ -285,6 +315,10 @@ async def create_channels(guild):
 
     return category.id, channels
 
+
+# =========================
+# COMMANDS
+# =========================
 
 @bot.tree.command(name="ping")
 async def ping(interaction: discord.Interaction):
@@ -349,6 +383,7 @@ async def setcity(
 @bot.tree.command(name="status")
 async def status(interaction: discord.Interaction):
     guild = interaction.guild
+
     if guild is None:
         await interaction.response.send_message("❌ Ta komenda działa tylko na serwerze.", ephemeral=True)
         return
@@ -368,6 +403,10 @@ async def status(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+# =========================
+# READY
+# =========================
+
 @bot.event
 async def on_ready():
     logging.info(f"Zalogowano jako {bot.user}")
@@ -384,6 +423,10 @@ async def on_ready():
     if not presence_loop.is_running():
         presence_loop.start()
 
+
+# =========================
+# START
+# =========================
 
 if not TOKEN:
     raise ValueError("Brak PUBLIC_DISCORD_TOKEN")
