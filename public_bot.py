@@ -104,10 +104,14 @@ def format_date(dt: datetime):
 
 
 def part_of_day(hour: int):
-    if 5 <= hour < 12:
+    if 4 <= hour < 6:
+        return "🌅・Świt"
+    if 6 <= hour < 11:
         return "☀️・Poranek"
-    if 12 <= hour < 18:
-        return "🌞・Popołudnie"
+    if 11 <= hour < 14:
+        return "🌞・Południe"
+    if 14 <= hour < 18:
+        return "🌤️・Popołudnie"
     if 18 <= hour < 22:
         return "🌆・Wieczór"
     return "🌙・Noc"
