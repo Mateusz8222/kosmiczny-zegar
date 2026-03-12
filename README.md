@@ -1,7 +1,7 @@
 # 🚀 Kosmiczny Zegar
 
 <p align="center">
-  <img src="https://i.imgur.com/kosmiczny_zegar.png" alt="Kosmiczny Zegar" width="900">
+  <img src="https://i.imgur.com/fH5Xahk.jpeg" alt="Kosmiczny Zegar" width="900">
 </p>
 
 <p align="center">
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  Polski bot Discord z kosmicznym klimatem: czas, data, pogoda i statystyki.
+Polski bot Discord z kosmicznym klimatem: czas, data, pogoda i statystyki.
 </p>
 
 ---
@@ -20,7 +20,13 @@
 
 Kosmiczny Zegar to nowoczesny bot Discord w języku polskim.
 
-Bot został stworzony dla serwerów społecznościowych, gamingowych oraz streamingowych.
+Bot został stworzony dla serwerów:
+
+- społecznościowych
+- gamingowych
+- streamingowych
+
+Bot posiada kosmiczny styl oraz panel informacyjny.
 
 ---
 
@@ -37,7 +43,7 @@ Bot został stworzony dla serwerów społecznościowych, gamingowych oraz stream
 
 # 🤖 Dodaj bota
 
-Kliknij przycisk poniżej aby dodać bota na swój serwer.
+Kliknij przycisk poniżej aby dodać bota na swój serwer:
 
 <p align="center">
   <a href="https://discord.com/oauth2/authorize?client_id=1481070169077055548&permissions=2147568640&integration_type=0&scope=bot%20applications.commands">
@@ -49,10 +55,10 @@ Kliknij przycisk poniżej aby dodać bota na swój serwer.
 
 # 📜 Komendy
 
-`/invite` – link do dodania bota  
-`/pomoc` – lista komend  
-`/czas` – pokazuje aktualny czas  
-`/data` – pokazuje aktualną datę  
+`/invite` — link do dodania bota  
+`/pomoc` — lista komend  
+`/czas` — pokazuje aktualny czas  
+`/data` — pokazuje aktualną datę  
 
 ---
 
