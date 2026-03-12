@@ -2,7 +2,7 @@ import os
 import json
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import aiohttp
@@ -17,8 +17,8 @@ TOKEN = os.getenv("PUBLIC_DISCORD_TOKEN")
 CONFIG_FILE = "guilds.json"
 TIMEZONE = "Europe/Warsaw"
 
-# Bezpieczne opóźnienie między zmianami nazw kanałów
-EDIT_DELAY_SECONDS = 3.0
+# Anty-rate-limit
+EDIT_DELAY_SECONDS = 5.0
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,9 +32,8 @@ intents.guilds = True
 intents.members = True
 intents.presences = True
 intents.voice_states = True
-intents.message_content = False
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix=commands.when_mentioned, intents=intents)
 
 last_channel_names = {}
 guild_refresh_locks = {}
@@ -367,7 +366,6 @@ async def update_server_stats_for_guild(guild: discord.Guild, guild_cfg: dict):
 
     for member in guild.members:
         members_count += 1
-
         if member.bot:
             bots_count += 1
         else:
@@ -405,7 +403,7 @@ async def update_one_guild(guild: discord.Guild):
         await update_server_stats_for_guild(guild, guild_cfg)
 
 
-async def schedule_quick_refresh(guild: discord.Guild, delay: float = 10.0):
+async def schedule_quick_refresh(guild: discord.Guild, delay: float = 15.0):
     if guild is None:
         return
 
@@ -416,11 +414,13 @@ async def schedule_quick_refresh(guild: discord.Guild, delay: float = 10.0):
     async def delayed():
         try:
             await asyncio.sleep(delay)
-            await update_one_guild(guild)
+            guild_cfg = get_guild_config(guild.id)
+            if guild_cfg:
+                await update_server_stats_for_guild(guild, guild_cfg)
         except asyncio.CancelledError:
             pass
         except Exception as e:
-            logging.error(f"Błąd szybkiego refresh dla {guild.id}: {e}")
+            logging.error(f"Błąd szybkiego refresh statystyk dla {guild.id}: {e}")
 
     guild_refresh_tasks[guild.id] = asyncio.create_task(delayed())
 
@@ -522,7 +522,7 @@ class RefreshPanelView(discord.ui.View):
 # PĘTLE AUTO
 # =========================================================
 
-@tasks.loop(minutes=5)
+@tasks.loop(minutes=10)
 async def time_loop():
     config = load_config()
     for guild_id, guild_cfg in config.items():
@@ -531,7 +531,7 @@ async def time_loop():
             await update_time_channels_for_guild(guild, guild_cfg)
 
 
-@tasks.loop(minutes=10)
+@tasks.loop(minutes=15)
 async def weather_loop():
     config = load_config()
     for guild_id, guild_cfg in config.items():
@@ -540,7 +540,7 @@ async def weather_loop():
             await update_weather_channels_for_guild(guild, guild_cfg)
 
 
-@tasks.loop(minutes=2)
+@tasks.loop(minutes=3)
 async def stats_loop():
     config = load_config()
     for guild_id, guild_cfg in config.items():
@@ -804,24 +804,24 @@ async def common_manage_guild_error(interaction: discord.Interaction, error):
 
 @bot.event
 async def on_member_join(member: discord.Member):
-    await schedule_quick_refresh(member.guild, delay=12.0)
+    await schedule_quick_refresh(member.guild, delay=15.0)
 
 
 @bot.event
 async def on_member_remove(member: discord.Member):
-    await schedule_quick_refresh(member.guild, delay=12.0)
+    await schedule_quick_refresh(member.guild, delay=15.0)
 
 
 @bot.event
 async def on_voice_state_update(member: discord.Member, before, after):
     if before.channel != after.channel:
-        await schedule_quick_refresh(member.guild, delay=8.0)
+        await schedule_quick_refresh(member.guild, delay=12.0)
 
 
 @bot.event
 async def on_presence_update(before: discord.Member, after: discord.Member):
     if before.status != after.status:
-        await schedule_quick_refresh(after.guild, delay=12.0)
+        await schedule_quick_refresh(after.guild, delay=15.0)
 
 
 # =========================================================
@@ -862,15 +862,6 @@ async def on_ready():
                 await update_one_guild(guild)
             except Exception as e:
                 logging.error(f"Błąd startowego odświeżenia dla {guild.id}: {e}")
-
-
-# =========================================================
-# PREFIX
-# =========================================================
-
-@bot.command()
-async def ping(ctx):
-    await ctx.send("🏓 Publiczny bot działa!")
 
 
 # =========================================================
