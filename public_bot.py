@@ -34,6 +34,8 @@ intents.message_content = False
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 last_channel_names = {}
+guild_refresh_locks = {}
+guild_refresh_tasks = {}
 
 
 # =========================================================
@@ -126,6 +128,12 @@ def get_moon_phase(dt: datetime) -> str:
     return phases.get(phase_index, "🌙・Księżyc")
 
 
+def get_lock(guild_id: int) -> asyncio.Lock:
+    if guild_id not in guild_refresh_locks:
+        guild_refresh_locks[guild_id] = asyncio.Lock()
+    return guild_refresh_locks[guild_id]
+
+
 async def safe_edit_channel_name(channel: discord.abc.GuildChannel, new_name: str):
     if channel is None:
         return
@@ -155,8 +163,33 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel, new_name: st
 
 
 # =========================================================
-# POGODA
+# GEO + POGODA
 # =========================================================
+
+async def geocode_city(city_name: str):
+    url = (
+        "https://geocoding-api.open-meteo.com/v1/search"
+        f"?name={city_name}&count=1&language=pl&format=json"
+    )
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, timeout=20) as response:
+            response.raise_for_status()
+            data = await response.json()
+
+    results = data.get("results", [])
+    if not results:
+        return None
+
+    result = results[0]
+    return {
+        "name": result.get("name", city_name),
+        "country": result.get("country", ""),
+        "latitude": result.get("latitude"),
+        "longitude": result.get("longitude"),
+        "timezone": result.get("timezone", "Europe/Warsaw"),
+    }
+
 
 async def fetch_weather(latitude: float, longitude: float, timezone_name: str):
     url = (
@@ -199,9 +232,9 @@ def parse_weather(data: dict, city_name: str) -> dict:
         sunset_text = sunset.split("T")[1][:5]
 
     if precip is None:
-        precip_text = "🌧️・Opady --"
+        precip_text = "☁️・Opady --"
     elif float(precip) <= 0:
-        precip_text = "🌤️・Bez opadów"
+        precip_text = "☁️・Bez opadów"
     else:
         precip_text = f"🌧️・Opady {round(float(precip), 1)} mm"
 
@@ -210,8 +243,8 @@ def parse_weather(data: dict, city_name: str) -> dict:
         "feels_like": f"🥵・Odczuwalna {round(float(feels))}°C" if feels is not None else "🥵・Odczuwalna --°C",
         "precip": precip_text,
         "wind": f"💨・Wiatr {round(float(wind))} km/h" if wind is not None else "💨・Wiatr -- km/h",
-        "pressure": f"🧭・Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "🧭・Ciśnienie -- hPa",
-        "sunrise": f"🌅・Wschód {sunrise_text}",
+        "pressure": f"⏰・Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "⏰・Ciśnienie -- hPa",
+        "sunrise": f"🌄・Wschód {sunrise_text}",
         "sunset": f"🌇・Zachód {sunset_text}",
     }
 
@@ -274,6 +307,8 @@ async def create_setup_for_guild(guild: discord.Guild) -> dict:
         "longitude": existing_cfg.get("longitude", 21.9990),
         "timezone": existing_cfg.get("timezone", "Europe/Warsaw"),
         "category_id": category.id,
+        "panel_message_channel_id": existing_cfg.get("panel_message_channel_id"),
+        "panel_message_id": existing_cfg.get("panel_message_id"),
         "channels": channels
     }
 
@@ -354,9 +389,110 @@ async def update_one_guild(guild: discord.Guild):
     if not guild_cfg:
         return
 
-    await update_time_channels_for_guild(guild, guild_cfg)
-    await update_weather_channels_for_guild(guild, guild_cfg)
-    await update_server_stats_for_guild(guild, guild_cfg)
+    lock = get_lock(guild.id)
+    async with lock:
+        await update_time_channels_for_guild(guild, guild_cfg)
+        await update_weather_channels_for_guild(guild, guild_cfg)
+        await update_server_stats_for_guild(guild, guild_cfg)
+
+
+async def schedule_quick_refresh(guild: discord.Guild, delay: float = 3.0):
+    if guild is None:
+        return
+
+    old_task = guild_refresh_tasks.get(guild.id)
+    if old_task and not old_task.done():
+        old_task.cancel()
+
+    async def delayed():
+        try:
+            await asyncio.sleep(delay)
+            await update_one_guild(guild)
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logging.error(f"Błąd szybkiego refresh dla {guild.id}: {e}")
+
+    guild_refresh_tasks[guild.id] = asyncio.create_task(delayed())
+
+
+# =========================================================
+# PANEL
+# =========================================================
+
+def build_panel_embed(guild: discord.Guild, guild_cfg: dict):
+    embed = discord.Embed(
+        title="🛰️ Kosmiczny Zegar — Panel",
+        description="Panel zarządzania i podglądu konfiguracji bota.",
+        color=discord.Color.blurple()
+    )
+
+    embed.add_field(
+        name="📍 Miasto",
+        value=guild_cfg.get("city_name", "Rzeszów"),
+        inline=True
+    )
+    embed.add_field(
+        name="🕒 Strefa",
+        value=guild_cfg.get("timezone", "Europe/Warsaw"),
+        inline=True
+    )
+    embed.add_field(
+        name="📡 Serwerów bota",
+        value=str(len(bot.guilds)),
+        inline=True
+    )
+
+    embed.add_field(
+        name="🧩 Kanały",
+        value=str(len(guild_cfg.get("channels", {}))),
+        inline=True
+    )
+    embed.add_field(
+        name="👥 Użytkownicy łącznie",
+        value=str(sum(g.member_count or 0 for g in bot.guilds)),
+        inline=True
+    )
+    embed.add_field(
+        name="🗓️ Ostatni odczyt",
+        value=now_warsaw().strftime("%d.%m.%Y %H:%M:%S"),
+        inline=True
+    )
+
+    if bot.user and bot.user.avatar:
+        embed.set_thumbnail(url=bot.user.avatar.url)
+
+    embed.set_footer(text=f"Serwer: {guild.name}")
+    return embed
+
+
+class RefreshPanelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="Odśwież teraz", emoji="🔄", style=discord.ButtonStyle.blurple, custom_id="kosmiczny_refresh_button")
+    async def refresh_now(self, interaction: discord.Interaction, button: discord.ui.Button):
+        guild = interaction.guild
+        if guild is None:
+            await interaction.response.send_message("❌ Tej akcji można użyć tylko na serwerze.", ephemeral=True)
+            return
+
+        cfg = get_guild_config(guild.id)
+        if not cfg:
+            await interaction.response.send_message("ℹ️ Najpierw użyj `/setup`.", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True)
+        try:
+            await update_one_guild(guild)
+            embed = build_panel_embed(guild, cfg)
+            try:
+                await interaction.message.edit(embed=embed, view=self)
+            except Exception:
+                pass
+            await interaction.followup.send("✅ Kanały zostały odświeżone.", ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"❌ Błąd odświeżania: {e}", ephemeral=True)
 
 
 # =========================================================
@@ -483,6 +619,72 @@ async def status_clock(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+@bot.tree.command(name="refresh", description="Natychmiast odświeża wszystkie kanały")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def refresh_clock(interaction: discord.Interaction):
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message("❌ Tej komendy można użyć tylko na serwerze.", ephemeral=True)
+        return
+
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        await interaction.response.send_message("ℹ️ Najpierw użyj `/setup`.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+    try:
+        await update_one_guild(guild)
+        await interaction.followup.send("✅ Wszystkie kanały zostały odświeżone.", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Błąd odświeżania: {e}", ephemeral=True)
+
+
+@bot.tree.command(name="miasto", description="Ustawia miasto z całego świata")
+@app_commands.describe(nazwa="Np. Rzeszów, Warszawa, Berlin, London")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def city_clock(interaction: discord.Interaction, nazwa: str):
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message("❌ Tej komendy można użyć tylko na serwerze.", ephemeral=True)
+        return
+
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        await interaction.response.send_message("ℹ️ Najpierw użyj `/setup`.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    try:
+        result = await geocode_city(nazwa)
+        if not result:
+            await interaction.followup.send("❌ Nie znaleziono takiego miasta.", ephemeral=True)
+            return
+
+        config = load_config()
+        guild_key = str(guild.id)
+
+        city_display = result["name"]
+        if result.get("country"):
+            city_display = f'{result["name"]}, {result["country"]}'
+
+        config[guild_key]["city_name"] = city_display
+        config[guild_key]["latitude"] = result["latitude"]
+        config[guild_key]["longitude"] = result["longitude"]
+        config[guild_key]["timezone"] = result["timezone"]
+        save_config(config)
+
+        await update_one_guild(guild)
+
+        await interaction.followup.send(
+            f"✅ Ustawiono miasto: **{city_display}**",
+            ephemeral=True
+        )
+    except Exception as e:
+        await interaction.followup.send(f"❌ Błąd ustawiania miasta: {e}", ephemeral=True)
+
+
 @bot.tree.command(name="botstats", description="Pokazuje statystyki publicznego bota")
 async def botstats(interaction: discord.Interaction):
     servers = len(bot.guilds)
@@ -495,6 +697,7 @@ async def botstats(interaction: discord.Interaction):
     embed.add_field(name="🌍 Serwery", value=str(servers), inline=False)
     embed.add_field(name="👥 Łącznie użytkowników", value=str(users), inline=False)
     embed.add_field(name="🤖 Bot", value=str(bot.user), inline=False)
+    embed.add_field(name="🕒 Czas", value=now_warsaw().strftime("%H:%M:%S"), inline=False)
 
     if bot.user and bot.user.avatar:
         embed.set_thumbnail(url=bot.user.avatar.url)
@@ -502,29 +705,82 @@ async def botstats(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+@bot.tree.command(name="invite", description="Link do dodania bota")
+async def invite_bot(interaction: discord.Interaction):
+    link = "https://discord.com/oauth2/authorize?client_id=1481070169077055548&permissions=2147568640&scope=bot%20applications.commands"
+
+    embed = discord.Embed(
+        title="➕ Dodaj Kosmiczny Zegar",
+        description=f"[Kliknij tutaj, aby dodać bota]({link})",
+        color=discord.Color.blurple()
+    )
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@bot.tree.command(name="panel", description="Pokazuje panel Kosmicznego Zegara")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def panel_clock(interaction: discord.Interaction):
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message("❌ Tej komendy można użyć tylko na serwerze.", ephemeral=True)
+        return
+
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        await interaction.response.send_message("ℹ️ Najpierw użyj `/setup`.", ephemeral=True)
+        return
+
+    embed = build_panel_embed(guild, cfg)
+    view = RefreshPanelView()
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
+
+
 # =========================================================
 # BŁĘDY
 # =========================================================
 
 @setup_clock.error
-async def setup_clock_error(interaction: discord.Interaction, error):
+@refresh_clock.error
+@city_clock.error
+@panel_clock.error
+async def common_manage_guild_error(interaction: discord.Interaction, error):
     if isinstance(error, app_commands.errors.MissingPermissions):
         if interaction.response.is_done():
-            await interaction.followup.send(
-                "❌ Musisz mieć uprawnienie `Manage Server`.",
-                ephemeral=True
-            )
+            await interaction.followup.send("❌ Musisz mieć uprawnienie `Manage Server`.", ephemeral=True)
         else:
-            await interaction.response.send_message(
-                "❌ Musisz mieć uprawnienie `Manage Server`.",
-                ephemeral=True
-            )
+            await interaction.response.send_message("❌ Musisz mieć uprawnienie `Manage Server`.", ephemeral=True)
     else:
-        logging.error(f"Błąd /setup: {error}")
+        logging.error(f"Błąd komendy: {error}")
 
 
 # =========================================================
-# EVENTY
+# EVENTY NATYCHMIASTOWEGO ODŚWIEŻANIA
+# =========================================================
+
+@bot.event
+async def on_member_join(member: discord.Member):
+    await schedule_quick_refresh(member.guild)
+
+
+@bot.event
+async def on_member_remove(member: discord.Member):
+    await schedule_quick_refresh(member.guild)
+
+
+@bot.event
+async def on_voice_state_update(member: discord.Member, before, after):
+    await schedule_quick_refresh(member.guild)
+
+
+@bot.event
+async def on_presence_update(before: discord.Member, after: discord.Member):
+    if before.status != after.status:
+        await schedule_quick_refresh(after.guild)
+
+
+# =========================================================
+# READY
 # =========================================================
 
 @bot.event
@@ -536,6 +792,12 @@ async def on_ready():
         logging.info(f"Zsynchronizowano {len(synced)} komend slash")
     except Exception as e:
         logging.error(f"Błąd sync komend: {e}")
+
+    try:
+        bot.add_view(RefreshPanelView())
+        logging.info("Zarejestrowano persistent view")
+    except Exception as e:
+        logging.error(f"Błąd rejestracji view: {e}")
 
     if not time_loop.is_running():
         time_loop.start()
