@@ -260,7 +260,10 @@ async def create_setup_for_guild(guild: discord.Guild) -> dict:
     channels["sunrise"] = (await create_or_get_voice_channel(guild, category, "🌅・Wschód")).id
     channels["sunset"] = (await create_or_get_voice_channel(guild, category, "🌇・Zachód")).id
 
+    channels["all_members"] = (await create_or_get_voice_channel(guild, category, "👥・Wszyscy")).id
     channels["members"] = (await create_or_get_voice_channel(guild, category, "👥・Członkowie")).id
+    channels["users"] = (await create_or_get_voice_channel(guild, category, "🙂・Użytkownicy")).id
+    channels["bots"] = (await create_or_get_voice_channel(guild, category, "🤖・Boty")).id
     channels["online"] = (await create_or_get_voice_channel(guild, category, "🟢・Online")).id
     channels["voice"] = (await create_or_get_voice_channel(guild, category, "🎤・Na VC")).id
 
@@ -310,15 +313,20 @@ async def update_weather_channels_for_guild(guild: discord.Guild, guild_cfg: dic
 
 
 async def update_server_stats_for_guild(guild: discord.Guild, guild_cfg: dict):
+    all_members_count = guild.member_count or 0
     members_count = 0
+    users_count = 0
+    bots_count = 0
     online_count = 0
     voice_count = 0
 
     for member in guild.members:
-        if member.bot:
-            continue
-
         members_count += 1
+
+        if member.bot:
+            bots_count += 1
+        else:
+            users_count += 1
 
         if member.status != discord.Status.offline:
             online_count += 1
@@ -327,7 +335,10 @@ async def update_server_stats_for_guild(guild: discord.Guild, guild_cfg: dict):
             voice_count += 1
 
     updates = {
+        "all_members": f"👥・Wszyscy {all_members_count}",
         "members": f"👥・Członkowie {members_count}",
+        "users": f"🙂・Użytkownicy {users_count}",
+        "bots": f"🤖・Boty {bots_count}",
         "online": f"🟢・Online {online_count}",
         "voice": f"🎤・Na VC {voice_count}",
     }
@@ -351,7 +362,7 @@ async def update_one_guild(guild: discord.Guild):
 # PĘTLE
 # =========================================================
 
-@tasks.loop(minutes=10)
+@tasks.loop(minutes=2)
 async def time_loop():
     config = load_config()
     for guild_id, guild_cfg in config.items():
@@ -360,7 +371,7 @@ async def time_loop():
             await update_time_channels_for_guild(guild, guild_cfg)
 
 
-@tasks.loop(minutes=15)
+@tasks.loop(minutes=2)
 async def weather_loop():
     config = load_config()
     for guild_id, guild_cfg in config.items():
@@ -369,7 +380,7 @@ async def weather_loop():
             await update_weather_channels_for_guild(guild, guild_cfg)
 
 
-@tasks.loop(minutes=5)
+@tasks.loop(minutes=2)
 async def stats_loop():
     config = load_config()
     for guild_id, guild_cfg in config.items():
@@ -467,6 +478,25 @@ async def status_clock(interaction: discord.Interaction):
     embed.add_field(name="Miasto", value=cfg.get("city_name", "Rzeszów"), inline=True)
     embed.add_field(name="Strefa czasowa", value=cfg.get("timezone", "Europe/Warsaw"), inline=True)
     embed.add_field(name="Kanały", value=str(len(cfg.get("channels", {}))), inline=True)
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@bot.tree.command(name="botstats", description="Pokazuje statystyki publicznego bota")
+async def botstats(interaction: discord.Interaction):
+    servers = len(bot.guilds)
+    users = sum(g.member_count or 0 for g in bot.guilds)
+
+    embed = discord.Embed(
+        title="📊 Statystyki bota",
+        color=discord.Color.blue()
+    )
+    embed.add_field(name="🌍 Serwery", value=str(servers), inline=False)
+    embed.add_field(name="👥 Łącznie użytkowników", value=str(users), inline=False)
+    embed.add_field(name="🤖 Bot", value=str(bot.user), inline=False)
+
+    if bot.user and bot.user.avatar:
+        embed.set_thumbnail(url=bot.user.avatar.url)
 
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
