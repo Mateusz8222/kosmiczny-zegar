@@ -2,7 +2,7 @@ import os
 import json
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import aiohttp
@@ -16,7 +16,9 @@ load_dotenv()
 TOKEN = os.getenv("PUBLIC_DISCORD_TOKEN")
 CONFIG_FILE = "guilds.json"
 TIMEZONE = "Europe/Warsaw"
-EDIT_DELAY_SECONDS = 1.0
+
+# Bezpieczne opóźnienie między zmianami nazw kanałów
+EDIT_DELAY_SECONDS = 3.0
 
 logging.basicConfig(
     level=logging.INFO,
@@ -33,9 +35,11 @@ intents.voice_states = True
 intents.message_content = False
 
 bot = commands.Bot(command_prefix="!", intents=intents)
+
 last_channel_names = {}
 guild_refresh_locks = {}
 guild_refresh_tasks = {}
+bot_started_at = datetime.now(warsaw_tz)
 
 
 # =========================================================
@@ -44,6 +48,14 @@ guild_refresh_tasks = {}
 
 def now_warsaw() -> datetime:
     return datetime.now(warsaw_tz)
+
+
+def uptime_text() -> str:
+    delta = now_warsaw() - bot_started_at
+    days = delta.days
+    hours, rem = divmod(delta.seconds, 3600)
+    minutes, _ = divmod(rem, 60)
+    return f"{days}d {hours}h {minutes}m"
 
 
 def load_config() -> dict:
@@ -79,9 +91,15 @@ def get_channel_from_config(guild: discord.Guild, guild_cfg: dict, key: str):
     return guild.get_channel(channel_id)
 
 
+def get_lock(guild_id: int) -> asyncio.Lock:
+    if guild_id not in guild_refresh_locks:
+        guild_refresh_locks[guild_id] = asyncio.Lock()
+    return guild_refresh_locks[guild_id]
+
+
 def format_polish_date(dt: datetime) -> str:
     dni = ["pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz."]
-    return f"🗓️・{dni[dt.weekday()]} {dt.strftime('%d.%m.%Y')}"
+    return f"📅・{dni[dt.weekday()]} {dt.strftime('%d.%m.%Y')}"
 
 
 def get_part_of_day(hour: int) -> str:
@@ -126,12 +144,6 @@ def get_moon_phase(dt: datetime) -> str:
         7: "🌘・Stary księżyc",
     }
     return phases.get(phase_index, "🌙・Księżyc")
-
-
-def get_lock(guild_id: int) -> asyncio.Lock:
-    if guild_id not in guild_refresh_locks:
-        guild_refresh_locks[guild_id] = asyncio.Lock()
-    return guild_refresh_locks[guild_id]
 
 
 async def safe_edit_channel_name(channel: discord.abc.GuildChannel, new_name: str):
@@ -243,8 +255,8 @@ def parse_weather(data: dict, city_name: str) -> dict:
         "feels_like": f"🥵・Odczuwalna {round(float(feels))}°C" if feels is not None else "🥵・Odczuwalna --°C",
         "precip": precip_text,
         "wind": f"💨・Wiatr {round(float(wind))} km/h" if wind is not None else "💨・Wiatr -- km/h",
-        "pressure": f"⏰・Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "⏰・Ciśnienie -- hPa",
-        "sunrise": f"🌄・Wschód {sunrise_text}",
+        "pressure": f"🧭・Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "🧭・Ciśnienie -- hPa",
+        "sunrise": f"🌅・Wschód {sunrise_text}",
         "sunset": f"🌇・Zachód {sunset_text}",
     }
 
@@ -261,7 +273,6 @@ async def create_or_get_voice_channel(
     for channel in category.voice_channels:
         if channel.name == name:
             return channel
-
     return await guild.create_voice_channel(name=name, category=category)
 
 
@@ -282,7 +293,7 @@ async def create_setup_for_guild(guild: discord.Guild) -> dict:
         category = await guild.create_category("🛰️ Kosmiczny Zegar")
 
     channels = {}
-    channels["date"] = (await create_or_get_voice_channel(guild, category, "🗓️・Data")).id
+    channels["date"] = (await create_or_get_voice_channel(guild, category, "📅・Data")).id
     channels["part_of_day"] = (await create_or_get_voice_channel(guild, category, "🌆・Pora dnia")).id
     channels["moon_phase"] = (await create_or_get_voice_channel(guild, category, "🌙・Faza księżyca")).id
 
@@ -290,8 +301,8 @@ async def create_setup_for_guild(guild: discord.Guild) -> dict:
     channels["feels_like"] = (await create_or_get_voice_channel(guild, category, "🥵・Odczuwalna")).id
     channels["precip"] = (await create_or_get_voice_channel(guild, category, "☁️・Opady")).id
     channels["wind"] = (await create_or_get_voice_channel(guild, category, "💨・Wiatr")).id
-    channels["pressure"] = (await create_or_get_voice_channel(guild, category, "⏰・Ciśnienie")).id
-    channels["sunrise"] = (await create_or_get_voice_channel(guild, category, "🌄・Wschód")).id
+    channels["pressure"] = (await create_or_get_voice_channel(guild, category, "🧭・Ciśnienie")).id
+    channels["sunrise"] = (await create_or_get_voice_channel(guild, category, "🌅・Wschód")).id
     channels["sunset"] = (await create_or_get_voice_channel(guild, category, "🌇・Zachód")).id
 
     channels["all_members"] = (await create_or_get_voice_channel(guild, category, "👥・Wszyscy")).id
@@ -307,8 +318,6 @@ async def create_setup_for_guild(guild: discord.Guild) -> dict:
         "longitude": existing_cfg.get("longitude", 21.9990),
         "timezone": existing_cfg.get("timezone", "Europe/Warsaw"),
         "category_id": category.id,
-        "panel_message_channel_id": existing_cfg.get("panel_message_channel_id"),
-        "panel_message_id": existing_cfg.get("panel_message_id"),
         "channels": channels
     }
 
@@ -396,7 +405,7 @@ async def update_one_guild(guild: discord.Guild):
         await update_server_stats_for_guild(guild, guild_cfg)
 
 
-async def schedule_quick_refresh(guild: discord.Guild, delay: float = 3.0):
+async def schedule_quick_refresh(guild: discord.Guild, delay: float = 10.0):
     if guild is None:
         return
 
@@ -417,52 +426,66 @@ async def schedule_quick_refresh(guild: discord.Guild, delay: float = 3.0):
 
 
 # =========================================================
-# PANEL
+# EMBEDY
 # =========================================================
 
 def build_panel_embed(guild: discord.Guild, guild_cfg: dict):
     embed = discord.Embed(
         title="🛰️ Kosmiczny Zegar — Panel",
-        description="Panel zarządzania i podglądu konfiguracji bota.",
+        description="Panel konfiguracji i szybkiego odświeżania.",
         color=discord.Color.blurple()
     )
-
-    embed.add_field(
-        name="📍 Miasto",
-        value=guild_cfg.get("city_name", "Rzeszów"),
-        inline=True
-    )
-    embed.add_field(
-        name="🕒 Strefa",
-        value=guild_cfg.get("timezone", "Europe/Warsaw"),
-        inline=True
-    )
-    embed.add_field(
-        name="📡 Serwerów bota",
-        value=str(len(bot.guilds)),
-        inline=True
-    )
-
-    embed.add_field(
-        name="🧩 Kanały",
-        value=str(len(guild_cfg.get("channels", {}))),
-        inline=True
-    )
-    embed.add_field(
-        name="👥 Użytkownicy łącznie",
-        value=str(sum(g.member_count or 0 for g in bot.guilds)),
-        inline=True
-    )
-    embed.add_field(
-        name="🗓️ Ostatni odczyt",
-        value=now_warsaw().strftime("%d.%m.%Y %H:%M:%S"),
-        inline=True
-    )
+    embed.add_field(name="📍 Miasto", value=guild_cfg.get("city_name", "Rzeszów"), inline=True)
+    embed.add_field(name="🕒 Strefa", value=guild_cfg.get("timezone", "Europe/Warsaw"), inline=True)
+    embed.add_field(name="📡 Serwery bota", value=str(len(bot.guilds)), inline=True)
+    embed.add_field(name="🧩 Kanały", value=str(len(guild_cfg.get("channels", {}))), inline=True)
+    embed.add_field(name="👥 Global users", value=str(sum(g.member_count or 0 for g in bot.guilds)), inline=True)
+    embed.add_field(name="⏱ Uptime", value=uptime_text(), inline=True)
 
     if bot.user and bot.user.avatar:
         embed.set_thumbnail(url=bot.user.avatar.url)
 
     embed.set_footer(text=f"Serwer: {guild.name}")
+    return embed
+
+
+def build_help_embed():
+    embed = discord.Embed(
+        title="📘 Kosmiczny Zegar — Pomoc",
+        description="Lista najważniejszych komend bota.",
+        color=discord.Color.blue()
+    )
+    embed.add_field(
+        name="⚙️ Konfiguracja",
+        value="`/setup`\n`/miasto`\n`/refresh`\n`/status`\n`/panel`",
+        inline=False
+    )
+    embed.add_field(
+        name="🌍 Informacje",
+        value="`/pogoda`\n`/czas`\n`/ksiezyc`",
+        inline=False
+    )
+    embed.add_field(
+        name="🤖 Bot",
+        value="`/ping`\n`/botstats`\n`/invite`\n`/help`",
+        inline=False
+    )
+    return embed
+
+
+def build_weather_embed(guild_cfg: dict, weather: dict):
+    embed = discord.Embed(
+        title="🌤 Pogoda",
+        description=f"Miasto: **{guild_cfg.get('city_name', 'Rzeszów')}**",
+        color=discord.Color.teal()
+    )
+    embed.add_field(name="Temperatura", value=weather["temp"], inline=False)
+    embed.add_field(name="Odczuwalna", value=weather["feels_like"], inline=False)
+    embed.add_field(name="Opady", value=weather["precip"], inline=False)
+    embed.add_field(name="Wiatr", value=weather["wind"], inline=False)
+    embed.add_field(name="Ciśnienie", value=weather["pressure"], inline=False)
+    embed.add_field(name="Wschód", value=weather["sunrise"], inline=False)
+    embed.add_field(name="Zachód", value=weather["sunset"], inline=False)
     return embed
 
 
@@ -499,7 +522,7 @@ class RefreshPanelView(discord.ui.View):
 # PĘTLE AUTO
 # =========================================================
 
-@tasks.loop(seconds=60)
+@tasks.loop(minutes=5)
 async def time_loop():
     config = load_config()
     for guild_id, guild_cfg in config.items():
@@ -508,7 +531,7 @@ async def time_loop():
             await update_time_channels_for_guild(guild, guild_cfg)
 
 
-@tasks.loop(minutes=2)
+@tasks.loop(minutes=10)
 async def weather_loop():
     config = load_config()
     for guild_id, guild_cfg in config.items():
@@ -517,7 +540,7 @@ async def weather_loop():
             await update_weather_channels_for_guild(guild, guild_cfg)
 
 
-@tasks.loop(seconds=30)
+@tasks.loop(minutes=2)
 async def stats_loop():
     config = load_config()
     for guild_id, guild_cfg in config.items():
@@ -526,7 +549,7 @@ async def stats_loop():
             await update_server_stats_for_guild(guild, guild_cfg)
 
 
-@tasks.loop(seconds=10)
+@tasks.loop(seconds=30)
 async def presence_loop():
     await bot.change_presence(
         status=discord.Status.online,
@@ -576,21 +599,12 @@ async def setup_clock(interaction: discord.Interaction):
     try:
         await create_setup_for_guild(guild)
         await update_one_guild(guild)
-        await interaction.followup.send(
-            "✅ Kosmiczny Zegar został utworzony i skonfigurowany.",
-            ephemeral=True
-        )
+        await interaction.followup.send("✅ Kosmiczny Zegar został utworzony i skonfigurowany.", ephemeral=True)
     except discord.Forbidden:
-        await interaction.followup.send(
-            "❌ Bot nie ma wymaganych uprawnień. Potrzebuje `Manage Channels`.",
-            ephemeral=True
-        )
+        await interaction.followup.send("❌ Bot nie ma wymaganych uprawnień. Potrzebuje `Manage Channels`.", ephemeral=True)
     except Exception as e:
         logging.error(f"Błąd /setup na serwerze {guild.id}: {e}")
-        await interaction.followup.send(
-            f"❌ Wystąpił błąd podczas setupu: {e}",
-            ephemeral=True
-        )
+        await interaction.followup.send(f"❌ Wystąpił błąd podczas setupu: {e}", ephemeral=True)
 
 
 @bot.tree.command(name="status", description="Pokazuje status konfiguracji Kosmicznego Zegara")
@@ -602,20 +616,13 @@ async def status_clock(interaction: discord.Interaction):
 
     cfg = get_guild_config(guild.id)
     if not cfg:
-        await interaction.response.send_message(
-            "ℹ️ Ten serwer nie ma jeszcze konfiguracji. Użyj `/setup`.",
-            ephemeral=True
-        )
+        await interaction.response.send_message("ℹ️ Ten serwer nie ma jeszcze konfiguracji. Użyj `/setup`.", ephemeral=True)
         return
 
-    embed = discord.Embed(
-        title="🛰️ Status Kosmicznego Zegara",
-        color=discord.Color.blue()
-    )
+    embed = discord.Embed(title="🛰️ Status Kosmicznego Zegara", color=discord.Color.blue())
     embed.add_field(name="Miasto", value=cfg.get("city_name", "Rzeszów"), inline=True)
     embed.add_field(name="Strefa czasowa", value=cfg.get("timezone", "Europe/Warsaw"), inline=True)
     embed.add_field(name="Kanały", value=str(len(cfg.get("channels", {}))), inline=True)
-
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -676,11 +683,7 @@ async def city_clock(interaction: discord.Interaction, nazwa: str):
         save_config(config)
 
         await update_one_guild(guild)
-
-        await interaction.followup.send(
-            f"✅ Ustawiono miasto: **{city_display}**",
-            ephemeral=True
-        )
+        await interaction.followup.send(f"✅ Ustawiono miasto: **{city_display}**", ephemeral=True)
     except Exception as e:
         await interaction.followup.send(f"❌ Błąd ustawiania miasta: {e}", ephemeral=True)
 
@@ -690,14 +693,11 @@ async def botstats(interaction: discord.Interaction):
     servers = len(bot.guilds)
     users = sum(g.member_count or 0 for g in bot.guilds)
 
-    embed = discord.Embed(
-        title="📊 Statystyki bota",
-        color=discord.Color.blue()
-    )
+    embed = discord.Embed(title="📊 Statystyki bota", color=discord.Color.blue())
     embed.add_field(name="🌍 Serwery", value=str(servers), inline=False)
     embed.add_field(name="👥 Łącznie użytkowników", value=str(users), inline=False)
     embed.add_field(name="🤖 Bot", value=str(bot.user), inline=False)
-    embed.add_field(name="🕒 Czas", value=now_warsaw().strftime("%H:%M:%S"), inline=False)
+    embed.add_field(name="⏱ Uptime", value=uptime_text(), inline=False)
 
     if bot.user and bot.user.avatar:
         embed.set_thumbnail(url=bot.user.avatar.url)
@@ -708,13 +708,11 @@ async def botstats(interaction: discord.Interaction):
 @bot.tree.command(name="invite", description="Link do dodania bota")
 async def invite_bot(interaction: discord.Interaction):
     link = "https://discord.com/oauth2/authorize?client_id=1481070169077055548&permissions=2147568640&scope=bot%20applications.commands"
-
     embed = discord.Embed(
         title="➕ Dodaj Kosmiczny Zegar",
         description=f"[Kliknij tutaj, aby dodać bota]({link})",
         color=discord.Color.blurple()
     )
-
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -733,7 +731,53 @@ async def panel_clock(interaction: discord.Interaction):
 
     embed = build_panel_embed(guild, cfg)
     view = RefreshPanelView()
-    await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
+    await interaction.response.send_message(embed=embed, view=view)
+
+
+@bot.tree.command(name="help", description="Pokazuje listę komend")
+async def help_command(interaction: discord.Interaction):
+    await interaction.response.send_message(embed=build_help_embed(), ephemeral=True)
+
+
+@bot.tree.command(name="pogoda", description="Pokazuje aktualną pogodę")
+async def weather_command(interaction: discord.Interaction):
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message("❌ Tej komendy można użyć tylko na serwerze.", ephemeral=True)
+        return
+
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        await interaction.response.send_message("ℹ️ Najpierw użyj `/setup`.", ephemeral=True)
+        return
+
+    try:
+        data = await fetch_weather(
+            float(cfg.get("latitude", 50.0413)),
+            float(cfg.get("longitude", 21.9990)),
+            cfg.get("timezone", "Europe/Warsaw"),
+        )
+        weather = parse_weather(data, cfg.get("city_name", "Rzeszów"))
+        await interaction.response.send_message(embed=build_weather_embed(cfg, weather), ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Błąd pobierania pogody: {e}", ephemeral=True)
+
+
+@bot.tree.command(name="czas", description="Pokazuje aktualny czas")
+async def time_command(interaction: discord.Interaction):
+    dt = now_warsaw()
+    await interaction.response.send_message(
+        f"🕒 Aktualny czas: **{dt.strftime('%H:%M:%S')}**\n📅 Data: **{dt.strftime('%d.%m.%Y')}**",
+        ephemeral=True
+    )
+
+
+@bot.tree.command(name="ksiezyc", description="Pokazuje aktualną fazę księżyca")
+async def moon_command(interaction: discord.Interaction):
+    await interaction.response.send_message(
+        f"🌙 Aktualna faza księżyca: **{get_moon_phase(now_warsaw())}**",
+        ephemeral=True
+    )
 
 
 # =========================================================
@@ -760,23 +804,24 @@ async def common_manage_guild_error(interaction: discord.Interaction, error):
 
 @bot.event
 async def on_member_join(member: discord.Member):
-    await schedule_quick_refresh(member.guild)
+    await schedule_quick_refresh(member.guild, delay=12.0)
 
 
 @bot.event
 async def on_member_remove(member: discord.Member):
-    await schedule_quick_refresh(member.guild)
+    await schedule_quick_refresh(member.guild, delay=12.0)
 
 
 @bot.event
 async def on_voice_state_update(member: discord.Member, before, after):
-    await schedule_quick_refresh(member.guild)
+    if before.channel != after.channel:
+        await schedule_quick_refresh(member.guild, delay=8.0)
 
 
 @bot.event
 async def on_presence_update(before: discord.Member, after: discord.Member):
     if before.status != after.status:
-        await schedule_quick_refresh(after.guild)
+        await schedule_quick_refresh(after.guild, delay=12.0)
 
 
 # =========================================================
