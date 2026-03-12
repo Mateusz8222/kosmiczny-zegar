@@ -16,7 +16,7 @@ load_dotenv()
 TOKEN = os.getenv("PUBLIC_DISCORD_TOKEN")
 CONFIG_FILE = "guilds.json"
 TIMEZONE = "Europe/Warsaw"
-EDIT_DELAY_SECONDS = 2.0
+EDIT_DELAY_SECONDS = 1.0
 
 logging.basicConfig(
     level=logging.INFO,
@@ -30,6 +30,7 @@ intents.guilds = True
 intents.members = True
 intents.presences = True
 intents.voice_states = True
+intents.message_content = False
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 last_channel_names = {}
@@ -83,7 +84,7 @@ def format_polish_date(dt: datetime) -> str:
 
 def get_part_of_day(hour: int) -> str:
     if 5 <= hour < 12:
-        return "☀️・Poranek"
+        return "🌅・Poranek"
     elif 12 <= hour < 18:
         return "🌞・Popołudnie"
     elif 18 <= hour < 22:
@@ -249,19 +250,19 @@ async def create_setup_for_guild(guild: discord.Guild) -> dict:
 
     channels = {}
     channels["date"] = (await create_or_get_voice_channel(guild, category, "🗓️・Data")).id
-    channels["part_of_day"] = (await create_or_get_voice_channel(guild, category, "🌞・Pora dnia")).id
+    channels["part_of_day"] = (await create_or_get_voice_channel(guild, category, "🌆・Pora dnia")).id
     channels["moon_phase"] = (await create_or_get_voice_channel(guild, category, "🌙・Faza księżyca")).id
 
     channels["temp"] = (await create_or_get_voice_channel(guild, category, "🌡️・Temperatura")).id
     channels["feels_like"] = (await create_or_get_voice_channel(guild, category, "🥵・Odczuwalna")).id
-    channels["precip"] = (await create_or_get_voice_channel(guild, category, "🌧️・Opady")).id
+    channels["precip"] = (await create_or_get_voice_channel(guild, category, "☁️・Opady")).id
     channels["wind"] = (await create_or_get_voice_channel(guild, category, "💨・Wiatr")).id
-    channels["pressure"] = (await create_or_get_voice_channel(guild, category, "🧭・Ciśnienie")).id
-    channels["sunrise"] = (await create_or_get_voice_channel(guild, category, "🌅・Wschód")).id
+    channels["pressure"] = (await create_or_get_voice_channel(guild, category, "⏰・Ciśnienie")).id
+    channels["sunrise"] = (await create_or_get_voice_channel(guild, category, "🌄・Wschód")).id
     channels["sunset"] = (await create_or_get_voice_channel(guild, category, "🌇・Zachód")).id
 
     channels["all_members"] = (await create_or_get_voice_channel(guild, category, "👥・Wszyscy")).id
-    channels["members"] = (await create_or_get_voice_channel(guild, category, "👥・Członkowie")).id
+    channels["members"] = (await create_or_get_voice_channel(guild, category, "👤・Członkowie")).id
     channels["users"] = (await create_or_get_voice_channel(guild, category, "🙂・Użytkownicy")).id
     channels["bots"] = (await create_or_get_voice_channel(guild, category, "🤖・Boty")).id
     channels["online"] = (await create_or_get_voice_channel(guild, category, "🟢・Online")).id
@@ -336,7 +337,7 @@ async def update_server_stats_for_guild(guild: discord.Guild, guild_cfg: dict):
 
     updates = {
         "all_members": f"👥・Wszyscy {all_members_count}",
-        "members": f"👥・Członkowie {members_count}",
+        "members": f"👤・Członkowie {members_count}",
         "users": f"🙂・Użytkownicy {users_count}",
         "bots": f"🤖・Boty {bots_count}",
         "online": f"🟢・Online {online_count}",
@@ -359,10 +360,10 @@ async def update_one_guild(guild: discord.Guild):
 
 
 # =========================================================
-# PĘTLE
+# PĘTLE AUTO
 # =========================================================
 
-@tasks.loop(minutes=2)
+@tasks.loop(seconds=60)
 async def time_loop():
     config = load_config()
     for guild_id, guild_cfg in config.items():
@@ -380,7 +381,7 @@ async def weather_loop():
             await update_weather_channels_for_guild(guild, guild_cfg)
 
 
-@tasks.loop(minutes=2)
+@tasks.loop(seconds=30)
 async def stats_loop():
     config = load_config()
     for guild_id, guild_cfg in config.items():
