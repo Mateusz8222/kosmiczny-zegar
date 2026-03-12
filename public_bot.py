@@ -498,15 +498,12 @@ async def setup_clock_error(interaction: discord.Interaction, error):
 
 @bot.event
 async def on_ready():
-    print(f"Zalogowano jako {bot.user}")
     logging.info(f"Zalogowano jako {bot.user}")
 
     try:
         synced = await bot.tree.sync()
-        print(f"Zsynchronizowano {len(synced)} komend slash")
         logging.info(f"Zsynchronizowano {len(synced)} komend slash")
     except Exception as e:
-        print(e)
         logging.error(f"Błąd sync komend: {e}")
 
     if not time_loop.is_running():
