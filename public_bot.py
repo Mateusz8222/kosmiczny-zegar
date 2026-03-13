@@ -133,13 +133,13 @@ def get_moon_phase(dt: datetime) -> str:
 
     phases = {
         0: "🌑・Nów",
-        1: "🌒・Młody księżyc",
-        2: "🌓・I kwadra",
-        3: "🌔・Przybywa",
+        1: "🌒・Przybywający sierp",
+        2: "🌓・Pierwsza kwadra",
+        3: "🌔・Przybywający garb",
         4: "🌕・Pełnia",
-        5: "🌖・Ubywa",
-        6: "🌗・III kwadra",
-        7: "🌘・Stary księżyc",
+        5: "🌖・Ubywający garb",
+        6: "🌗・Ostatnia kwadra",
+        7: "🌘・Ubywający sierp",
     }
     return phases.get(phase_index, "🌙・Księżyc")
 
