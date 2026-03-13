@@ -39,10 +39,6 @@ guild_refresh_tasks = {}
 bot_started_at = datetime.now(warsaw_tz)
 
 
-# =========================================================
-# POMOCNICZE
-# =========================================================
-
 def now_warsaw() -> datetime:
     return datetime.now(warsaw_tz)
 
@@ -175,10 +171,6 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel, new_name: st
         logging.error(f"Nieznany błąd dla kanału {channel.id}: {e}")
 
 
-# =========================================================
-# GEO + POGODA
-# =========================================================
-
 async def geocode_city(city_name: str):
     url = (
         "https://geocoding-api.open-meteo.com/v1/search"
@@ -262,10 +254,6 @@ def parse_weather(data: dict, city_name: str) -> dict:
     }
 
 
-# =========================================================
-# SETUP
-# =========================================================
-
 async def create_or_get_voice_channel(
     guild: discord.Guild,
     category: discord.CategoryChannel,
@@ -274,7 +262,12 @@ async def create_or_get_voice_channel(
     for channel in category.voice_channels:
         if channel.name == name:
             return channel
-    return await guild.create_voice_channel(name=name, category=category)
+
+    return await guild.create_voice_channel(
+        name=name,
+        category=category,
+        overwrites=category.overwrites if category else None
+    )
 
 
 async def create_setup_for_guild(guild: discord.Guild) -> dict:
@@ -282,53 +275,79 @@ async def create_setup_for_guild(guild: discord.Guild) -> dict:
     guild_key = str(guild.id)
 
     existing_cfg = config.get(guild_key, {})
-    category_id = existing_cfg.get("category_id")
 
-    category = None
-    if category_id:
-        found = guild.get_channel(category_id)
+    clock_category_id = existing_cfg.get("clock_category_id")
+    weather_category_id = existing_cfg.get("weather_category_id")
+    stats_category_id = existing_cfg.get("stats_category_id")
+
+    clock_category = None
+    weather_category = None
+    stats_category = None
+
+    if clock_category_id:
+        found = guild.get_channel(clock_category_id)
         if isinstance(found, discord.CategoryChannel):
-            category = found
+            clock_category = found
 
-    if category is None:
-        category = await guild.create_category("🛰️ Kosmiczny Zegar")
+    if weather_category_id:
+        found = guild.get_channel(weather_category_id)
+        if isinstance(found, discord.CategoryChannel):
+            weather_category = found
+
+    if stats_category_id:
+        found = guild.get_channel(stats_category_id)
+        if isinstance(found, discord.CategoryChannel):
+            stats_category = found
+
+    if clock_category is None:
+        clock_category = discord.utils.get(guild.categories, name="🛰️ Kosmiczny Zegar")
+        if clock_category is None:
+            clock_category = await guild.create_category("🛰️ Kosmiczny Zegar")
+
+    if weather_category is None:
+        weather_category = discord.utils.get(guild.categories, name="🌤️ Pogoda")
+        if weather_category is None:
+            weather_category = await guild.create_category("🌤️ Pogoda")
+
+    if stats_category is None:
+        stats_category = discord.utils.get(guild.categories, name="📊 Statystyki")
+        if stats_category is None:
+            stats_category = await guild.create_category("📊 Statystyki")
 
     channels = {}
-    channels["date"] = (await create_or_get_voice_channel(guild, category, "📅・Data")).id
-    channels["part_of_day"] = (await create_or_get_voice_channel(guild, category, "🌆・Pora dnia")).id
-    channels["moon_phase"] = (await create_or_get_voice_channel(guild, category, "🌙・Faza księżyca")).id
 
-    channels["temp"] = (await create_or_get_voice_channel(guild, category, "🌡️・Temperatura")).id
-    channels["feels_like"] = (await create_or_get_voice_channel(guild, category, "🥵・Odczuwalna")).id
-    channels["precip"] = (await create_or_get_voice_channel(guild, category, "☁️・Opady")).id
-    channels["wind"] = (await create_or_get_voice_channel(guild, category, "💨・Wiatr")).id
-    channels["pressure"] = (await create_or_get_voice_channel(guild, category, "🧭・Ciśnienie")).id
-    channels["sunrise"] = (await create_or_get_voice_channel(guild, category, "🌅・Wschód")).id
-    channels["sunset"] = (await create_or_get_voice_channel(guild, category, "🌇・Zachód")).id
+    channels["date"] = (await create_or_get_voice_channel(guild, clock_category, "📅・Data")).id
+    channels["part_of_day"] = (await create_or_get_voice_channel(guild, clock_category, "🌆・Pora dnia")).id
+    channels["moon_phase"] = (await create_or_get_voice_channel(guild, clock_category, "🌙・Faza księżyca")).id
+    channels["sunrise"] = (await create_or_get_voice_channel(guild, clock_category, "🌅・Wschód")).id
+    channels["sunset"] = (await create_or_get_voice_channel(guild, clock_category, "🌇・Zachód")).id
 
-    channels["all_members"] = (await create_or_get_voice_channel(guild, category, "👥・Wszyscy")).id
-    channels["members"] = (await create_or_get_voice_channel(guild, category, "👤・Członkowie")).id
-    channels["users"] = (await create_or_get_voice_channel(guild, category, "🙂・Użytkownicy")).id
-    channels["bots"] = (await create_or_get_voice_channel(guild, category, "🤖・Boty")).id
-    channels["online"] = (await create_or_get_voice_channel(guild, category, "🟢・Online")).id
-    channels["voice"] = (await create_or_get_voice_channel(guild, category, "🎤・Na VC")).id
+    channels["temp"] = (await create_or_get_voice_channel(guild, weather_category, "🌡️・Temperatura")).id
+    channels["feels_like"] = (await create_or_get_voice_channel(guild, weather_category, "🥵・Odczuwalna")).id
+    channels["precip"] = (await create_or_get_voice_channel(guild, weather_category, "☁️・Opady")).id
+    channels["wind"] = (await create_or_get_voice_channel(guild, weather_category, "💨・Wiatr")).id
+    channels["pressure"] = (await create_or_get_voice_channel(guild, weather_category, "🧭・Ciśnienie")).id
+
+    channels["all_members"] = (await create_or_get_voice_channel(guild, stats_category, "👥・Wszyscy")).id
+    channels["users"] = (await create_or_get_voice_channel(guild, stats_category, "🙂・Użytkownicy")).id
+    channels["bots"] = (await create_or_get_voice_channel(guild, stats_category, "🤖・Boty")).id
+    channels["online"] = (await create_or_get_voice_channel(guild, stats_category, "🟢・Online")).id
+    channels["voice"] = (await create_or_get_voice_channel(guild, stats_category, "🎤・Na VC")).id
 
     config[guild_key] = {
         "city_name": existing_cfg.get("city_name", "Rzeszów"),
         "latitude": existing_cfg.get("latitude", 50.0413),
         "longitude": existing_cfg.get("longitude", 21.9990),
         "timezone": existing_cfg.get("timezone", "Europe/Warsaw"),
-        "category_id": category.id,
+        "clock_category_id": clock_category.id,
+        "weather_category_id": weather_category.id,
+        "stats_category_id": stats_category.id,
         "channels": channels
     }
 
     save_config(config)
     return config[guild_key]
 
-
-# =========================================================
-# AKTUALIZACJE
-# =========================================================
 
 async def update_time_channels_for_guild(guild: discord.Guild, guild_cfg: dict):
     dt = now_warsaw()
@@ -337,9 +356,25 @@ async def update_time_channels_for_guild(guild: discord.Guild, guild_cfg: dict):
         "date": format_polish_date(dt),
         "part_of_day": get_part_of_day(dt.hour),
         "moon_phase": get_moon_phase(dt),
+        "sunrise": None,
+        "sunset": None,
     }
 
+    latitude = float(guild_cfg.get("latitude", 50.0413))
+    longitude = float(guild_cfg.get("longitude", 21.9990))
+    timezone_name = guild_cfg.get("timezone", "Europe/Warsaw")
+
+    try:
+        data = await fetch_weather(latitude, longitude, timezone_name)
+        weather = parse_weather(data, guild_cfg.get("city_name", "Rzeszów"))
+        updates["sunrise"] = weather["sunrise"]
+        updates["sunset"] = weather["sunset"]
+    except Exception as e:
+        logging.error(f"Błąd pobierania wschodu/zachodu dla {guild.id}: {e}")
+
     for key, new_name in updates.items():
+        if new_name is None:
+            continue
         channel = get_channel_from_config(guild, guild_cfg, key)
         await safe_edit_channel_name(channel, new_name)
 
@@ -353,21 +388,19 @@ async def update_weather_channels_for_guild(guild: discord.Guild, guild_cfg: dic
     data = await fetch_weather(latitude, longitude, timezone_name)
     weather = parse_weather(data, city_name)
 
-    for key in ["temp", "feels_like", "precip", "wind", "pressure", "sunrise", "sunset"]:
+    for key in ["temp", "feels_like", "precip", "wind", "pressure"]:
         channel = get_channel_from_config(guild, guild_cfg, key)
         await safe_edit_channel_name(channel, weather[key])
 
 
 async def update_server_stats_for_guild(guild: discord.Guild, guild_cfg: dict):
     all_members_count = guild.member_count or 0
-    members_count = 0
     users_count = 0
     bots_count = 0
     online_count = 0
     voice_count = 0
 
     for member in guild.members:
-        members_count += 1
         if member.bot:
             bots_count += 1
         else:
@@ -381,7 +414,6 @@ async def update_server_stats_for_guild(guild: discord.Guild, guild_cfg: dict):
 
     updates = {
         "all_members": f"👥・Wszyscy {all_members_count}",
-        "members": f"👤・Członkowie {members_count}",
         "users": f"🙂・Użytkownicy {users_count}",
         "bots": f"🤖・Boty {bots_count}",
         "online": f"🟢・Online {online_count}",
@@ -427,10 +459,6 @@ async def schedule_quick_refresh(guild: discord.Guild, delay: float = 15.0):
     guild_refresh_tasks[guild.id] = asyncio.create_task(delayed())
 
 
-# =========================================================
-# EMBEDY
-# =========================================================
-
 def build_panel_embed(guild: discord.Guild, guild_cfg: dict):
     embed = discord.Embed(
         title="🛰️ Kosmiczny Zegar — Panel",
@@ -460,7 +488,7 @@ def build_help_embed():
     embed.add_field(
         name="⚙️ Konfiguracja",
         value=(
-            "`/setup` — tworzy kanały\n"
+            "`/setup` — tworzy kategorie i kanały\n"
             "`/miasto` — ustawia miasto\n"
             "`/refresh` — pełne odświeżenie\n"
             "`/status` — status konfiguracji\n"
@@ -567,10 +595,6 @@ class RefreshPanelView(discord.ui.View):
             await interaction.followup.send(f"❌ Błąd odświeżania: {e}", ephemeral=True)
 
 
-# =========================================================
-# PĘTLE AUTO
-# =========================================================
-
 @tasks.loop(minutes=10)
 async def time_loop():
     config = load_config()
@@ -626,16 +650,12 @@ async def before_presence_loop():
     await bot.wait_until_ready()
 
 
-# =========================================================
-# SLASH COMMANDS
-# =========================================================
-
 @bot.tree.command(name="ping", description="Sprawdza czy publiczny bot działa")
 async def slash_ping(interaction: discord.Interaction):
     await interaction.response.send_message("🏓 Publiczny bot działa!", ephemeral=True)
 
 
-@bot.tree.command(name="setup", description="Tworzy kategorię i kanały Kosmicznego Zegara")
+@bot.tree.command(name="setup", description="Tworzy kategorie i kanały Kosmicznego Zegara")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setup_clock(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
@@ -648,7 +668,13 @@ async def setup_clock(interaction: discord.Interaction):
     try:
         await create_setup_for_guild(guild)
         await update_one_guild(guild)
-        await interaction.followup.send("✅ Kosmiczny Zegar został utworzony i skonfigurowany.", ephemeral=True)
+        await interaction.followup.send(
+            "✅ Utworzono i uporządkowano kategorie:\n"
+            "🛰️ Kosmiczny Zegar\n"
+            "🌤️ Pogoda\n"
+            "📊 Statystyki",
+            ephemeral=True
+        )
     except discord.Forbidden:
         await interaction.followup.send("❌ Bot nie ma wymaganych uprawnień. Potrzebuje `Manage Channels`.", ephemeral=True)
     except Exception as e:
@@ -811,10 +837,6 @@ async def moon_command(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# =========================================================
-# BŁĘDY
-# =========================================================
-
 @setup_clock.error
 @refresh_clock.error
 @city_clock.error
@@ -828,10 +850,6 @@ async def common_manage_guild_error(interaction: discord.Interaction, error):
     else:
         logging.error(f"Błąd komendy: {error}")
 
-
-# =========================================================
-# EVENTY NATYCHMIASTOWEGO ODŚWIEŻANIA
-# =========================================================
 
 @bot.event
 async def on_member_join(member: discord.Member):
@@ -854,10 +872,6 @@ async def on_presence_update(before: discord.Member, after: discord.Member):
     if before.status != after.status:
         await schedule_quick_refresh(after.guild, delay=15.0)
 
-
-# =========================================================
-# READY
-# =========================================================
 
 @bot.event
 async def on_ready():
@@ -894,10 +908,6 @@ async def on_ready():
             except Exception as e:
                 logging.error(f"Błąd startowego odświeżenia dla {guild.id}: {e}")
 
-
-# =========================================================
-# START
-# =========================================================
 
 if not TOKEN:
     raise ValueError("Brak PUBLIC_DISCORD_TOKEN w Railway Variables")
