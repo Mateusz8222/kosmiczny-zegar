@@ -17,7 +17,8 @@ TOKEN = os.getenv("PUBLIC_DISCORD_TOKEN")
 CONFIG_FILE = "guilds.json"
 TIMEZONE = "Europe/Warsaw"
 
-EDIT_DELAY_SECONDS = 0.3
+# Bezpieczniejsze dla limitów Discorda
+EDIT_DELAY_SECONDS = 1.2
 HTTP_TIMEOUT_SECONDS = 15
 
 logging.basicConfig(
@@ -345,7 +346,7 @@ async def create_setup_for_guild(guild: discord.Guild) -> dict:
 
     channels["temp"] = (await create_or_get_voice_channel(guild, weather_category, "🌡️・Temperatura")).id
     channels["feels_like"] = (await create_or_get_voice_channel(guild, weather_category, "🥵・Odczuwalna")).id
-    channels["precip"] = (await create_or_get_voice_channel(guild, weather_category, "☁️・Opady")).id
+    channels["precip"] = (await create_or_getVoice_channel(guild, weather_category, "☁️・Opady")).id
     channels["wind"] = (await create_or_get_voice_channel(guild, weather_category, "💨・Wiatr")).id
     channels["pressure"] = (await create_or_get_voice_channel(guild, weather_category, "🧭・Ciśnienie")).id
 
@@ -484,7 +485,7 @@ async def update_one_guild(guild: discord.Guild):
         await update_server_stats_for_guild(guild, guild_cfg)
 
 
-async def schedule_quick_refresh(guild: discord.Guild, delay: float = 4.0):
+async def schedule_quick_refresh(guild: discord.Guild, delay: float = 15.0):
     if guild is None:
         return
 
@@ -831,7 +832,7 @@ async def invite_bot(interaction: discord.Interaction):
 async def panel_clock(interaction: discord.Interaction):
     guild = interaction.guild
     if guild is None:
-        await interaction.response.send_message("❌ Tej komendy można użyć tylko na serwerze.", ephemeral=True)
+        await interaction.response.send_message("❌ Tej akcji można użyć tylko na serwerze.", ephemeral=True)
         return
 
     cfg = get_guild_config(guild.id)
@@ -906,24 +907,24 @@ async def common_manage_guild_error(interaction: discord.Interaction, error):
 
 @bot.event
 async def on_member_join(member: discord.Member):
-    await schedule_quick_refresh(member.guild, delay=4.0)
+    await schedule_quick_refresh(member.guild, delay=15.0)
 
 
 @bot.event
 async def on_member_remove(member: discord.Member):
-    await schedule_quick_refresh(member.guild, delay=4.0)
+    await schedule_quick_refresh(member.guild, delay=15.0)
 
 
 @bot.event
 async def on_voice_state_update(member: discord.Member, before, after):
     if before.channel != after.channel:
-        await schedule_quick_refresh(member.guild, delay=3.0)
+        await schedule_quick_refresh(member.guild, delay=12.0)
 
 
 @bot.event
 async def on_presence_update(before: discord.Member, after: discord.Member):
     if before.status != after.status:
-        await schedule_quick_refresh(after.guild, delay=4.0)
+        await schedule_quick_refresh(after.guild, delay=20.0)
 
 
 @bot.event
