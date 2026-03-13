@@ -96,13 +96,18 @@ def format_polish_date(dt: datetime) -> str:
 
 
 def get_part_of_day(hour: int) -> str:
-    if 5 <= hour < 12:
-        return "🌅・Poranek"
-    elif 12 <= hour < 18:
-        return "🌞・Popołudnie"
+    if 4 <= hour < 6:
+        return "🌅・Świt"
+    elif 6 <= hour < 10:
+        return "🌄・Poranek"
+    elif 10 <= hour < 14:
+        return "☀️・Południe"
+    elif 14 <= hour < 18:
+        return "🌤・Popołudnie"
     elif 18 <= hour < 22:
         return "🌆・Wieczór"
-    return "🌙・Noc"
+    else:
+        return "🌙・Noc"
 
 
 def get_moon_phase(dt: datetime) -> str:
