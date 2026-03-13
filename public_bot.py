@@ -17,7 +17,7 @@ TOKEN = os.getenv("PUBLIC_DISCORD_TOKEN")
 CONFIG_FILE = "guilds.json"
 TIMEZONE = "Europe/Warsaw"
 
-# Bezpieczniejsze dla limitów Discorda
+# Bezpieczne tempo edycji kanałów
 EDIT_DELAY_SECONDS = 1.2
 HTTP_TIMEOUT_SECONDS = 15
 
@@ -36,9 +36,9 @@ intents.voice_states = True
 
 bot = commands.Bot(command_prefix=commands.when_mentioned, intents=intents)
 
-last_channel_names = {}
-guild_refresh_locks = {}
-guild_refresh_tasks = {}
+last_channel_names: dict[int, str] = {}
+guild_refresh_locks: dict[int, asyncio.Lock] = {}
+guild_refresh_tasks: dict[int, asyncio.Task] = {}
 bot_started_at = datetime.now(warsaw_tz)
 http_session: aiohttp.ClientSession | None = None
 
@@ -346,7 +346,7 @@ async def create_setup_for_guild(guild: discord.Guild) -> dict:
 
     channels["temp"] = (await create_or_get_voice_channel(guild, weather_category, "🌡️・Temperatura")).id
     channels["feels_like"] = (await create_or_get_voice_channel(guild, weather_category, "🥵・Odczuwalna")).id
-    channels["precip"] = (await create_or_getVoice_channel(guild, weather_category, "☁️・Opady")).id
+    channels["precip"] = (await create_or_get_voice_channel(guild, weather_category, "☁️・Opady")).id
     channels["wind"] = (await create_or_get_voice_channel(guild, weather_category, "💨・Wiatr")).id
     channels["pressure"] = (await create_or_get_voice_channel(guild, weather_category, "🧭・Ciśnienie")).id
 
