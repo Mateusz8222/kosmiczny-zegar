@@ -17,8 +17,7 @@ TOKEN = os.getenv("PUBLIC_DISCORD_TOKEN")
 CONFIG_FILE = "guilds.json"
 TIMEZONE = "Europe/Warsaw"
 
-# Było 5.0 — to bardzo spowalniało bota.
-EDIT_DELAY_SECONDS = 0.6
+EDIT_DELAY_SECONDS = 0.3
 HTTP_TIMEOUT_SECONDS = 15
 
 logging.basicConfig(
@@ -485,7 +484,7 @@ async def update_one_guild(guild: discord.Guild):
         await update_server_stats_for_guild(guild, guild_cfg)
 
 
-def schedule_full_refresh(guild: discord.Guild, delay: float = 0.0):
+async def schedule_quick_refresh(guild: discord.Guild, delay: float = 4.0):
     if guild is None:
         return
 
@@ -495,8 +494,7 @@ def schedule_full_refresh(guild: discord.Guild, delay: float = 0.0):
 
     async def delayed():
         try:
-            if delay > 0:
-                await asyncio.sleep(delay)
+            await asyncio.sleep(delay)
             await update_one_guild(guild)
             logging.info(f"[REFRESH] Zakończono odświeżenie dla {guild.name} ({guild.id})")
         except asyncio.CancelledError:
@@ -505,12 +503,6 @@ def schedule_full_refresh(guild: discord.Guild, delay: float = 0.0):
             logging.error(f"[REFRESH] Błąd odświeżenia dla {guild.id}: {e}")
 
     guild_refresh_tasks[guild.id] = asyncio.create_task(delayed())
-
-
-async def schedule_quick_refresh(guild: discord.Guild, delay: float = 8.0):
-    if guild is None:
-        return
-    schedule_full_refresh(guild, delay=delay)
 
 
 def build_panel_embed(guild: discord.Guild, guild_cfg: dict):
@@ -704,20 +696,26 @@ async def setup_clock(interaction: discord.Interaction):
 
     try:
         await create_setup_for_guild(guild)
-        schedule_full_refresh(guild, delay=0.2)
+        await update_one_guild(guild)
+
         await interaction.followup.send(
-            "✅ Utworzono i uporządkowano kategorie:\n"
+            "✅ Utworzono i od razu odświeżono:\n"
             "🛰️ Kosmiczny Zegar\n"
             "🌤️ Pogoda\n"
-            "📊 Statystyki\n\n"
-            "🔄 Kanały odświeżają się już w tle.",
+            "📊 Statystyki",
             ephemeral=True
         )
     except discord.Forbidden:
-        await interaction.followup.send("❌ Bot nie ma wymaganych uprawnień. Potrzebuje `Manage Channels`.", ephemeral=True)
+        await interaction.followup.send(
+            "❌ Bot nie ma wymaganych uprawnień. Potrzebuje `Manage Channels`.",
+            ephemeral=True
+        )
     except Exception as e:
         logging.error(f"Błąd /setup na serwerze {guild.id}: {e}")
-        await interaction.followup.send(f"❌ Wystąpił błąd podczas setupu: {e}", ephemeral=True)
+        await interaction.followup.send(
+            f"❌ Wystąpił błąd podczas setupu: {e}",
+            ephemeral=True
+        )
 
 
 @bot.tree.command(name="status", description="Pokazuje status konfiguracji Kosmicznego Zegara")
@@ -766,12 +764,18 @@ async def refresh_clock(interaction: discord.Interaction):
 async def city_clock(interaction: discord.Interaction, nazwa: str):
     guild = interaction.guild
     if guild is None:
-        await interaction.response.send_message("❌ Tej komendy można użyć tylko na serwerze.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ Tej komendy można użyć tylko na serwerze.",
+            ephemeral=True
+        )
         return
 
     cfg = get_guild_config(guild.id)
     if not cfg:
-        await interaction.response.send_message("ℹ️ Najpierw użyj `/setup`.", ephemeral=True)
+        await interaction.response.send_message(
+            "ℹ️ Najpierw użyj `/setup`.",
+            ephemeral=True
+        )
         return
 
     await interaction.response.defer(ephemeral=True)
@@ -779,7 +783,10 @@ async def city_clock(interaction: discord.Interaction, nazwa: str):
     try:
         result = await geocode_city(nazwa)
         if not result:
-            await interaction.followup.send("❌ Nie znaleziono takiego miasta.", ephemeral=True)
+            await interaction.followup.send(
+                "❌ Nie znaleziono takiego miasta.",
+                ephemeral=True
+            )
             return
 
         config = load_config()
@@ -795,15 +802,18 @@ async def city_clock(interaction: discord.Interaction, nazwa: str):
         config[guild_key]["timezone"] = result["timezone"]
         save_config(config)
 
-        schedule_full_refresh(guild, delay=0.1)
+        await update_one_guild(guild)
 
         await interaction.followup.send(
-            f"✅ Ustawiono miasto: **{city_display}**\n"
-            "🔄 Kanały odświeżają się już w tle.",
+            f"✅ Ustawiono miasto: **{city_display}**",
             ephemeral=True
         )
     except Exception as e:
-        await interaction.followup.send(f"❌ Błąd ustawiania miasta: {e}", ephemeral=True)
+        logging.error(f"Błąd /miasto na serwerze {guild.id}: {e}")
+        await interaction.followup.send(
+            f"❌ Błąd ustawiania miasta: {e}",
+            ephemeral=True
+        )
 
 
 @bot.tree.command(name="botstats", description="Pokazuje statystyki publicznego bota")
@@ -948,7 +958,10 @@ async def on_ready():
 
     for guild in bot.guilds:
         if get_guild_config(guild.id):
-            schedule_full_refresh(guild, delay=0.2)
+            try:
+                await update_one_guild(guild)
+            except Exception as e:
+                logging.error(f"Błąd startowego odświeżenia dla {guild.id}: {e}")
         else:
             logging.warning(f"[READY] Brak configu dla serwera {guild.name} ({guild.id})")
 
