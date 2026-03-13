@@ -17,8 +17,8 @@ TOKEN = os.getenv("PUBLIC_DISCORD_TOKEN")
 CONFIG_FILE = "guilds.json"
 TIMEZONE = "Europe/Warsaw"
 
-# Bezpieczne tempo edycji kanałów
-EDIT_DELAY_SECONDS = 1.2
+# Spokojniejsze tempo edycji kanałów, żeby nie łapać 429
+EDIT_DELAY_SECONDS = 2.0
 HTTP_TIMEOUT_SECONDS = 15
 
 logging.basicConfig(
@@ -907,24 +907,24 @@ async def common_manage_guild_error(interaction: discord.Interaction, error):
 
 @bot.event
 async def on_member_join(member: discord.Member):
-    await schedule_quick_refresh(member.guild, delay=15.0)
+    await schedule_quick_refresh(member.guild, delay=30.0)
 
 
 @bot.event
 async def on_member_remove(member: discord.Member):
-    await schedule_quick_refresh(member.guild, delay=15.0)
+    await schedule_quick_refresh(member.guild, delay=30.0)
 
 
 @bot.event
 async def on_voice_state_update(member: discord.Member, before, after):
     if before.channel != after.channel:
-        await schedule_quick_refresh(member.guild, delay=12.0)
+        await schedule_quick_refresh(member.guild, delay=25.0)
 
 
 @bot.event
 async def on_presence_update(before: discord.Member, after: discord.Member):
     if before.status != after.status:
-        await schedule_quick_refresh(after.guild, delay=20.0)
+        await schedule_quick_refresh(after.guild, delay=45.0)
 
 
 @bot.event
@@ -958,12 +958,7 @@ async def on_ready():
         logging.info("[READY] Uruchomiono presence_loop")
 
     for guild in bot.guilds:
-        if get_guild_config(guild.id):
-            try:
-                await update_one_guild(guild)
-            except Exception as e:
-                logging.error(f"Błąd startowego odświeżenia dla {guild.id}: {e}")
-        else:
+        if not get_guild_config(guild.id):
             logging.warning(f"[READY] Brak configu dla serwera {guild.name} ({guild.id})")
 
 
