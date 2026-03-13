@@ -16,8 +16,6 @@ load_dotenv()
 TOKEN = os.getenv("PUBLIC_DISCORD_TOKEN")
 CONFIG_FILE = "guilds.json"
 TIMEZONE = "Europe/Warsaw"
-
-# Anty-rate-limit
 EDIT_DELAY_SECONDS = 5.0
 
 logging.basicConfig(
@@ -143,6 +141,10 @@ def get_moon_phase(dt: datetime) -> str:
         7: "🌘・Stary księżyc",
     }
     return phases.get(phase_index, "🌙・Księżyc")
+
+
+def format_moon_for_command(dt: datetime) -> str:
+    return get_moon_phase(dt).replace("・", " ").strip()
 
 
 async def safe_edit_channel_name(channel: discord.abc.GuildChannel, new_name: str):
@@ -452,22 +454,37 @@ def build_panel_embed(guild: discord.Guild, guild_cfg: dict):
 def build_help_embed():
     embed = discord.Embed(
         title="📘 Kosmiczny Zegar — Pomoc",
-        description="Lista najważniejszych komend bota.",
+        description="Lista komend bota.",
         color=discord.Color.blue()
     )
     embed.add_field(
         name="⚙️ Konfiguracja",
-        value="`/setup`\n`/miasto`\n`/refresh`\n`/status`\n`/panel`",
+        value=(
+            "`/setup` — tworzy kanały\n"
+            "`/miasto` — ustawia miasto\n"
+            "`/refresh` — pełne odświeżenie\n"
+            "`/status` — status konfiguracji\n"
+            "`/panel` — panel z przyciskiem"
+        ),
         inline=False
     )
     embed.add_field(
         name="🌍 Informacje",
-        value="`/pogoda`\n`/czas`\n`/ksiezyc`",
+        value=(
+            "`/pogoda` — aktualna pogoda\n"
+            "`/czas` — aktualny czas\n"
+            "`/ksiezyc` — faza księżyca"
+        ),
         inline=False
     )
     embed.add_field(
         name="🤖 Bot",
-        value="`/ping`\n`/botstats`\n`/invite`\n`/help`",
+        value=(
+            "`/ping` — sprawdzenie działania\n"
+            "`/botstats` — statystyki bota\n"
+            "`/invite` — link zaproszenia\n"
+            "`/help` — pomoc"
+        ),
         inline=False
     )
     return embed
@@ -486,6 +503,38 @@ def build_weather_embed(guild_cfg: dict, weather: dict):
     embed.add_field(name="Ciśnienie", value=weather["pressure"], inline=False)
     embed.add_field(name="Wschód", value=weather["sunrise"], inline=False)
     embed.add_field(name="Zachód", value=weather["sunset"], inline=False)
+    return embed
+
+
+def build_botstats_embed():
+    servers = len(bot.guilds)
+    users = sum(g.member_count or 0 for g in bot.guilds)
+
+    embed = discord.Embed(
+        title="📊 Statystyki bota",
+        color=discord.Color.blue()
+    )
+    embed.add_field(name="🌍 Serwery", value=str(servers), inline=False)
+    embed.add_field(name="👥 Łącznie użytkowników", value=str(users), inline=False)
+    embed.add_field(name="🤖 Bot", value=str(bot.user), inline=False)
+    embed.add_field(name="⏱ Uptime", value=uptime_text(), inline=False)
+
+    if bot.user and bot.user.avatar:
+        embed.set_thumbnail(url=bot.user.avatar.url)
+
+    return embed
+
+
+def build_invite_embed():
+    link = "https://discord.com/oauth2/authorize?client_id=1481070169077055548&permissions=2147568640&scope=bot%20applications.commands"
+    support = "https://discord.gg/FqhhUrfc"
+
+    embed = discord.Embed(
+        title="➕ Dodaj Kosmiczny Zegar",
+        description=f"[Kliknij tutaj, aby dodać bota]({link})",
+        color=discord.Color.blurple()
+    )
+    embed.add_field(name="📨 Serwer wsparcia", value=f"[Dołącz tutaj]({support})", inline=False)
     return embed
 
 
@@ -690,30 +739,12 @@ async def city_clock(interaction: discord.Interaction, nazwa: str):
 
 @bot.tree.command(name="botstats", description="Pokazuje statystyki publicznego bota")
 async def botstats(interaction: discord.Interaction):
-    servers = len(bot.guilds)
-    users = sum(g.member_count or 0 for g in bot.guilds)
-
-    embed = discord.Embed(title="📊 Statystyki bota", color=discord.Color.blue())
-    embed.add_field(name="🌍 Serwery", value=str(servers), inline=False)
-    embed.add_field(name="👥 Łącznie użytkowników", value=str(users), inline=False)
-    embed.add_field(name="🤖 Bot", value=str(bot.user), inline=False)
-    embed.add_field(name="⏱ Uptime", value=uptime_text(), inline=False)
-
-    if bot.user and bot.user.avatar:
-        embed.set_thumbnail(url=bot.user.avatar.url)
-
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=build_botstats_embed(), ephemeral=True)
 
 
 @bot.tree.command(name="invite", description="Link do dodania bota")
 async def invite_bot(interaction: discord.Interaction):
-    link = "https://discord.com/oauth2/authorize?client_id=1481070169077055548&permissions=2147568640&scope=bot%20applications.commands"
-    embed = discord.Embed(
-        title="➕ Dodaj Kosmiczny Zegar",
-        description=f"[Kliknij tutaj, aby dodać bota]({link})",
-        color=discord.Color.blurple()
-    )
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=build_invite_embed(), ephemeral=True)
 
 
 @bot.tree.command(name="panel", description="Pokazuje panel Kosmicznego Zegara")
@@ -766,18 +797,18 @@ async def weather_command(interaction: discord.Interaction):
 @bot.tree.command(name="czas", description="Pokazuje aktualny czas")
 async def time_command(interaction: discord.Interaction):
     dt = now_warsaw()
-    await interaction.response.send_message(
-        f"🕒 Aktualny czas: **{dt.strftime('%H:%M:%S')}**\n📅 Data: **{dt.strftime('%d.%m.%Y')}**",
-        ephemeral=True
-    )
+    embed = discord.Embed(title="🕒 Aktualny czas", color=discord.Color.orange())
+    embed.add_field(name="Godzina", value=dt.strftime("%H:%M:%S"), inline=False)
+    embed.add_field(name="Data", value=dt.strftime("%d.%m.%Y"), inline=False)
+    embed.add_field(name="Pora dnia", value=get_part_of_day(dt.hour).replace("・", " "), inline=False)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 @bot.tree.command(name="ksiezyc", description="Pokazuje aktualną fazę księżyca")
 async def moon_command(interaction: discord.Interaction):
-    await interaction.response.send_message(
-        f"🌙 Aktualna faza księżyca: **{get_moon_phase(now_warsaw())}**",
-        ephemeral=True
-    )
+    embed = discord.Embed(title="🌙 Faza księżyca", color=discord.Color.purple())
+    embed.description = f"**{format_moon_for_command(now_warsaw())}**"
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 # =========================================================
