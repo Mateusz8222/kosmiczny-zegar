@@ -16,7 +16,10 @@ load_dotenv()
 TOKEN = os.getenv("PUBLIC_DISCORD_TOKEN")
 CONFIG_FILE = "guilds.json"
 TIMEZONE = "Europe/Warsaw"
-EDIT_DELAY_SECONDS = 5.0
+
+# Było 5.0 — to bardzo spowalniało bota.
+EDIT_DELAY_SECONDS = 0.6
+HTTP_TIMEOUT_SECONDS = 15
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,6 +40,7 @@ last_channel_names = {}
 guild_refresh_locks = {}
 guild_refresh_tasks = {}
 bot_started_at = datetime.now(warsaw_tz)
+http_session: aiohttp.ClientSession | None = None
 
 
 def now_warsaw() -> datetime:
@@ -148,9 +152,19 @@ def format_moon_for_command(dt: datetime) -> str:
     return get_moon_phase(dt).replace("・", " ").strip()
 
 
+async def get_http_session() -> aiohttp.ClientSession:
+    global http_session
+
+    if http_session is None or http_session.closed:
+        timeout = aiohttp.ClientTimeout(total=HTTP_TIMEOUT_SECONDS)
+        connector = aiohttp.TCPConnector(limit=20, ssl=False)
+        http_session = aiohttp.ClientSession(timeout=timeout, connector=connector)
+
+    return http_session
+
+
 async def safe_edit_channel_name(channel: discord.abc.GuildChannel, new_name: str):
     if channel is None:
-        logging.warning(f"[EDIT] Kanał jest None, nie mogę ustawić nazwy: {new_name}")
         return
 
     current_name = channel.name
@@ -183,10 +197,11 @@ async def geocode_city(city_name: str):
         f"?name={city_name}&count=1&language=pl&format=json"
     )
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, timeout=20) as response:
-            response.raise_for_status()
-            data = await response.json()
+    session = await get_http_session()
+
+    async with session.get(url) as response:
+        response.raise_for_status()
+        data = await response.json()
 
     results = data.get("results", [])
     if not results:
@@ -212,16 +227,11 @@ async def fetch_weather(latitude: float, longitude: float, timezone_name: str):
         f"&timezone={timezone_name}"
     )
 
-    logging.info(
-        f"[WEATHER API] Pobieram pogodę | lat={latitude} | lon={longitude} | tz={timezone_name}"
-    )
+    session = await get_http_session()
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, timeout=20) as response:
-            response.raise_for_status()
-            data = await response.json()
-            logging.info("[WEATHER API] Odpowiedź API pobrana poprawnie")
-            return data
+    async with session.get(url) as response:
+        response.raise_for_status()
+        return await response.json()
 
 
 def parse_weather(data: dict, city_name: str) -> dict:
@@ -255,7 +265,7 @@ def parse_weather(data: dict, city_name: str) -> dict:
     else:
         precip_text = f"🌧️・Opady {round(float(precip), 1)} mm"
 
-    parsed = {
+    return {
         "temp": f"🌡️・{city_name} {round(float(temp))}°C" if temp is not None else f"🌡️・{city_name} --°C",
         "feels_like": f"🥵・Odczuwalna {round(float(feels))}°C" if feels is not None else "🥵・Odczuwalna --°C",
         "precip": precip_text,
@@ -264,20 +274,6 @@ def parse_weather(data: dict, city_name: str) -> dict:
         "sunrise": f"🌅・Wschód {sunrise_text}",
         "sunset": f"🌇・Zachód {sunset_text}",
     }
-
-    logging.info(
-        "[WEATHER PARSE] "
-        f"miasto={city_name} | "
-        f"temp={parsed['temp']} | "
-        f"feels={parsed['feels_like']} | "
-        f"precip={parsed['precip']} | "
-        f"wind={parsed['wind']} | "
-        f"pressure={parsed['pressure']} | "
-        f"sunrise={parsed['sunrise']} | "
-        f"sunset={parsed['sunset']}"
-    )
-
-    return parsed
 
 
 async def create_or_get_voice_channel(
@@ -372,11 +368,10 @@ async def create_setup_for_guild(guild: discord.Guild) -> dict:
     }
 
     save_config(config)
-    logging.info(f"[SETUP] Zapisano konfigurację dla serwera {guild.name} ({guild.id})")
     return config[guild_key]
 
 
-async def update_time_channels_for_guild(guild: discord.Guild, guild_cfg: dict):
+async def update_time_channels_for_guild(guild: discord.Guild, guild_cfg: dict, weather: dict | None = None):
     dt = now_warsaw()
 
     updates = {
@@ -387,17 +382,21 @@ async def update_time_channels_for_guild(guild: discord.Guild, guild_cfg: dict):
         "sunset": None,
     }
 
-    latitude = float(guild_cfg.get("latitude", 50.0413))
-    longitude = float(guild_cfg.get("longitude", 21.9990))
-    timezone_name = guild_cfg.get("timezone", "Europe/Warsaw")
+    if weather is None:
+        latitude = float(guild_cfg.get("latitude", 50.0413))
+        longitude = float(guild_cfg.get("longitude", 21.9990))
+        timezone_name = guild_cfg.get("timezone", "Europe/Warsaw")
 
-    try:
-        data = await fetch_weather(latitude, longitude, timezone_name)
-        weather = parse_weather(data, guild_cfg.get("city_name", "Rzeszów"))
+        try:
+            data = await fetch_weather(latitude, longitude, timezone_name)
+            weather = parse_weather(data, guild_cfg.get("city_name", "Rzeszów"))
+        except Exception as e:
+            logging.error(f"Błąd pobierania wschodu/zachodu dla {guild.id}: {e}")
+            weather = None
+
+    if weather:
         updates["sunrise"] = weather["sunrise"]
         updates["sunset"] = weather["sunset"]
-    except Exception as e:
-        logging.error(f"Błąd pobierania wschodu/zachodu dla {guild.id}: {e}")
 
     for key, new_name in updates.items():
         if new_name is None:
@@ -406,45 +405,20 @@ async def update_time_channels_for_guild(guild: discord.Guild, guild_cfg: dict):
         await safe_edit_channel_name(channel, new_name)
 
 
-async def update_weather_channels_for_guild(guild: discord.Guild, guild_cfg: dict):
+async def update_weather_channels_for_guild(guild: discord.Guild, guild_cfg: dict, weather: dict | None = None):
     try:
-        logging.info(f"[WEATHER] Start aktualizacji pogody | serwer={guild.name} ({guild.id})")
+        if weather is None:
+            latitude = float(guild_cfg.get("latitude", 50.0413))
+            longitude = float(guild_cfg.get("longitude", 21.9990))
+            timezone_name = guild_cfg.get("timezone", "Europe/Warsaw")
+            city_name = guild_cfg.get("city_name", "Rzeszów")
 
-        latitude = float(guild_cfg.get("latitude", 50.0413))
-        longitude = float(guild_cfg.get("longitude", 21.9990))
-        timezone_name = guild_cfg.get("timezone", "Europe/Warsaw")
-        city_name = guild_cfg.get("city_name", "Rzeszów")
-
-        logging.info(
-            f"[WEATHER] Konfiguracja | miasto={city_name} | lat={latitude} | lon={longitude} | tz={timezone_name}"
-        )
-
-        data = await fetch_weather(latitude, longitude, timezone_name)
-        logging.info(f"[WEATHER] Pobrano dane pogodowe dla {city_name}")
-
-        weather = parse_weather(data, city_name)
-        logging.info(
-            "[WEATHER] Parsowanie OK | "
-            f"temp={weather['temp']} | "
-            f"feels={weather['feels_like']} | "
-            f"precip={weather['precip']} | "
-            f"wind={weather['wind']} | "
-            f"pressure={weather['pressure']}"
-        )
+            data = await fetch_weather(latitude, longitude, timezone_name)
+            weather = parse_weather(data, city_name)
 
         for key in ["temp", "feels_like", "precip", "wind", "pressure"]:
             channel = get_channel_from_config(guild, guild_cfg, key)
-
-            if channel is None:
-                logging.warning(f"[WEATHER] Brak kanału dla klucza: {key}")
-                continue
-
-            logging.info(
-                f"[WEATHER] Edycja kanału | key={key} | channel_id={channel.id} | nowa_nazwa={weather[key]}"
-            )
             await safe_edit_channel_name(channel, weather[key])
-
-        logging.info(f"[WEATHER] Zakończono aktualizację pogody | serwer={guild.name} ({guild.id})")
 
     except Exception as e:
         logging.error(f"[WEATHER] Błąd aktualizacji pogody dla serwera {guild.id}: {e}")
@@ -490,14 +464,28 @@ async def update_one_guild(guild: discord.Guild):
 
     lock = get_lock(guild.id)
     async with lock:
-        logging.info(f"[UPDATE] Start pełnego odświeżenia | serwer={guild.name} ({guild.id})")
-        await update_time_channels_for_guild(guild, guild_cfg)
-        await update_weather_channels_for_guild(guild, guild_cfg)
+        try:
+            latitude = float(guild_cfg.get("latitude", 50.0413))
+            longitude = float(guild_cfg.get("longitude", 21.9990))
+            timezone_name = guild_cfg.get("timezone", "Europe/Warsaw")
+            city_name = guild_cfg.get("city_name", "Rzeszów")
+
+            data = await fetch_weather(latitude, longitude, timezone_name)
+            weather = parse_weather(data, city_name)
+        except Exception as e:
+            logging.error(f"[UPDATE] Błąd pobierania wspólnej pogody dla {guild.id}: {e}")
+            weather = None
+
+        await update_time_channels_for_guild(guild, guild_cfg, weather=weather)
+        if weather is not None:
+            await update_weather_channels_for_guild(guild, guild_cfg, weather=weather)
+        else:
+            await update_weather_channels_for_guild(guild, guild_cfg)
+
         await update_server_stats_for_guild(guild, guild_cfg)
-        logging.info(f"[UPDATE] Koniec pełnego odświeżenia | serwer={guild.name} ({guild.id})")
 
 
-async def schedule_quick_refresh(guild: discord.Guild, delay: float = 15.0):
+def schedule_full_refresh(guild: discord.Guild, delay: float = 0.0):
     if guild is None:
         return
 
@@ -507,16 +495,22 @@ async def schedule_quick_refresh(guild: discord.Guild, delay: float = 15.0):
 
     async def delayed():
         try:
-            await asyncio.sleep(delay)
-            guild_cfg = get_guild_config(guild.id)
-            if guild_cfg:
-                await update_server_stats_for_guild(guild, guild_cfg)
+            if delay > 0:
+                await asyncio.sleep(delay)
+            await update_one_guild(guild)
+            logging.info(f"[REFRESH] Zakończono odświeżenie dla {guild.name} ({guild.id})")
         except asyncio.CancelledError:
             pass
         except Exception as e:
-            logging.error(f"Błąd szybkiego refresh statystyk dla {guild.id}: {e}")
+            logging.error(f"[REFRESH] Błąd odświeżenia dla {guild.id}: {e}")
 
     guild_refresh_tasks[guild.id] = asyncio.create_task(delayed())
+
+
+async def schedule_quick_refresh(guild: discord.Guild, delay: float = 8.0):
+    if guild is None:
+        return
+    schedule_full_refresh(guild, delay=delay)
 
 
 def build_panel_embed(guild: discord.Guild, guild_cfg: dict):
@@ -643,6 +637,7 @@ class RefreshPanelView(discord.ui.View):
             return
 
         await interaction.response.defer(ephemeral=True)
+
         try:
             await update_one_guild(guild)
             embed = build_panel_embed(guild, cfg)
@@ -656,43 +651,22 @@ class RefreshPanelView(discord.ui.View):
 
 
 @tasks.loop(minutes=10)
-async def time_loop():
-    logging.info("[LOOP] Start pętli time_loop")
-    config = load_config()
-    for guild_id, guild_cfg in config.items():
-        guild = bot.get_guild(int(guild_id))
-        if guild:
-            await update_time_channels_for_guild(guild, guild_cfg)
-    logging.info("[LOOP] Koniec pętli time_loop")
-
-
-@tasks.loop(minutes=15)
-async def weather_loop():
-    logging.info("[LOOP] Start pętli weather_loop")
+async def channels_refresh_loop():
     config = load_config()
     if not config:
-        logging.warning("[LOOP] weather_loop: brak konfiguracji w guilds.json")
+        logging.warning("[LOOP] Brak konfiguracji w guilds.json")
+        return
 
-    for guild_id, guild_cfg in config.items():
+    logging.info(f"[LOOP] Start odświeżania kanałów | serwery={len(config)}")
+
+    for guild_id in config.keys():
         guild = bot.get_guild(int(guild_id))
         if guild:
-            logging.info(f"[LOOP] weather_loop: odświeżam serwer {guild.name} ({guild.id})")
-            await update_weather_channels_for_guild(guild, guild_cfg)
+            await update_one_guild(guild)
         else:
-            logging.warning(f"[LOOP] weather_loop: bot nie widzi serwera o ID {guild_id}")
+            logging.warning(f"[LOOP] Bot nie widzi serwera o ID {guild_id}")
 
-    logging.info("[LOOP] Koniec pętli weather_loop")
-
-
-@tasks.loop(minutes=3)
-async def stats_loop():
-    logging.info("[LOOP] Start pętli stats_loop")
-    config = load_config()
-    for guild_id, guild_cfg in config.items():
-        guild = bot.get_guild(int(guild_id))
-        if guild:
-            await update_server_stats_for_guild(guild, guild_cfg)
-    logging.info("[LOOP] Koniec pętli stats_loop")
+    logging.info("[LOOP] Odświeżanie kanałów zakończone")
 
 
 @tasks.loop(seconds=30)
@@ -703,18 +677,8 @@ async def presence_loop():
     )
 
 
-@time_loop.before_loop
-async def before_time_loop():
-    await bot.wait_until_ready()
-
-
-@weather_loop.before_loop
-async def before_weather_loop():
-    await bot.wait_until_ready()
-
-
-@stats_loop.before_loop
-async def before_stats_loop():
+@channels_refresh_loop.before_loop
+async def before_channels_refresh_loop():
     await bot.wait_until_ready()
 
 
@@ -740,12 +704,13 @@ async def setup_clock(interaction: discord.Interaction):
 
     try:
         await create_setup_for_guild(guild)
-        await update_one_guild(guild)
+        schedule_full_refresh(guild, delay=0.2)
         await interaction.followup.send(
             "✅ Utworzono i uporządkowano kategorie:\n"
             "🛰️ Kosmiczny Zegar\n"
             "🌤️ Pogoda\n"
-            "📊 Statystyki",
+            "📊 Statystyki\n\n"
+            "🔄 Kanały odświeżają się już w tle.",
             ephemeral=True
         )
     except discord.Forbidden:
@@ -830,10 +795,13 @@ async def city_clock(interaction: discord.Interaction, nazwa: str):
         config[guild_key]["timezone"] = result["timezone"]
         save_config(config)
 
-        logging.info(f"[CITY] Ustawiono miasto dla {guild.name} ({guild.id}) na {city_display}")
+        schedule_full_refresh(guild, delay=0.1)
 
-        await update_one_guild(guild)
-        await interaction.followup.send(f"✅ Ustawiono miasto: **{city_display}**", ephemeral=True)
+        await interaction.followup.send(
+            f"✅ Ustawiono miasto: **{city_display}**\n"
+            "🔄 Kanały odświeżają się już w tle.",
+            ephemeral=True
+        )
     except Exception as e:
         await interaction.followup.send(f"❌ Błąd ustawiania miasta: {e}", ephemeral=True)
 
@@ -928,29 +896,35 @@ async def common_manage_guild_error(interaction: discord.Interaction, error):
 
 @bot.event
 async def on_member_join(member: discord.Member):
-    await schedule_quick_refresh(member.guild, delay=15.0)
+    await schedule_quick_refresh(member.guild, delay=4.0)
 
 
 @bot.event
 async def on_member_remove(member: discord.Member):
-    await schedule_quick_refresh(member.guild, delay=15.0)
+    await schedule_quick_refresh(member.guild, delay=4.0)
 
 
 @bot.event
 async def on_voice_state_update(member: discord.Member, before, after):
     if before.channel != after.channel:
-        await schedule_quick_refresh(member.guild, delay=12.0)
+        await schedule_quick_refresh(member.guild, delay=3.0)
 
 
 @bot.event
 async def on_presence_update(before: discord.Member, after: discord.Member):
     if before.status != after.status:
-        await schedule_quick_refresh(after.guild, delay=15.0)
+        await schedule_quick_refresh(after.guild, delay=4.0)
 
 
 @bot.event
 async def on_ready():
     logging.info(f"Zalogowano jako {bot.user}")
+
+    try:
+        await get_http_session()
+        logging.info("Sesja HTTP gotowa")
+    except Exception as e:
+        logging.error(f"Błąd tworzenia sesji HTTP: {e}")
 
     try:
         synced = await bot.tree.sync()
@@ -964,17 +938,9 @@ async def on_ready():
     except Exception as e:
         logging.error(f"Błąd rejestracji view: {e}")
 
-    if not time_loop.is_running():
-        time_loop.start()
-        logging.info("[READY] Uruchomiono time_loop")
-
-    if not weather_loop.is_running():
-        weather_loop.start()
-        logging.info("[READY] Uruchomiono weather_loop")
-
-    if not stats_loop.is_running():
-        stats_loop.start()
-        logging.info("[READY] Uruchomiono stats_loop")
+    if not channels_refresh_loop.is_running():
+        channels_refresh_loop.start()
+        logging.info("[READY] Uruchomiono channels_refresh_loop")
 
     if not presence_loop.is_running():
         presence_loop.start()
@@ -982,15 +948,27 @@ async def on_ready():
 
     for guild in bot.guilds:
         if get_guild_config(guild.id):
-            try:
-                await update_one_guild(guild)
-            except Exception as e:
-                logging.error(f"Błąd startowego odświeżenia dla {guild.id}: {e}")
+            schedule_full_refresh(guild, delay=0.2)
         else:
             logging.warning(f"[READY] Brak configu dla serwera {guild.name} ({guild.id})")
 
 
-if not TOKEN:
-    raise ValueError("Brak PUBLIC_DISCORD_TOKEN w Railway Variables")
+async def close_http_session():
+    global http_session
+    if http_session and not http_session.closed:
+        await http_session.close()
+        logging.info("Sesja HTTP zamknięta")
 
-bot.run(TOKEN)
+
+async def main():
+    if not TOKEN:
+        raise ValueError("Brak PUBLIC_DISCORD_TOKEN w Railway Variables")
+
+    try:
+        await bot.start(TOKEN)
+    finally:
+        await close_http_session()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
