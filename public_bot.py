@@ -2,6 +2,7 @@ import os
 import json
 import asyncio
 import logging
+import sqlite3
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -14,7 +15,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 TOKEN = os.getenv("PUBLIC_DISCORD_TOKEN")
-CONFIG_FILE = "guilds.json"
+DB_FILE = "bot_data.db"
 TIMEZONE = "Europe/Warsaw"
 
 # Spokojniejsze tempo edycji kanałów, żeby nie łapać 429
@@ -55,30 +56,121 @@ def uptime_text() -> str:
     return f"{days}d {hours}h {minutes}m"
 
 
-def load_config() -> dict:
-    if not os.path.exists(CONFIG_FILE):
-        return {}
-
-    try:
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            return data if isinstance(data, dict) else {}
-    except Exception as e:
-        logging.error(f"Błąd odczytu {CONFIG_FILE}: {e}")
-        return {}
+def get_db_connection():
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
-def save_config(data: dict):
-    try:
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        logging.error(f"Błąd zapisu {CONFIG_FILE}: {e}")
+def init_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS guild_configs (
+        guild_id TEXT PRIMARY KEY,
+        city_name TEXT NOT NULL DEFAULT 'Rzeszów',
+        latitude REAL NOT NULL DEFAULT 50.0413,
+        longitude REAL NOT NULL DEFAULT 21.9990,
+        timezone TEXT NOT NULL DEFAULT 'Europe/Warsaw',
+        clock_category_id INTEGER,
+        weather_category_id INTEGER,
+        stats_category_id INTEGER,
+        channels_json TEXT NOT NULL DEFAULT '{}'
+    )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+def get_all_guild_configs() -> dict:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM guild_configs")
+    rows = cursor.fetchall()
+
+    result = {}
+    for row in rows:
+        result[row["guild_id"]] = {
+            "city_name": row["city_name"],
+            "latitude": row["latitude"],
+            "longitude": row["longitude"],
+            "timezone": row["timezone"],
+            "clock_category_id": row["clock_category_id"],
+            "weather_category_id": row["weather_category_id"],
+            "stats_category_id": row["stats_category_id"],
+            "channels": json.loads(row["channels_json"]) if row["channels_json"] else {}
+        }
+
+    conn.close()
+    return result
 
 
 def get_guild_config(guild_id: int):
-    config = load_config()
-    return config.get(str(guild_id))
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM guild_configs WHERE guild_id = ?", (str(guild_id),))
+    row = cursor.fetchone()
+    conn.close()
+
+    if not row:
+        return None
+
+    return {
+        "city_name": row["city_name"],
+        "latitude": row["latitude"],
+        "longitude": row["longitude"],
+        "timezone": row["timezone"],
+        "clock_category_id": row["clock_category_id"],
+        "weather_category_id": row["weather_category_id"],
+        "stats_category_id": row["stats_category_id"],
+        "channels": json.loads(row["channels_json"]) if row["channels_json"] else {}
+    }
+
+
+def save_guild_config(guild_id: int, data: dict):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    INSERT INTO guild_configs (
+        guild_id,
+        city_name,
+        latitude,
+        longitude,
+        timezone,
+        clock_category_id,
+        weather_category_id,
+        stats_category_id,
+        channels_json
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(guild_id) DO UPDATE SET
+        city_name = excluded.city_name,
+        latitude = excluded.latitude,
+        longitude = excluded.longitude,
+        timezone = excluded.timezone,
+        clock_category_id = excluded.clock_category_id,
+        weather_category_id = excluded.weather_category_id,
+        stats_category_id = excluded.stats_category_id,
+        channels_json = excluded.channels_json
+    """, (
+        str(guild_id),
+        data.get("city_name", "Rzeszów"),
+        float(data.get("latitude", 50.0413)),
+        float(data.get("longitude", 21.9990)),
+        data.get("timezone", "Europe/Warsaw"),
+        data.get("clock_category_id"),
+        data.get("weather_category_id"),
+        data.get("stats_category_id"),
+        json.dumps(data.get("channels", {}), ensure_ascii=False)
+    ))
+
+    conn.commit()
+    conn.close()
 
 
 def get_channel_from_config(guild: discord.Guild, guild_cfg: dict, key: str):
@@ -293,10 +385,7 @@ async def create_or_get_voice_channel(
 
 
 async def create_setup_for_guild(guild: discord.Guild) -> dict:
-    config = load_config()
-    guild_key = str(guild.id)
-
-    existing_cfg = config.get(guild_key, {})
+    existing_cfg = get_guild_config(guild.id) or {}
 
     clock_category_id = existing_cfg.get("clock_category_id")
     weather_category_id = existing_cfg.get("weather_category_id")
@@ -356,7 +445,7 @@ async def create_setup_for_guild(guild: discord.Guild) -> dict:
     channels["online"] = (await create_or_get_voice_channel(guild, stats_category, "🟢・Online")).id
     channels["voice"] = (await create_or_get_voice_channel(guild, stats_category, "🎤・Na VC")).id
 
-    config[guild_key] = {
+    guild_data = {
         "city_name": existing_cfg.get("city_name", "Rzeszów"),
         "latitude": existing_cfg.get("latitude", 50.0413),
         "longitude": existing_cfg.get("longitude", 21.9990),
@@ -367,8 +456,8 @@ async def create_setup_for_guild(guild: discord.Guild) -> dict:
         "channels": channels
     }
 
-    save_config(config)
-    return config[guild_key]
+    save_guild_config(guild.id, guild_data)
+    return guild_data
 
 
 async def update_time_channels_for_guild(guild: discord.Guild, guild_cfg: dict, weather: dict | None = None):
@@ -633,7 +722,7 @@ class RefreshPanelView(discord.ui.View):
 
         try:
             await update_one_guild(guild)
-            embed = build_panel_embed(guild, cfg)
+            embed = build_panel_embed(guild, get_guild_config(guild.id) or cfg)
             try:
                 await interaction.message.edit(embed=embed, view=self)
             except Exception:
@@ -645,9 +734,9 @@ class RefreshPanelView(discord.ui.View):
 
 @tasks.loop(minutes=10)
 async def channels_refresh_loop():
-    config = load_config()
+    config = get_all_guild_configs()
     if not config:
-        logging.warning("[LOOP] Brak konfiguracji w guilds.json")
+        logging.warning("[LOOP] Brak konfiguracji w bazie danych")
         return
 
     logging.info(f"[LOOP] Start odświeżania kanałów | serwery={len(config)}")
@@ -790,18 +879,24 @@ async def city_clock(interaction: discord.Interaction, nazwa: str):
             )
             return
 
-        config = load_config()
-        guild_key = str(guild.id)
+        current_cfg = get_guild_config(guild.id) or {}
 
         city_display = result["name"]
         if result.get("country"):
             city_display = f'{result["name"]}, {result["country"]}'
 
-        config[guild_key]["city_name"] = city_display
-        config[guild_key]["latitude"] = result["latitude"]
-        config[guild_key]["longitude"] = result["longitude"]
-        config[guild_key]["timezone"] = result["timezone"]
-        save_config(config)
+        new_cfg = {
+            "city_name": city_display,
+            "latitude": result["latitude"],
+            "longitude": result["longitude"],
+            "timezone": result["timezone"],
+            "clock_category_id": current_cfg.get("clock_category_id"),
+            "weather_category_id": current_cfg.get("weather_category_id"),
+            "stats_category_id": current_cfg.get("stats_category_id"),
+            "channels": current_cfg.get("channels", {})
+        }
+
+        save_guild_config(guild.id, new_cfg)
 
         await update_one_guild(guild)
 
@@ -972,6 +1067,8 @@ async def close_http_session():
 async def main():
     if not TOKEN:
         raise ValueError("Brak PUBLIC_DISCORD_TOKEN w Railway Variables")
+
+    init_db()
 
     try:
         await bot.start(TOKEN)
