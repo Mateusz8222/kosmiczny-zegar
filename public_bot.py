@@ -31,7 +31,6 @@ STATS_REFRESH_MINUTES = 3
 CHANNELS_REFRESH_MINUTES = 10
 PRESENCE_REFRESH_MINUTES = 1
 
-# Po naprawie duplikatów zostaw False
 CLEAN_OLD_GUILD_COMMANDS_ON_START = False
 
 logging.basicConfig(
@@ -70,7 +69,8 @@ CHANNEL_TEMPLATES = {
     "temp": ("weather", "🌡️・Temperatura"),
     "feels_like": ("weather", "🥵・Odczuwalna"),
     "clouds": ("weather", "☁️・Zachmurzenie"),
-    "air_quality": ("weather", "🌫️・Jakość powietrza"),
+    "air_quality": ("weather", "🟢・Powietrze"),
+    "pollen": ("weather", "🌿・Pylenie"),
     "precip": ("weather", "☁️・Opady"),
     "wind": ("weather", "💨・Wiatr"),
     "pressure": ("weather", "🧭・Ciśnienie"),
@@ -323,23 +323,41 @@ def format_moon_for_command(dt: datetime) -> str:
     return get_moon_phase(dt).replace("・", " ").strip()
 
 
-def air_quality_text(eaqi: float | int | None) -> str:
+def air_quality_channel(eaqi: float | int | None) -> str:
     if eaqi is None:
-        return "brak danych"
+        return "⚪・Powietrze brak danych"
 
     value = float(eaqi)
 
     if value <= 20:
-        return "bardzo dobra"
+        return "🟢・Powietrze bardzo dobre"
     if value <= 40:
-        return "dobra"
+        return "🟢・Powietrze dobre"
     if value <= 60:
-        return "umiarkowana"
+        return "🟡・Powietrze umiarkowane"
     if value <= 80:
-        return "słaba"
+        return "🟠・Powietrze dostateczne"
     if value <= 100:
-        return "bardzo słaba"
-    return "zła"
+        return "🔴・Powietrze złe"
+    return "☠️・Powietrze bardzo złe"
+
+
+def pollen_channel(alder: float | int | None, birch: float | int | None, grass: float | int | None) -> str:
+    values = [v for v in [alder, birch, grass] if v is not None]
+    if not values:
+        return "⚪・Pylenie brak danych"
+
+    level = max(float(v) for v in values)
+
+    if level <= 0:
+        return "🌿・Brak pylenia"
+    if level <= 10:
+        return "🌼・Pylenie niskie"
+    if level <= 50:
+        return "🤧・Pylenie umiarkowane"
+    if level <= 100:
+        return "🤧・Pylenie wysokie"
+    return "☠️・Pylenie bardzo wysokie"
 
 
 async def get_http_session() -> aiohttp.ClientSession:
@@ -437,7 +455,7 @@ async def fetch_air_quality_raw(latitude: float, longitude: float, timezone_name
         "https://air-quality-api.open-meteo.com/v1/air-quality"
         f"?latitude={latitude}"
         f"&longitude={longitude}"
-        "&current=european_aqi"
+        "&current=european_aqi,alder_pollen,birch_pollen,grass_pollen"
         f"&timezone={timezone_name}"
     )
 
@@ -459,7 +477,11 @@ def parse_weather(weather_data: dict, air_data: dict, city_name: str) -> dict:
     wind = current.get("wind_speed_10m")
     pressure = current.get("surface_pressure")
     cloud_cover = current.get("cloud_cover")
+
     european_aqi = air_current.get("european_aqi")
+    alder_pollen = air_current.get("alder_pollen")
+    birch_pollen = air_current.get("birch_pollen")
+    grass_pollen = air_current.get("grass_pollen")
 
     sunrise_list = daily.get("sunrise", [])
     sunset_list = daily.get("sunset", [])
@@ -488,20 +510,17 @@ def parse_weather(weather_data: dict, air_data: dict, city_name: str) -> dict:
         else "☁️・Zachmurzenie --%"
     )
 
-    air_quality_value = air_quality_text(european_aqi)
-    air_quality_channel = f"🌫️・Jakość powietrza {air_quality_value}"
-
     return {
         "temp": f"🌡️・{city_name} {round(float(temp))}°C" if temp is not None else f"🌡️・{city_name} --°C",
         "feels_like": f"🥵・Odczuwalna {round(float(feels))}°C" if feels is not None else "🥵・Odczuwalna --°C",
         "clouds": clouds_text,
-        "air_quality": air_quality_channel,
+        "air_quality": air_quality_channel(european_aqi),
+        "pollen": pollen_channel(alder_pollen, birch_pollen, grass_pollen),
         "precip": precip_text,
         "wind": f"💨・Wiatr {round(float(wind))} km/h" if wind is not None else "💨・Wiatr -- km/h",
         "pressure": f"🧭・Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "🧭・Ciśnienie -- hPa",
         "sunrise": f"🌅・Wschód {sunrise_text}",
         "sunset": f"🌇・Zachód {sunset_text}",
-        "air_quality_value": air_quality_value,
     }
 
 
@@ -716,7 +735,7 @@ async def update_weather_channels_for_guild(guild: discord.Guild, guild_cfg: dic
         if weather is None:
             weather = await get_weather_for_guild(guild.id, guild_cfg, use_cache=True)
 
-        for key in ["temp", "feels_like", "clouds", "air_quality", "precip", "wind", "pressure"]:
+        for key in ["temp", "feels_like", "clouds", "air_quality", "pollen", "precip", "wind", "pressure"]:
             channel = get_channel_from_config(guild, guild_cfg, key)
             await safe_edit_channel_name(channel, weather[key])
 
@@ -834,7 +853,8 @@ def build_weather_embed(guild_cfg: dict, weather: dict):
     embed.add_field(name="Temperatura", value=weather["temp"], inline=False)
     embed.add_field(name="Odczuwalna", value=weather["feels_like"], inline=False)
     embed.add_field(name="Zachmurzenie", value=weather["clouds"], inline=False)
-    embed.add_field(name="Jakość powietrza", value=weather["air_quality"], inline=False)
+    embed.add_field(name="Powietrze", value=weather["air_quality"], inline=False)
+    embed.add_field(name="Pylenie", value=weather["pollen"], inline=False)
     embed.add_field(name="Opady", value=weather["precip"], inline=False)
     embed.add_field(name="Wiatr", value=weather["wind"], inline=False)
     embed.add_field(name="Ciśnienie", value=weather["pressure"], inline=False)
