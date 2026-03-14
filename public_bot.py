@@ -273,7 +273,7 @@ async def get_weather_data():
 
         "feels": f"🥵 • Odczuwalna {round(float(feels))}°C" if feels else "🥵 • Odczuwalna --°C",
 
-        "clouds": f"☁️ • Zachmurzenie {round(float(clouds))}%" if clouds else "☁️ • Zachmurzenie --%",
+        "clouds": f"☁️ • Zachmurzenie {round(float(clouds))}%" if cloud is not None else "☁️ • Zachmurzenie --%",
 
         "air": air_quality_text(air_current.get("european_aqi")),
 
