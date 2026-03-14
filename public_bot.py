@@ -173,7 +173,21 @@ def air_quality_text(eaqi):
 
     return "☠️ • Powietrze bardzo złe"
 
+def format_part_of_day(hour: int) -> str:
 
+    if 5 <= hour < 8:
+        return "🌅 • Świt"
+
+    if 8 <= hour < 12:
+        return "🌄 • Poranek"
+
+    if 12 <= hour < 17:
+        return "☀️ • Dzień"
+
+    if 17 <= hour < 21:
+        return "🌆 • Wieczór"
+
+    return "🌙 • Noc"
 def pollen_text(level):
 
     level = float(level or 0)
