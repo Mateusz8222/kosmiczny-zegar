@@ -31,8 +31,7 @@ STATS_REFRESH_MINUTES = 3
 CHANNELS_REFRESH_MINUTES = 10
 PRESENCE_REFRESH_MINUTES = 1
 
-# Ustaw na True tylko do sprzątania starych zdublowanych komend guildowych.
-# Gdy duplikaty znikną, zmień na False.
+# Po naprawie duplikatów zostaw False
 CLEAN_OLD_GUILD_COMMANDS_ON_START = False
 
 logging.basicConfig(
@@ -70,6 +69,8 @@ CHANNEL_TEMPLATES = {
     "sunset": ("clock", "🌇・Zachód"),
     "temp": ("weather", "🌡️・Temperatura"),
     "feels_like": ("weather", "🥵・Odczuwalna"),
+    "clouds": ("weather", "☁️・Zachmurzenie"),
+    "air_quality": ("weather", "🌫️・Jakość powietrza"),
     "precip": ("weather", "☁️・Opady"),
     "wind": ("weather", "💨・Wiatr"),
     "pressure": ("weather", "🧭・Ciśnienie"),
@@ -322,6 +323,25 @@ def format_moon_for_command(dt: datetime) -> str:
     return get_moon_phase(dt).replace("・", " ").strip()
 
 
+def air_quality_text(eaqi: float | int | None) -> str:
+    if eaqi is None:
+        return "brak danych"
+
+    value = float(eaqi)
+
+    if value <= 20:
+        return "bardzo dobra"
+    if value <= 40:
+        return "dobra"
+    if value <= 60:
+        return "umiarkowana"
+    if value <= 80:
+        return "słaba"
+    if value <= 100:
+        return "bardzo słaba"
+    return "zła"
+
+
 async def get_http_session() -> aiohttp.ClientSession:
     global http_session
 
@@ -400,7 +420,7 @@ async def fetch_weather_raw(latitude: float, longitude: float, timezone_name: st
         "https://api.open-meteo.com/v1/forecast"
         f"?latitude={latitude}"
         f"&longitude={longitude}"
-        "&current=temperature_2m,apparent_temperature,precipitation,wind_speed_10m,surface_pressure"
+        "&current=temperature_2m,apparent_temperature,precipitation,wind_speed_10m,surface_pressure,cloud_cover"
         "&daily=sunrise,sunset"
         f"&timezone={timezone_name}"
     )
@@ -412,15 +432,34 @@ async def fetch_weather_raw(latitude: float, longitude: float, timezone_name: st
         return await response.json()
 
 
-def parse_weather(data: dict, city_name: str) -> dict:
-    current = data.get("current", {})
-    daily = data.get("daily", {})
+async def fetch_air_quality_raw(latitude: float, longitude: float, timezone_name: str):
+    url = (
+        "https://air-quality-api.open-meteo.com/v1/air-quality"
+        f"?latitude={latitude}"
+        f"&longitude={longitude}"
+        "&current=european_aqi"
+        f"&timezone={timezone_name}"
+    )
+
+    session = await get_http_session()
+
+    async with session.get(url) as response:
+        response.raise_for_status()
+        return await response.json()
+
+
+def parse_weather(weather_data: dict, air_data: dict, city_name: str) -> dict:
+    current = weather_data.get("current", {})
+    daily = weather_data.get("daily", {})
+    air_current = air_data.get("current", {})
 
     temp = current.get("temperature_2m")
     feels = current.get("apparent_temperature")
     precip = current.get("precipitation")
     wind = current.get("wind_speed_10m")
     pressure = current.get("surface_pressure")
+    cloud_cover = current.get("cloud_cover")
+    european_aqi = air_current.get("european_aqi")
 
     sunrise_list = daily.get("sunrise", [])
     sunset_list = daily.get("sunset", [])
@@ -443,14 +482,26 @@ def parse_weather(data: dict, city_name: str) -> dict:
     else:
         precip_text = f"🌧️・Opady {round(float(precip), 1)} mm"
 
+    clouds_text = (
+        f"☁️・Zachmurzenie {round(float(cloud_cover))}%"
+        if cloud_cover is not None
+        else "☁️・Zachmurzenie --%"
+    )
+
+    air_quality_value = air_quality_text(european_aqi)
+    air_quality_channel = f"🌫️・Jakość powietrza {air_quality_value}"
+
     return {
         "temp": f"🌡️・{city_name} {round(float(temp))}°C" if temp is not None else f"🌡️・{city_name} --°C",
         "feels_like": f"🥵・Odczuwalna {round(float(feels))}°C" if feels is not None else "🥵・Odczuwalna --°C",
+        "clouds": clouds_text,
+        "air_quality": air_quality_channel,
         "precip": precip_text,
         "wind": f"💨・Wiatr {round(float(wind))} km/h" if wind is not None else "💨・Wiatr -- km/h",
         "pressure": f"🧭・Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "🧭・Ciśnienie -- hPa",
         "sunrise": f"🌅・Wschód {sunrise_text}",
         "sunset": f"🌇・Zachód {sunset_text}",
+        "air_quality_value": air_quality_value,
     }
 
 
@@ -466,8 +517,12 @@ async def get_weather_for_guild(guild_id: int, guild_cfg: dict, use_cache: bool 
         if age < WEATHER_CACHE_SECONDS:
             return cached["weather"]
 
-    data = await fetch_weather_raw(latitude, longitude, timezone_name)
-    weather = parse_weather(data, city_name)
+    weather_data, air_data = await asyncio.gather(
+        fetch_weather_raw(latitude, longitude, timezone_name),
+        fetch_air_quality_raw(latitude, longitude, timezone_name),
+    )
+
+    weather = parse_weather(weather_data, air_data, city_name)
 
     weather_cache[guild_id] = {
         "time": now_warsaw(),
@@ -661,7 +716,7 @@ async def update_weather_channels_for_guild(guild: discord.Guild, guild_cfg: dic
         if weather is None:
             weather = await get_weather_for_guild(guild.id, guild_cfg, use_cache=True)
 
-        for key in ["temp", "feels_like", "precip", "wind", "pressure"]:
+        for key in ["temp", "feels_like", "clouds", "air_quality", "precip", "wind", "pressure"]:
             channel = get_channel_from_config(guild, guild_cfg, key)
             await safe_edit_channel_name(channel, weather[key])
 
@@ -778,6 +833,8 @@ def build_weather_embed(guild_cfg: dict, weather: dict):
     )
     embed.add_field(name="Temperatura", value=weather["temp"], inline=False)
     embed.add_field(name="Odczuwalna", value=weather["feels_like"], inline=False)
+    embed.add_field(name="Zachmurzenie", value=weather["clouds"], inline=False)
+    embed.add_field(name="Jakość powietrza", value=weather["air_quality"], inline=False)
     embed.add_field(name="Opady", value=weather["precip"], inline=False)
     embed.add_field(name="Wiatr", value=weather["wind"], inline=False)
     embed.add_field(name="Ciśnienie", value=weather["pressure"], inline=False)
