@@ -66,14 +66,17 @@ CHANNEL_TEMPLATES = {
     "moon_phase": ("clock", "🌙・Faza księżyca"),
     "sunrise": ("clock", "🌅・Wschód"),
     "sunset": ("clock", "🌇・Zachód"),
+    "day_length": ("clock", "☀️・Długość dnia"),
+
     "temp": ("weather", "🌡️・Temperatura"),
     "feels_like": ("weather", "🥵・Odczuwalna"),
     "clouds": ("weather", "☁️・Zachmurzenie"),
     "air_quality": ("weather", "🟢・Powietrze"),
     "pollen": ("weather", "🌿・Pylenie"),
-    "precip": ("weather", "☁️・Opady"),
+    "precip": ("weather", "🌧️・Opady"),
     "wind": ("weather", "💨・Wiatr"),
     "pressure": ("weather", "🧭・Ciśnienie"),
+
     "all_members": ("stats", "👥・Wszyscy"),
     "users": ("stats", "🙂・Użytkownicy"),
     "bots": ("stats", "🤖・Boty"),
@@ -342,22 +345,44 @@ def air_quality_channel(eaqi: float | int | None) -> str:
     return "☠️・Powietrze bardzo złe"
 
 
-def pollen_channel(alder: float | int | None, birch: float | int | None, grass: float | int | None) -> str:
-    values = [v for v in [alder, birch, grass] if v is not None]
-    if not values:
-        return "⚪・Pylenie brak danych"
+def strongest_pollen_name(alder, birch, grass, mugwort, ragweed, olive) -> tuple[str | None, float]:
+    pollen = {
+        "olcha": float(alder or 0),
+        "brzoza": float(birch or 0),
+        "trawy": float(grass or 0),
+        "bylica": float(mugwort or 0),
+        "ambrozja": float(ragweed or 0),
+        "oliwka": float(olive or 0),
+    }
+    name = max(pollen, key=pollen.get)
+    return name, pollen[name]
 
-    level = max(float(v) for v in values)
+
+def pollen_channel(alder, birch, grass, mugwort, ragweed, olive) -> str:
+    name, level = strongest_pollen_name(alder, birch, grass, mugwort, ragweed, olive)
 
     if level <= 0:
         return "🌿・Brak pylenia"
     if level <= 10:
-        return "🌼・Pylenie niskie"
+        return f"🌼・Pylenie niskie • {name}"
     if level <= 50:
-        return "🤧・Pylenie umiarkowane"
+        return f"🤧・Pylenie umiarkowane • {name}"
     if level <= 100:
-        return "🤧・Pylenie wysokie"
-    return "☠️・Pylenie bardzo wysokie"
+        return f"🤧・Pylenie wysokie • {name}"
+    return f"☠️・Pylenie bardzo wysokie • {name}"
+
+
+def format_day_length_from_times(sunrise_text: str, sunset_text: str) -> str:
+    try:
+        sunrise_dt = datetime.strptime(sunrise_text, "%H:%M")
+        sunset_dt = datetime.strptime(sunset_text, "%H:%M")
+        delta = sunset_dt - sunrise_dt
+        total_minutes = int(delta.total_seconds() // 60)
+        hours = total_minutes // 60
+        minutes = total_minutes % 60
+        return f"☀️・Długość dnia {hours}h {minutes}m"
+    except Exception:
+        return "☀️・Długość dnia --"
 
 
 async def get_http_session() -> aiohttp.ClientSession:
@@ -455,7 +480,7 @@ async def fetch_air_quality_raw(latitude: float, longitude: float, timezone_name
         "https://air-quality-api.open-meteo.com/v1/air-quality"
         f"?latitude={latitude}"
         f"&longitude={longitude}"
-        "&current=european_aqi,alder_pollen,birch_pollen,grass_pollen"
+        "&current=european_aqi,alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen,olive_pollen"
         f"&timezone={timezone_name}"
     )
 
@@ -482,6 +507,9 @@ def parse_weather(weather_data: dict, air_data: dict, city_name: str) -> dict:
     alder_pollen = air_current.get("alder_pollen")
     birch_pollen = air_current.get("birch_pollen")
     grass_pollen = air_current.get("grass_pollen")
+    mugwort_pollen = air_current.get("mugwort_pollen")
+    ragweed_pollen = air_current.get("ragweed_pollen")
+    olive_pollen = air_current.get("olive_pollen")
 
     sunrise_list = daily.get("sunrise", [])
     sunset_list = daily.get("sunset", [])
@@ -498,9 +526,9 @@ def parse_weather(weather_data: dict, air_data: dict, city_name: str) -> dict:
         sunset_text = sunset.split("T")[1][:5]
 
     if precip is None:
-        precip_text = "☁️・Opady --"
+        precip_text = "🌧️・Opady --"
     elif float(precip) <= 0:
-        precip_text = "☁️・Bez opadów"
+        precip_text = "🌧️・Brak opadów"
     else:
         precip_text = f"🌧️・Opady {round(float(precip), 1)} mm"
 
@@ -515,12 +543,20 @@ def parse_weather(weather_data: dict, air_data: dict, city_name: str) -> dict:
         "feels_like": f"🥵・Odczuwalna {round(float(feels))}°C" if feels is not None else "🥵・Odczuwalna --°C",
         "clouds": clouds_text,
         "air_quality": air_quality_channel(european_aqi),
-        "pollen": pollen_channel(alder_pollen, birch_pollen, grass_pollen),
+        "pollen": pollen_channel(
+            alder_pollen,
+            birch_pollen,
+            grass_pollen,
+            mugwort_pollen,
+            ragweed_pollen,
+            olive_pollen
+        ),
         "precip": precip_text,
         "wind": f"💨・Wiatr {round(float(wind))} km/h" if wind is not None else "💨・Wiatr -- km/h",
         "pressure": f"🧭・Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "🧭・Ciśnienie -- hPa",
         "sunrise": f"🌅・Wschód {sunrise_text}",
         "sunset": f"🌇・Zachód {sunset_text}",
+        "day_length": format_day_length_from_times(sunrise_text, sunset_text),
     }
 
 
@@ -710,18 +746,20 @@ async def update_time_channels_for_guild(guild: discord.Guild, guild_cfg: dict, 
         "moon_phase": get_moon_phase(dt),
         "sunrise": None,
         "sunset": None,
+        "day_length": None,
     }
 
     if weather is None:
         try:
             weather = await get_weather_for_guild(guild.id, guild_cfg, use_cache=True)
         except Exception as e:
-            logging.error(f"[TIME] Błąd pobierania wschodu/zachodu dla {guild.id}: {e}")
+            logging.error(f"[TIME] Błąd pobierania danych dla {guild.id}: {e}")
             weather = None
 
     if weather:
         updates["sunrise"] = weather["sunrise"]
         updates["sunset"] = weather["sunset"]
+        updates["day_length"] = weather["day_length"]
 
     for key, new_name in updates.items():
         if new_name is None:
@@ -860,6 +898,7 @@ def build_weather_embed(guild_cfg: dict, weather: dict):
     embed.add_field(name="Ciśnienie", value=weather["pressure"], inline=False)
     embed.add_field(name="Wschód", value=weather["sunrise"], inline=False)
     embed.add_field(name="Zachód", value=weather["sunset"], inline=False)
+    embed.add_field(name="Długość dnia", value=weather["day_length"], inline=False)
     return embed
 
 
