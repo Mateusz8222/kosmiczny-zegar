@@ -22,7 +22,7 @@ logging.basicConfig(
 )
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-
+OWM_API_KEY = os.getenv("OWM_API_KEY")
 TIMEZONE = pytz.timezone("Europe/Warsaw")
 
 CITY_NAME = "WARSZAWA"
