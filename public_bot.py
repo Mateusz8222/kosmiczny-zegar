@@ -267,23 +267,36 @@ async def get_weather_data():
     sunrise_time = sunrise.split("T")[1][:5] if sunrise else "--:--"
     sunset_time = sunset.split("T")[1][:5] if sunset else "--:--"
 
-    weather = {
+    
+weather = {
+    "temperature": f"🌡️ • {CITY_NAME} {round(float(temp))}°C" if temp is not None else f"🌡️ • {CITY_NAME} --°C",
 
-        "temperature": f"🌡️ • {CITY_NAME} {round(float(temp))}°C" if temp else f"🌡️ • {CITY_NAME} --°C",
+    "feels": f"🥵 • Odczuwalna {round(float(feels))}°C" if feels is not None else "🥵 • Odczuwalna --°C",
 
-        "feels": f"🥵 • Odczuwalna {round(float(feels))}°C" if feels else "🥵 • Odczuwalna --°C",
+    "clouds": f"☁️ • Zachmurzenie {round(float(clouds))}%" if clouds is not None else "☁️ • Zachmurzenie --%",
 
-        "clouds": f"☁️ • Zachmurzenie {round(float(clouds))}%" if cloud is not None else "☁️ • Zachmurzenie --%",
+    "air": air_quality_text(air_current.get("european_aqi")),
 
-        "air": air_quality_text(air_current.get("european_aqi")),
+    "pollen": pollen_text(air_current.get("grass_pollen")),
 
-        "pollen": pollen_text(air_current.get("grass_pollen")),
+    "rain": "🌧️ • Brak opadów" if precip is not None and float(precip) == 0 else (
+        f"🌧️ • Opady {round(float(precip), 1)} mm" if precip is not None else "🌧️ • Opady --"
+    ),
 
-        "rain": "🌧️ • Brak opadów" if not precip else f"🌧️ • Opady {round(float(precip),1)} mm",
+    "wind": f"💨 • Wiatr {round(float(wind))} km/h" if wind is not None else "💨 • Wiatr -- km/h",
 
-        "wind": f"💨 • Wiatr {round(float(wind))} km/h" if wind else "💨 • Wiatr -- km/h",
+    "pressure": f"🧭 • Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "🧭 • Ciśnienie -- hPa",
 
-        "pressure": f"🧭 • Ciśnienie {round(float(pressure))} hPa" if pressure else "🧭 • Ciśnienie -- hPa",
+    "sunrise": f"🌅 • Wschód {sunrise_time}",
+
+    "sunset": f"🌇 • Zachód {sunset_time}",
+
+    "day_length": day_length_text(sunrise_time, sunset_time)
+}
+    
+
+    
+
 
         "sunrise": f"🌅 • Wschód {sunrise_time}",
 
