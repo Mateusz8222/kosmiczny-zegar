@@ -25,7 +25,7 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 
 TIMEZONE = pytz.timezone("Europe/Warsaw")
 
-DEFAULT_CITY = "Warszawa"
+CITY_NAME = "WARSZAWA"
 LATITUDE = 52.2297
 LONGITUDE = 21.0122
 
