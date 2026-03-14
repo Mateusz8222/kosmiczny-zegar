@@ -3,7 +3,7 @@ import json
 import asyncio
 import logging
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import aiohttp
@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-TOKEN = os.getenv("PUBLIC_DISCORD_TOKEN")
+TOKEN = os.getenv("PUBLIC_DISCORD_TOKEN") or os.getenv("DISCORD_TOKEN")
 
 DB_FILE = "bot_data.db"
 DEFAULT_CITY = "Rzeszów"
@@ -43,8 +43,6 @@ intents.guilds = True
 intents.members = True
 intents.presences = True
 intents.voice_states = True
-
-bot = commands.Bot(command_prefix=commands.when_mentioned, intents=intents)
 
 last_channel_names: dict[int, str] = {}
 guild_refresh_locks: dict[int, asyncio.Lock] = {}
@@ -77,6 +75,32 @@ CHANNEL_TEMPLATES = {
     "online": ("stats", "🟢・Online"),
     "voice": ("stats", "🎤・Na VC"),
 }
+
+
+class KosmicznyBot(commands.Bot):
+    def __init__(self):
+        super().__init__(
+            command_prefix=commands.when_mentioned,
+            intents=intents
+        )
+        self.synced_once = False
+        self.ready_logged = False
+
+    async def setup_hook(self):
+        try:
+            await get_http_session()
+            logging.info("[SETUP_HOOK] Sesja HTTP gotowa")
+        except Exception as e:
+            logging.error(f"[SETUP_HOOK] Błąd sesji HTTP: {e}")
+
+        try:
+            self.add_view(RefreshPanelView())
+            logging.info("[SETUP_HOOK] Zarejestrowano persistent view")
+        except Exception as e:
+            logging.error(f"[SETUP_HOOK] Błąd rejestracji view: {e}")
+
+
+bot = KosmicznyBot()
 
 
 def now_warsaw() -> datetime:
@@ -121,7 +145,6 @@ def init_db():
     )
     """)
 
-    # Migracje kolumn dla wersji PRO
     if not column_exists(cursor, "guild_configs", "panel_channel_id"):
         cursor.execute("ALTER TABLE guild_configs ADD COLUMN panel_channel_id INTEGER")
 
@@ -304,7 +327,7 @@ async def get_http_session() -> aiohttp.ClientSession:
         http_session = aiohttp.ClientSession(
             timeout=timeout,
             connector=connector,
-            headers={"User-Agent": "KosmicznyZegarBot/2.0"}
+            headers={"User-Agent": "KosmicznyZegarBot/2.1"}
         )
 
     return http_session
@@ -947,7 +970,6 @@ async def delete_managed_categories(guild: discord.Guild, cfg: dict):
         if not isinstance(category, discord.CategoryChannel):
             continue
 
-        # Usuń kanały w kategorii
         for ch in list(category.channels):
             try:
                 await ch.delete(reason="Kosmiczny Zegar: usuwanie setupu")
@@ -962,6 +984,27 @@ async def delete_managed_categories(guild: discord.Guild, cfg: dict):
             logging.error(f"[DELETE] Brak uprawnień do usunięcia kategorii {category.id}")
         except discord.HTTPException as e:
             logging.error(f"[DELETE] Błąd usuwania kategorii {category.id}: {e}")
+
+
+async def sync_commands_for_all_guilds():
+    total_synced = 0
+
+    for guild in bot.guilds:
+        try:
+            bot.tree.copy_global_to(guild=guild)
+            synced = await bot.tree.sync(guild=guild)
+            total_synced += len(synced)
+            logging.info(f"[SYNC GUILD] {guild.name} ({guild.id}): {len(synced)} komend")
+        except Exception as e:
+            logging.error(f"[SYNC GUILD] Błąd dla {guild.name} ({guild.id}): {e}")
+
+    try:
+        global_synced = await bot.tree.sync()
+        logging.info(f"[SYNC GLOBAL] {len(global_synced)} komend globalnych")
+    except Exception as e:
+        logging.error(f"[SYNC GLOBAL] Błąd sync globalnego: {e}")
+
+    return total_synced
 
 
 @tasks.loop(minutes=CHANNELS_REFRESH_MINUTES)
@@ -1344,9 +1387,53 @@ async def common_manage_guild_error(interaction: discord.Interaction, error):
         else:
             await interaction.response.send_message("❌ Musisz mieć uprawnienie `Manage Server`.", ephemeral=True)
     else:
-        logging.error(f"Błąd komendy: {error}")
-        if not interaction.response.is_done():
+        logging.error(f"[COMMAND ERROR] {error}")
+        if interaction.response.is_done():
+            await interaction.followup.send("❌ Wystąpił nieoczekiwany błąd.", ephemeral=True)
+        else:
             await interaction.response.send_message("❌ Wystąpił nieoczekiwany błąd.", ephemeral=True)
+
+
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    original = getattr(error, "original", error)
+
+    if isinstance(original, app_commands.errors.CommandNotFound):
+        logging.warning("[APP CMD] CommandNotFound — prawdopodobnie stara komenda Discorda/cache")
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(
+                    "ℹ️ Ta komenda wygląda na starą albo jeszcze niezsynchronizowaną. Zamknij i otwórz Discord ponownie.",
+                    ephemeral=True
+                )
+            else:
+                await interaction.response.send_message(
+                    "ℹ️ Ta komenda wygląda na starą albo jeszcze niezsynchronizowaną. Zamknij i otwórz Discord ponownie.",
+                    ephemeral=True
+                )
+        except Exception:
+            pass
+        return
+
+    if isinstance(original, app_commands.errors.MissingPermissions):
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send("❌ Nie masz wymaganych uprawnień.", ephemeral=True)
+            else:
+                await interaction.response.send_message("❌ Nie masz wymaganych uprawnień.", ephemeral=True)
+        except Exception:
+            pass
+        return
+
+    logging.error(f"[APP CMD ERROR] {type(original).__name__}: {original}")
+
+    try:
+        if interaction.response.is_done():
+            await interaction.followup.send("❌ Wystąpił błąd podczas wykonywania komendy.", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ Wystąpił błąd podczas wykonywania komendy.", ephemeral=True)
+    except Exception:
+        pass
 
 
 @bot.event
@@ -1428,29 +1515,27 @@ async def on_guild_channel_delete(channel: discord.abc.GuildChannel):
 @bot.event
 async def on_guild_join(guild: discord.Guild):
     logging.info(f"[GUILD JOIN] Bot dołączył do serwera: {guild.name} ({guild.id})")
+    try:
+        bot.tree.copy_global_to(guild=guild)
+        synced = await bot.tree.sync(guild=guild)
+        logging.info(f"[GUILD JOIN] Zsynchronizowano {len(synced)} komend dla {guild.name}")
+    except Exception as e:
+        logging.error(f"[GUILD JOIN] Błąd sync komend dla {guild.name}: {e}")
 
 
 @bot.event
 async def on_ready():
-    logging.info(f"Zalogowano jako {bot.user}")
+    if not bot.ready_logged:
+        logging.info(f"Zalogowano jako {bot.user}")
+        bot.ready_logged = True
 
-    try:
-        await get_http_session()
-        logging.info("Sesja HTTP gotowa")
-    except Exception as e:
-        logging.error(f"Błąd tworzenia sesji HTTP: {e}")
-
-    try:
-        synced = await bot.tree.sync()
-        logging.info(f"Zsynchronizowano {len(synced)} komend slash")
-    except Exception as e:
-        logging.error(f"Błąd sync komend: {e}")
-
-    try:
-        bot.add_view(RefreshPanelView())
-        logging.info("Zarejestrowano persistent view")
-    except Exception as e:
-        logging.error(f"Błąd rejestracji view: {e}")
+    if not bot.synced_once:
+        try:
+            await sync_commands_for_all_guilds()
+            bot.synced_once = True
+            logging.info("[READY] Synchronizacja komend zakończona")
+        except Exception as e:
+            logging.error(f"[READY] Błąd synchronizacji komend: {e}")
 
     if not channels_refresh_loop.is_running():
         channels_refresh_loop.start()
@@ -1482,7 +1567,7 @@ async def close_http_session():
 
 async def main():
     if not TOKEN:
-        raise ValueError("Brak PUBLIC_DISCORD_TOKEN w Railway Variables")
+        raise ValueError("Brak PUBLIC_DISCORD_TOKEN lub DISCORD_TOKEN w Railway Variables")
 
     init_db()
 
