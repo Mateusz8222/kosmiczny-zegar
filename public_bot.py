@@ -31,6 +31,10 @@ STATS_REFRESH_MINUTES = 3
 CHANNELS_REFRESH_MINUTES = 10
 PRESENCE_REFRESH_MINUTES = 1
 
+# Ustaw na True tylko do sprzątania starych zdublowanych komend guildowych.
+# Gdy duplikaty znikną, zmień na False.
+CLEAN_OLD_GUILD_COMMANDS_ON_START = True
+
 logging.basicConfig(
     level=logging.INFO,
     format="[%(asctime)s] [%(levelname)s] %(message)s",
@@ -986,25 +990,24 @@ async def delete_managed_categories(guild: discord.Guild, cfg: dict):
             logging.error(f"[DELETE] Błąd usuwania kategorii {category.id}: {e}")
 
 
-async def sync_commands_for_all_guilds():
-    total_synced = 0
-
+async def clear_guild_commands_once():
     for guild in bot.guilds:
         try:
-            bot.tree.copy_global_to(guild=guild)
-            synced = await bot.tree.sync(guild=guild)
-            total_synced += len(synced)
-            logging.info(f"[SYNC GUILD] {guild.name} ({guild.id}): {len(synced)} komend")
+            bot.tree.clear_commands(guild=guild)
+            await bot.tree.sync(guild=guild)
+            logging.info(f"[CLEAR GUILD] Wyczyszczono komendy guild na {guild.name} ({guild.id})")
         except Exception as e:
-            logging.error(f"[SYNC GUILD] Błąd dla {guild.name} ({guild.id}): {e}")
+            logging.error(f"[CLEAR GUILD] Błąd dla {guild.name} ({guild.id}): {e}")
 
+
+async def sync_global_commands():
     try:
-        global_synced = await bot.tree.sync()
-        logging.info(f"[SYNC GLOBAL] {len(global_synced)} komend globalnych")
+        synced = await bot.tree.sync()
+        logging.info(f"[SYNC GLOBAL] Zsynchronizowano {len(synced)} komend globalnych")
+        return len(synced)
     except Exception as e:
         logging.error(f"[SYNC GLOBAL] Błąd sync globalnego: {e}")
-
-    return total_synced
+        return 0
 
 
 @tasks.loop(minutes=CHANNELS_REFRESH_MINUTES)
@@ -1398,23 +1401,6 @@ async def common_manage_guild_error(interaction: discord.Interaction, error):
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     original = getattr(error, "original", error)
 
-    if isinstance(original, app_commands.errors.CommandNotFound):
-        logging.warning("[APP CMD] CommandNotFound — prawdopodobnie stara komenda Discorda/cache")
-        try:
-            if interaction.response.is_done():
-                await interaction.followup.send(
-                    "ℹ️ Ta komenda wygląda na starą albo jeszcze niezsynchronizowaną. Zamknij i otwórz Discord ponownie.",
-                    ephemeral=True
-                )
-            else:
-                await interaction.response.send_message(
-                    "ℹ️ Ta komenda wygląda na starą albo jeszcze niezsynchronizowaną. Zamknij i otwórz Discord ponownie.",
-                    ephemeral=True
-                )
-        except Exception:
-            pass
-        return
-
     if isinstance(original, app_commands.errors.MissingPermissions):
         try:
             if interaction.response.is_done():
@@ -1515,12 +1501,6 @@ async def on_guild_channel_delete(channel: discord.abc.GuildChannel):
 @bot.event
 async def on_guild_join(guild: discord.Guild):
     logging.info(f"[GUILD JOIN] Bot dołączył do serwera: {guild.name} ({guild.id})")
-    try:
-        bot.tree.copy_global_to(guild=guild)
-        synced = await bot.tree.sync(guild=guild)
-        logging.info(f"[GUILD JOIN] Zsynchronizowano {len(synced)} komend dla {guild.name}")
-    except Exception as e:
-        logging.error(f"[GUILD JOIN] Błąd sync komend dla {guild.name}: {e}")
 
 
 @bot.event
@@ -1531,7 +1511,10 @@ async def on_ready():
 
     if not bot.synced_once:
         try:
-            await sync_commands_for_all_guilds()
+            if CLEAN_OLD_GUILD_COMMANDS_ON_START:
+                await clear_guild_commands_once()
+
+            await sync_global_commands()
             bot.synced_once = True
             logging.info("[READY] Synchronizacja komend zakończona")
         except Exception as e:
