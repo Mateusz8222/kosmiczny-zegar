@@ -33,7 +33,7 @@ PRESENCE_REFRESH_MINUTES = 1
 
 # Ustaw na True tylko do sprzątania starych zdublowanych komend guildowych.
 # Gdy duplikaty znikną, zmień na False.
-CLEAN_OLD_GUILD_COMMANDS_ON_START = True
+CLEAN_OLD_GUILD_COMMANDS_ON_START = False
 
 logging.basicConfig(
     level=logging.INFO,
