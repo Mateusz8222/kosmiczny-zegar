@@ -1,6 +1,6 @@
 # ================================
 # KOSMICZNY ZEGAR 24 - BOT
-# PEŁNA WERSJA ZE STATYSTYKAMI REALTIME
+# WERSJA Z DOKŁADNYM PYLENIEM
 # ================================
 
 import discord
@@ -30,6 +30,7 @@ TIMEZONE = pytz.timezone("Europe/Warsaw")
 CITY_NAME = "WARSZAWA"
 LATITUDE = 52.2297
 LONGITUDE = 21.0122
+
 intents = discord.Intents.default()
 intents.guilds = True
 intents.members = True
@@ -47,7 +48,12 @@ CHANNEL_TEMPLATES = {
     "feels": ("weather", "🥵 • Odczuwalna"),
     "clouds": ("weather", "☁️ • Zachmurzenie"),
     "air": ("weather", "🟢 • Powietrze"),
-    "pollen": ("weather", "🌿 • Pylenie"),
+    "pollen_summary": ("weather", "🌾 • Alergen dnia"),
+    "pollen_alder": ("weather", "🌳 • Olsza"),
+    "pollen_birch": ("weather", "🌿 • Brzoza"),
+    "pollen_grass": ("weather", "🌱 • Trawy"),
+    "pollen_mugwort": ("weather", "🌼 • Bylica"),
+    "pollen_ragweed": ("weather", "🤧 • Ambrozja"),
     "rain": ("weather", "🌧️ • Opady"),
     "wind": ("weather", "💨 • Wiatr"),
     "pressure": ("weather", "🧭 • Ciśnienie"),
@@ -146,7 +152,7 @@ def get_channel_from_config(guild: discord.Guild, cfg: dict, key: str):
 
 
 # ================================
-# POGODA
+# POGODA / POWIETRZE / PYLENIE
 # ================================
 
 async def fetch_json(url: str):
@@ -178,21 +184,6 @@ def air_quality_text(eaqi):
     return "☠️ • Powietrze bardzo złe"
 
 
-def pollen_text(level):
-    level = float(level or 0)
-
-    if level <= 0:
-        return "🌿 • Brak pylenia"
-    if level <= 10:
-        return "🌼 • Pylenie niskie"
-    if level <= 50:
-        return "🤧 • Pylenie umiarkowane"
-    if level <= 100:
-        return "🤧 • Pylenie wysokie"
-
-    return "☠️ • Pylenie bardzo wysokie"
-
-
 def format_part_of_day(hour: int) -> str:
     if 5 <= hour < 8:
         return "🌅 • Świt"
@@ -222,6 +213,59 @@ def day_length_text(sunrise_str, sunset_str):
         return "☀️ • Długość dnia --"
 
 
+def pollen_level_name(value: float) -> str:
+    if value <= 0:
+        return "brak"
+    if value <= 10:
+        return "niskie"
+    if value <= 50:
+        return "umiarkowane"
+    if value <= 100:
+        return "wysokie"
+    return "bardzo wysokie"
+
+
+def pollen_level_emoji(value: float) -> str:
+    if value <= 0:
+        return "⚪"
+    if value <= 10:
+        return "🟢"
+    if value <= 50:
+        return "🟡"
+    if value <= 100:
+        return "🟠"
+    return "🔴"
+
+
+def pollen_channel_text(label: str, value) -> str:
+    try:
+        v = float(value or 0)
+    except Exception:
+        v = 0.0
+
+    emoji = pollen_level_emoji(v)
+    level = pollen_level_name(v)
+    return f"{emoji} • {label} {level}"
+
+
+def build_pollen_summary(alder, birch, grass, mugwort, ragweed) -> str:
+    values = {
+        "Olsza": float(alder or 0),
+        "Brzoza": float(birch or 0),
+        "Trawy": float(grass or 0),
+        "Bylica": float(mugwort or 0),
+        "Ambrozja": float(ragweed or 0),
+    }
+
+    top_name = max(values, key=values.get)
+    top_value = values[top_name]
+
+    if top_value <= 0:
+        return "⚪ • Alergen dnia brak"
+
+    return f"{pollen_level_emoji(top_value)} • Alergen dnia {top_name}"
+
+
 async def get_weather_data():
     weather_url = (
         "https://api.open-meteo.com/v1/forecast"
@@ -236,7 +280,7 @@ async def get_weather_data():
         "https://air-quality-api.open-meteo.com/v1/air-quality"
         f"?latitude={LATITUDE}"
         f"&longitude={LONGITUDE}"
-        "&current=european_aqi,grass_pollen"
+        "&current=european_aqi,alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen"
         "&timezone=Europe%2FWarsaw"
     )
 
@@ -256,6 +300,12 @@ async def get_weather_data():
     pressure = current.get("surface_pressure")
     clouds = current.get("cloud_cover")
 
+    alder = air_current.get("alder_pollen")
+    birch = air_current.get("birch_pollen")
+    grass = air_current.get("grass_pollen")
+    mugwort = air_current.get("mugwort_pollen")
+    ragweed = air_current.get("ragweed_pollen")
+
     sunrise_list = daily.get("sunrise", [])
     sunset_list = daily.get("sunset", [])
 
@@ -270,7 +320,12 @@ async def get_weather_data():
         "feels": f"🥵 • Odczuwalna {round(float(feels))}°C" if feels is not None else "🥵 • Odczuwalna --°C",
         "clouds": f"☁️ • Zachmurzenie {round(float(clouds))}%" if clouds is not None else "☁️ • Zachmurzenie --%",
         "air": air_quality_text(air_current.get("european_aqi")),
-        "pollen": pollen_text(air_current.get("grass_pollen")),
+        "pollen_summary": build_pollen_summary(alder, birch, grass, mugwort, ragweed),
+        "pollen_alder": pollen_channel_text("Olsza", alder),
+        "pollen_birch": pollen_channel_text("Brzoza", birch),
+        "pollen_grass": pollen_channel_text("Trawy", grass),
+        "pollen_mugwort": pollen_channel_text("Bylica", mugwort),
+        "pollen_ragweed": pollen_channel_text("Ambrozja", ragweed),
         "rain": "🌧️ • Brak opadów" if precip is not None and float(precip) == 0 else (
             f"🌧️ • Opady {round(float(precip), 1)} mm" if precip is not None else "🌧️ • Opady --"
         ),
@@ -278,7 +333,16 @@ async def get_weather_data():
         "pressure": f"🧭 • Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "🧭 • Ciśnienie -- hPa",
         "sunrise": f"🌅 • Wschód {sunrise_time}",
         "sunset": f"🌇 • Zachód {sunset_time}",
-        "day_length": day_length_text(sunrise_time, sunset_time)
+        "day_length": day_length_text(sunrise_time, sunset_time),
+
+        # surowe wartości do /pogoda
+        "raw_pollen": {
+            "Olsza": float(alder or 0),
+            "Brzoza": float(birch or 0),
+            "Trawy": float(grass or 0),
+            "Bylica": float(mugwort or 0),
+            "Ambrozja": float(ragweed or 0),
+        }
     }
 
 
@@ -379,7 +443,7 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
             name=new_name,
             reason="Kosmiczny Zegar: aktualizacja nazwy kanału"
         )
-        await asyncio.sleep(1.5)
+        await asyncio.sleep(1.3)
     except Exception as e:
         logging.error(f"Błąd zmiany nazwy kanału {getattr(channel, 'id', 'brak_id')}: {e}")
 
@@ -424,7 +488,21 @@ def moon_phase_name(now: datetime) -> str:
 # ================================
 
 async def update_weather_channels(guild: discord.Guild, cfg: dict, weather: dict):
-    for key in ["temperature", "feels", "clouds", "air", "pollen", "rain", "wind", "pressure"]:
+    for key in [
+        "temperature",
+        "feels",
+        "clouds",
+        "air",
+        "pollen_summary",
+        "pollen_alder",
+        "pollen_birch",
+        "pollen_grass",
+        "pollen_mugwort",
+        "pollen_ragweed",
+        "rain",
+        "wind",
+        "pressure"
+    ]:
         await safe_edit_channel_name(
             get_channel_from_config(guild, cfg, key),
             weather[key]
@@ -510,7 +588,7 @@ async def refresh_all(guild: discord.Guild):
     await update_stats_channels(guild, cfg)
 
 
-@tasks.loop(minutes=5)
+@tasks.loop(minutes=10)
 async def auto_refresh():
     for guild in bot.guilds:
         try:
@@ -607,44 +685,33 @@ async def status_command(interaction: discord.Interaction):
         title="📊 Status Kosmicznego Zegara",
         color=discord.Color.blue()
     )
-    embed.add_field(
-        name="Kategoria Pogoda",
-        value=str(cfg.get("weather_category_id")),
-        inline=False
-    )
-    embed.add_field(
-        name="Kategoria Kosmiczny Zegar",
-        value=str(cfg.get("clock_category_id")),
-        inline=False
-    )
-    embed.add_field(
-        name="Kategoria Statystyki",
-        value=str(cfg.get("stats_category_id")),
-        inline=False
-    )
-    embed.add_field(
-        name="Zapisane kanały",
-        value=str(len(cfg.get("channels", {}))),
-        inline=False
-    )
+    embed.add_field(name="Kategoria Pogoda", value=str(cfg.get("weather_category_id")), inline=False)
+    embed.add_field(name="Kategoria Kosmiczny Zegar", value=str(cfg.get("clock_category_id")), inline=False)
+    embed.add_field(name="Kategoria Statystyki", value=str(cfg.get("stats_category_id")), inline=False)
+    embed.add_field(name="Zapisane kanały", value=str(len(cfg.get("channels", {}))), inline=False)
 
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(name="pogoda", description="Pokazuje aktualną pogodę")
+@bot.tree.command(name="pogoda", description="Pokazuje aktualną pogodę i dokładne pylenie")
 async def weather_command(interaction: discord.Interaction):
     try:
         weather = await get_weather_data()
 
         embed = discord.Embed(
-            title="🌤️ Pogoda",
+            title="🌤️ Pogoda i pylenie",
             color=discord.Color.teal()
         )
         embed.add_field(name="Temperatura", value=weather["temperature"], inline=False)
         embed.add_field(name="Odczuwalna", value=weather["feels"], inline=False)
         embed.add_field(name="Zachmurzenie", value=weather["clouds"], inline=False)
         embed.add_field(name="Powietrze", value=weather["air"], inline=False)
-        embed.add_field(name="Pylenie", value=weather["pollen"], inline=False)
+        embed.add_field(name="Alergen dnia", value=weather["pollen_summary"], inline=False)
+        embed.add_field(name="Olsza", value=weather["pollen_alder"], inline=False)
+        embed.add_field(name="Brzoza", value=weather["pollen_birch"], inline=False)
+        embed.add_field(name="Trawy", value=weather["pollen_grass"], inline=False)
+        embed.add_field(name="Bylica", value=weather["pollen_mugwort"], inline=False)
+        embed.add_field(name="Ambrozja", value=weather["pollen_ragweed"], inline=False)
         embed.add_field(name="Opady", value=weather["rain"], inline=False)
         embed.add_field(name="Wiatr", value=weather["wind"], inline=False)
         embed.add_field(name="Ciśnienie", value=weather["pressure"], inline=False)
