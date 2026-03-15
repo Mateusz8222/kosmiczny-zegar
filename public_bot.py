@@ -69,7 +69,7 @@ CHANNEL_TEMPLATES = {
     "part_of_day": ("clock", "🌤️ • Pora dnia"),
     "sunrise": ("clock", "🌅 • Wschód"),
     "sunset": ("clock", "🌇 • Zachód"),
-    "day_length": ("clock", "☀️ • Długość dnia"),
+    "day_length": ("clock", "☀️ Dzień:"),
     "moon": ("clock", "🌙 • Faza księżyca"),
 
     # STATYSTYKI
