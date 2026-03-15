@@ -30,12 +30,12 @@ TIMEZONE = pytz.timezone("Europe/Warsaw")
 CITY_NAME = "WARSZAWA"
 LATITUDE = 52.2297
 LONGITUDE = 21.0122
-
 intents = discord.Intents.default()
 intents.guilds = True
 intents.members = True
 intents.presences = True
 intents.voice_states = True
+intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
