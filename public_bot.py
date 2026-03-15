@@ -1,6 +1,9 @@
 # ================================
 # KOSMICZNY ZEGAR 24 - BOT
-# WERSJA Z DOKŁADNYM PYLENIEM
+# PEŁNA WERSJA
+# - 1 kanał pylenia
+# - blokada dubli kanałów
+# - bez kanału godziny
 # ================================
 
 import discord
@@ -15,10 +18,18 @@ import logging
 from datetime import datetime
 import pytz
 
+# ================================
+# LOGI
+# ================================
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s"
 )
+
+# ================================
+# KONFIGURACJA
+# ================================
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -48,12 +59,7 @@ CHANNEL_TEMPLATES = {
     "feels": ("weather", "🥵 • Odczuwalna"),
     "clouds": ("weather", "☁️ • Zachmurzenie"),
     "air": ("weather", "🟢 • Powietrze"),
-    "pollen_summary": ("weather", "🌾 • Alergen dnia"),
-    "pollen_alder": ("weather", "🌳 • Olsza"),
-    "pollen_birch": ("weather", "🌿 • Brzoza"),
-    "pollen_grass": ("weather", "🌱 • Trawy"),
-    "pollen_mugwort": ("weather", "🌼 • Bylica"),
-    "pollen_ragweed": ("weather", "🤧 • Ambrozja"),
+    "pollen": ("weather", "🌿 • Pylenie"),
     "rain": ("weather", "🌧️ • Opady"),
     "wind": ("weather", "💨 • Wiatr"),
     "pressure": ("weather", "🧭 • Ciśnienie"),
@@ -78,7 +84,6 @@ CATEGORY_NAMES = {
     "clock": "🛰️ Kosmiczny Zegar",
     "stats": "📊 Statystyki",
 }
-
 
 # ================================
 # BAZA DANYCH
@@ -150,7 +155,6 @@ def get_channel_from_config(guild: discord.Guild, cfg: dict, key: str):
 
     return guild.get_channel(channel_id)
 
-
 # ================================
 # POGODA / POWIETRZE / PYLENIE
 # ================================
@@ -219,36 +223,13 @@ def pollen_level_name(value: float) -> str:
     if value <= 10:
         return "niskie"
     if value <= 50:
-        return "umiarkowane"
+        return "średnie"
     if value <= 100:
         return "wysokie"
     return "bardzo wysokie"
 
 
-def pollen_level_emoji(value: float) -> str:
-    if value <= 0:
-        return "⚪"
-    if value <= 10:
-        return "🟢"
-    if value <= 50:
-        return "🟡"
-    if value <= 100:
-        return "🟠"
-    return "🔴"
-
-
-def pollen_channel_text(label: str, value) -> str:
-    try:
-        v = float(value or 0)
-    except Exception:
-        v = 0.0
-
-    emoji = pollen_level_emoji(v)
-    level = pollen_level_name(v)
-    return f"{emoji} • {label} {level}"
-
-
-def build_pollen_summary(alder, birch, grass, mugwort, ragweed) -> str:
+def build_single_pollen_text(alder, birch, grass, mugwort, ragweed) -> str:
     values = {
         "Olsza": float(alder or 0),
         "Brzoza": float(birch or 0),
@@ -261,9 +242,9 @@ def build_pollen_summary(alder, birch, grass, mugwort, ragweed) -> str:
     top_value = values[top_name]
 
     if top_value <= 0:
-        return "⚪ • Alergen dnia brak"
+        return "🌿 • Pylenie brak"
 
-    return f"{pollen_level_emoji(top_value)} • Alergen dnia {top_name}"
+    return f"🌿 • Pylenie {top_name} {pollen_level_name(top_value)}"
 
 
 async def get_weather_data():
@@ -320,12 +301,7 @@ async def get_weather_data():
         "feels": f"🥵 • Odczuwalna {round(float(feels))}°C" if feels is not None else "🥵 • Odczuwalna --°C",
         "clouds": f"☁️ • Zachmurzenie {round(float(clouds))}%" if clouds is not None else "☁️ • Zachmurzenie --%",
         "air": air_quality_text(air_current.get("european_aqi")),
-        "pollen_summary": build_pollen_summary(alder, birch, grass, mugwort, ragweed),
-        "pollen_alder": pollen_channel_text("Olsza", alder),
-        "pollen_birch": pollen_channel_text("Brzoza", birch),
-        "pollen_grass": pollen_channel_text("Trawy", grass),
-        "pollen_mugwort": pollen_channel_text("Bylica", mugwort),
-        "pollen_ragweed": pollen_channel_text("Ambrozja", ragweed),
+        "pollen": build_single_pollen_text(alder, birch, grass, mugwort, ragweed),
         "rain": "🌧️ • Brak opadów" if precip is not None and float(precip) == 0 else (
             f"🌧️ • Opady {round(float(precip), 1)} mm" if precip is not None else "🌧️ • Opady --"
         ),
@@ -333,22 +309,26 @@ async def get_weather_data():
         "pressure": f"🧭 • Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "🧭 • Ciśnienie -- hPa",
         "sunrise": f"🌅 • Wschód {sunrise_time}",
         "sunset": f"🌇 • Zachód {sunset_time}",
-        "day_length": day_length_text(sunrise_time, sunset_time),
-
-        # surowe wartości do /pogoda
-        "raw_pollen": {
-            "Olsza": float(alder or 0),
-            "Brzoza": float(birch or 0),
-            "Trawy": float(grass or 0),
-            "Bylica": float(mugwort or 0),
-            "Ambrozja": float(ragweed or 0),
-        }
+        "day_length": day_length_text(sunrise_time, sunset_time)
     }
-
 
 # ================================
 # KATEGORIE I KANAŁY
 # ================================
+
+def find_voice_channel_in_category_by_name(
+    category: discord.CategoryChannel | None,
+    name: str
+):
+    if category is None:
+        return None
+
+    for channel in category.voice_channels:
+        if channel.name == name:
+            return channel
+
+    return None
+
 
 async def create_or_get_category(guild: discord.Guild, name: str):
     existing = discord.utils.get(guild.categories, name=name)
@@ -366,9 +346,9 @@ async def create_or_get_voice_channel(
     category: discord.CategoryChannel,
     name: str
 ):
-    for channel in category.voice_channels:
-        if channel.name == name:
-            return channel
+    existing = find_voice_channel_in_category_by_name(category, name)
+    if existing:
+        return existing
 
     return await guild.create_voice_channel(
         name=name,
@@ -414,16 +394,38 @@ async def ensure_categories_and_channels(guild: discord.Guild):
     channels = dict(cfg.get("channels", {}))
 
     for key, (group_name, fallback_name) in CHANNEL_TEMPLATES.items():
+        target_category = category_map[group_name]
         current_channel = None
         channel_id = channels.get(key)
 
+        # 1. Szukaj po zapisanym ID
         if channel_id:
             current_channel = guild.get_channel(channel_id)
 
+        # 2. Jeśli ID nie działa, szukaj po nazwie w danej kategorii
         if current_channel is None:
-            category = category_map[group_name]
-            created = await create_or_get_voice_channel(guild, category, fallback_name)
-            channels[key] = created.id
+            current_channel = find_voice_channel_in_category_by_name(
+                target_category,
+                fallback_name
+            )
+            if current_channel is not None:
+                logging.info(
+                    f"Znaleziono istniejący kanał dla '{key}' po nazwie: {current_channel.name}"
+                )
+
+        # 3. Jeśli nie istnieje, dopiero utwórz
+        if current_channel is None:
+            current_channel = await create_or_get_voice_channel(
+                guild,
+                target_category,
+                fallback_name
+            )
+            logging.info(
+                f"Utworzono nowy kanał dla '{key}': {current_channel.name}"
+            )
+
+        # 4. Zapisz poprawne ID do bazy
+        channels[key] = current_channel.id
 
     cfg["channels"] = channels
     save_guild_config(guild.id, cfg)
@@ -482,7 +484,6 @@ def moon_phase_name(now: datetime) -> str:
 
     return phases.get(phase_index, "🌙 • Księżyc")
 
-
 # ================================
 # AKTUALIZACJA KANAŁÓW
 # ================================
@@ -493,12 +494,7 @@ async def update_weather_channels(guild: discord.Guild, cfg: dict, weather: dict
         "feels",
         "clouds",
         "air",
-        "pollen_summary",
-        "pollen_alder",
-        "pollen_birch",
-        "pollen_grass",
-        "pollen_mugwort",
-        "pollen_ragweed",
+        "pollen",
         "rain",
         "wind",
         "pressure"
@@ -601,7 +597,6 @@ async def auto_refresh():
 async def before_auto_refresh():
     await bot.wait_until_ready()
 
-
 # ================================
 # KOMENDY
 # ================================
@@ -693,25 +688,20 @@ async def status_command(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(name="pogoda", description="Pokazuje aktualną pogodę i dokładne pylenie")
+@bot.tree.command(name="pogoda", description="Pokazuje aktualną pogodę")
 async def weather_command(interaction: discord.Interaction):
     try:
         weather = await get_weather_data()
 
         embed = discord.Embed(
-            title="🌤️ Pogoda i pylenie",
+            title="🌤️ Pogoda",
             color=discord.Color.teal()
         )
         embed.add_field(name="Temperatura", value=weather["temperature"], inline=False)
         embed.add_field(name="Odczuwalna", value=weather["feels"], inline=False)
         embed.add_field(name="Zachmurzenie", value=weather["clouds"], inline=False)
         embed.add_field(name="Powietrze", value=weather["air"], inline=False)
-        embed.add_field(name="Alergen dnia", value=weather["pollen_summary"], inline=False)
-        embed.add_field(name="Olsza", value=weather["pollen_alder"], inline=False)
-        embed.add_field(name="Brzoza", value=weather["pollen_birch"], inline=False)
-        embed.add_field(name="Trawy", value=weather["pollen_grass"], inline=False)
-        embed.add_field(name="Bylica", value=weather["pollen_mugwort"], inline=False)
-        embed.add_field(name="Ambrozja", value=weather["pollen_ragweed"], inline=False)
+        embed.add_field(name="Pylenie", value=weather["pollen"], inline=False)
         embed.add_field(name="Opady", value=weather["rain"], inline=False)
         embed.add_field(name="Wiatr", value=weather["wind"], inline=False)
         embed.add_field(name="Ciśnienie", value=weather["pressure"], inline=False)
@@ -750,7 +740,6 @@ async def moon_command(interaction: discord.Interaction):
         moon_phase_name(now),
         ephemeral=True
     )
-
 
 # ================================
 # USUWANIE KATEGORII
@@ -897,7 +886,6 @@ async def delete_all_command(interaction: discord.Interaction):
     save_guild_config(guild.id, cfg)
 
     await interaction.followup.send("✅ Usunięto wszystkie kategorie bota.", ephemeral=True)
-
 
 # ================================
 # START BOTA
