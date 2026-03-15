@@ -1,9 +1,6 @@
 # ================================
 # KOSMICZNY ZEGAR 24 - BOT
-# PEŁNA WERSJA
-# - 1 kanał pylenia
-# - blokada dubli kanałów
-# - bez kanału godziny
+# PEŁNA POPRAWNA WERSJA
 # ================================
 
 import discord
@@ -55,28 +52,28 @@ DB_FILE = "bot_data.db"
 
 CHANNEL_TEMPLATES = {
     # POGODA
-    "temperature": ("weather", "🌡️ • Temperatura"),
-    "feels": ("weather", "🥵 • Odczuwalna"),
-    "clouds": ("weather", "☁️ • Zachmurzenie"),
-    "air": ("weather", "🟢 • Powietrze"),
-    "pollen": ("weather", "🌿 • Pylenie"),
-    "rain": ("weather", "🌧️ • Opady"),
-    "wind": ("weather", "💨 • Wiatr"),
-    "pressure": ("weather", "🧭 • Ciśnienie"),
+    "temperature": ("weather", "🌡 Temperatura"),
+    "feels": ("weather", "🤒 Odczuwalna"),
+    "clouds": ("weather", "☁ Zachmurzenie"),
+    "air": ("weather", "🌬 Powietrze"),
+    "pollen": ("weather", "🌿 Pylenie"),
+    "rain": ("weather", "🌧 Opady"),
+    "wind": ("weather", "💨 Wiatr"),
+    "pressure": ("weather", "⏱ Ciśnienie"),
 
     # KOSMICZNY ZEGAR
-    "date": ("clock", "📅 • Data"),
-    "part_of_day": ("clock", "🌤️ • Pora dnia"),
-    "sunrise": ("clock", "🌅 • Wschód"),
-    "sunset": ("clock", "🌇 • Zachód"),
-    "day_length": ("clock", "☀️ Dzień:"),
-    "moon": ("clock", "🌙 • Faza księżyca"),
+    "date": ("clock", "📅 Data"),
+    "part_of_day": ("clock", "🌓 Pora dnia"),
+    "sunrise": ("clock", "🌅 Wschód"),
+    "sunset": ("clock", "🌇 Zachód"),
+    "day_length": ("clock", "☀️ Dzień"),
+    "moon": ("clock", "🌙 Faza księżyca"),
 
     # STATYSTYKI
-    "members": ("stats", "👥 • Wszyscy"),
-    "online": ("stats", "🟢 • Online"),
-    "bots": ("stats", "🤖 • Boty"),
-    "vc": ("stats", "🔊 • Na VC"),
+    "members": ("stats", "👥 Wszyscy"),
+    "online": ("stats", "🟢 Online"),
+    "bots": ("stats", "🤖 Boty"),
+    "vc": ("stats", "🔊 Na VC"),
 }
 
 CATEGORY_NAMES = {
@@ -156,8 +153,22 @@ def get_channel_from_config(guild: discord.Guild, cfg: dict, key: str):
     return guild.get_channel(channel_id)
 
 # ================================
-# POGODA / POWIETRZE / PYLENIE
+# POMOCNICZE
 # ================================
+
+def find_voice_channel_in_category_by_name(
+    category: discord.CategoryChannel | None,
+    name: str
+):
+    if category is None:
+        return None
+
+    for channel in category.voice_channels:
+        if channel.name == name:
+            return channel
+
+    return None
+
 
 async def fetch_json(url: str):
     timeout = aiohttp.ClientTimeout(total=20)
@@ -170,51 +181,22 @@ async def fetch_json(url: str):
 
 def air_quality_text(eaqi):
     if eaqi is None:
-        return "⚪ • Powietrze brak danych"
+        return "🌬 Powietrze brak danych"
 
     value = float(eaqi)
 
     if value <= 20:
-        return "🟢 • Powietrze bardzo dobre"
+        return "🌬 Powietrze bardzo dobre"
     if value <= 40:
-        return "🟢 • Powietrze dobre"
+        return "🌬 Powietrze dobre"
     if value <= 60:
-        return "🟡 • Powietrze umiarkowane"
+        return "🌬 Powietrze umiarkowane"
     if value <= 80:
-        return "🟠 • Powietrze dostateczne"
+        return "🌬 Powietrze dostateczne"
     if value <= 100:
-        return "🔴 • Powietrze złe"
+        return "🌬 Powietrze złe"
 
-    return "☠️ • Powietrze bardzo złe"
-
-
-def format_part_of_day(hour: int) -> str:
-    if 5 <= hour < 8:
-        return "🌅 • Świt"
-    if 8 <= hour < 12:
-        return "🌄 • Poranek"
-    if 12 <= hour < 17:
-        return "☀️ • Dzień"
-    if 17 <= hour < 21:
-        return "🌆 • Wieczór"
-    return "🌙 • Noc"
-
-
-def day_length_text(sunrise_str, sunset_str):
-    try:
-        sunrise = datetime.strptime(sunrise_str, "%H:%M")
-        sunset = datetime.strptime(sunset_str, "%H:%M")
-
-        diff = sunset - sunrise
-        minutes = int(diff.total_seconds() // 60)
-
-        hours = minutes // 60
-        mins = minutes % 60
-
-        return f"☀️ • Długość dnia {hours}h {mins}m"
-
-    except Exception:
-        return "☀️ • Długość dnia --"
+    return "🌬 Powietrze bardzo złe"
 
 
 def pollen_level_name(value: float) -> str:
@@ -242,10 +224,76 @@ def build_single_pollen_text(alder, birch, grass, mugwort, ragweed) -> str:
     top_value = values[top_name]
 
     if top_value <= 0:
-        return "🌿 • Pylenie brak"
+        return "🌿 Pylenie brak"
 
-    return f"🌿 • Pylenie {top_name} {pollen_level_name(top_value)}"
+    return f"🌿 Pylenie {top_name} {pollen_level_name(top_value)}"
 
+
+def format_part_of_day(hour: int) -> str:
+    if 5 <= hour < 8:
+        return "🌓 Pora dnia świt"
+    if 8 <= hour < 12:
+        return "🌓 Pora dnia poranek"
+    if 12 <= hour < 17:
+        return "🌓 Pora dnia dzień"
+    if 17 <= hour < 21:
+        return "🌓 Pora dnia wieczór"
+    return "🌓 Pora dnia noc"
+
+
+def day_length_text(sunrise_str, sunset_str):
+    try:
+        sunrise = datetime.strptime(sunrise_str, "%H:%M")
+        sunset = datetime.strptime(sunset_str, "%H:%M")
+
+        diff = sunset - sunrise
+        minutes = int(diff.total_seconds() // 60)
+        hours = minutes // 60
+        mins = minutes % 60
+
+        return f"☀️ Dzień {hours}h {mins}m"
+
+    except Exception:
+        return "☀️ Dzień --"
+
+
+def moon_phase_name(now: datetime) -> str:
+    year = now.year
+    month = now.month
+    day = now.day
+
+    if month < 3:
+        year -= 1
+        month += 12
+
+    month += 1
+    c = 365.25 * year
+    e = 30.6 * month
+    jd = c + e + day - 694039.09
+    jd /= 29.5305882
+    b = int(jd)
+    jd -= b
+    phase_index = round(jd * 8)
+
+    if phase_index >= 8:
+        phase_index = 0
+
+    phases = {
+        0: "🌑 Faza księżyca nów",
+        1: "🌒 Faza księżyca sierp przybywający",
+        2: "🌓 Faza księżyca pierwsza kwadra",
+        3: "🌔 Faza księżyca garb przybywający",
+        4: "🌕 Faza księżyca pełnia",
+        5: "🌖 Faza księżyca garb ubywający",
+        6: "🌗 Faza księżyca ostatnia kwadra",
+        7: "🌘 Faza księżyca sierp ubywający",
+    }
+
+    return phases.get(phase_index, "🌙 Faza księżyca --")
+
+# ================================
+# POBIERANIE POGODY
+# ================================
 
 async def get_weather_data():
     weather_url = (
@@ -297,38 +345,24 @@ async def get_weather_data():
     sunset_time = sunset.split("T")[1][:5] if sunset else "--:--"
 
     return {
-        "temperature": f"🌡️ • {CITY_NAME} {round(float(temp))}°C" if temp is not None else f"🌡️ • {CITY_NAME} --°C",
-        "feels": f"🥵 • Odczuwalna {round(float(feels))}°C" if feels is not None else "🥵 • Odczuwalna --°C",
-        "clouds": f"☁️ • Zachmurzenie {round(float(clouds))}%" if clouds is not None else "☁️ • Zachmurzenie --%",
+        "temperature": f"🌡 {CITY_NAME} {round(float(temp))}°C" if temp is not None else f"🌡 {CITY_NAME} --°C",
+        "feels": f"🤒 Odczuwalna {round(float(feels))}°C" if feels is not None else "🤒 Odczuwalna --°C",
+        "clouds": f"☁ Zachmurzenie {round(float(clouds))}%" if clouds is not None else "☁ Zachmurzenie --%",
         "air": air_quality_text(air_current.get("european_aqi")),
         "pollen": build_single_pollen_text(alder, birch, grass, mugwort, ragweed),
-        "rain": "🌧️ • Brak opadów" if precip is not None and float(precip) == 0 else (
-            f"🌧️ • Opady {round(float(precip), 1)} mm" if precip is not None else "🌧️ • Opady --"
+        "rain": "🌧 Opady brak" if precip is not None and float(precip) == 0 else (
+            f"🌧 Opady {round(float(precip), 1)} mm" if precip is not None else "🌧 Opady --"
         ),
-        "wind": f"💨 • Wiatr {round(float(wind))} km/h" if wind is not None else "💨 • Wiatr -- km/h",
-        "pressure": f"🧭 • Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "🧭 • Ciśnienie -- hPa",
-        "sunrise": f"🌅 • Wschód {sunrise_time}",
-        "sunset": f"🌇 • Zachód {sunset_time}",
+        "wind": f"💨 Wiatr {round(float(wind))} km/h" if wind is not None else "💨 Wiatr -- km/h",
+        "pressure": f"⏱ Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "⏱ Ciśnienie -- hPa",
+        "sunrise": f"🌅 Wschód {sunrise_time}",
+        "sunset": f"🌇 Zachód {sunset_time}",
         "day_length": day_length_text(sunrise_time, sunset_time)
     }
 
 # ================================
 # KATEGORIE I KANAŁY
 # ================================
-
-def find_voice_channel_in_category_by_name(
-    category: discord.CategoryChannel | None,
-    name: str
-):
-    if category is None:
-        return None
-
-    for channel in category.voice_channels:
-        if channel.name == name:
-            return channel
-
-    return None
-
 
 async def create_or_get_category(guild: discord.Guild, name: str):
     existing = discord.utils.get(guild.categories, name=name)
@@ -398,33 +432,25 @@ async def ensure_categories_and_channels(guild: discord.Guild):
         current_channel = None
         channel_id = channels.get(key)
 
-        # 1. Szukaj po zapisanym ID
         if channel_id:
             current_channel = guild.get_channel(channel_id)
 
-        # 2. Jeśli ID nie działa, szukaj po nazwie w danej kategorii
         if current_channel is None:
             current_channel = find_voice_channel_in_category_by_name(
                 target_category,
                 fallback_name
             )
             if current_channel is not None:
-                logging.info(
-                    f"Znaleziono istniejący kanał dla '{key}' po nazwie: {current_channel.name}"
-                )
+                logging.info(f"Znaleziono istniejący kanał dla '{key}' po nazwie: {current_channel.name}")
 
-        # 3. Jeśli nie istnieje, dopiero utwórz
         if current_channel is None:
             current_channel = await create_or_get_voice_channel(
                 guild,
                 target_category,
                 fallback_name
             )
-            logging.info(
-                f"Utworzono nowy kanał dla '{key}': {current_channel.name}"
-            )
+            logging.info(f"Utworzono nowy kanał dla '{key}': {current_channel.name}")
 
-        # 4. Zapisz poprawne ID do bazy
         channels[key] = current_channel.id
 
     cfg["channels"] = channels
@@ -437,6 +463,8 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
     if channel is None:
         return
 
+    new_name = new_name[:95]
+
     if channel.name == new_name:
         return
 
@@ -445,44 +473,9 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
             name=new_name,
             reason="Kosmiczny Zegar: aktualizacja nazwy kanału"
         )
-        await asyncio.sleep(1.3)
+        await asyncio.sleep(1.2)
     except Exception as e:
         logging.error(f"Błąd zmiany nazwy kanału {getattr(channel, 'id', 'brak_id')}: {e}")
-
-
-def moon_phase_name(now: datetime) -> str:
-    year = now.year
-    month = now.month
-    day = now.day
-
-    if month < 3:
-        year -= 1
-        month += 12
-
-    month += 1
-    c = 365.25 * year
-    e = 30.6 * month
-    jd = c + e + day - 694039.09
-    jd /= 29.5305882
-    b = int(jd)
-    jd -= b
-    phase_index = round(jd * 8)
-
-    if phase_index >= 8:
-        phase_index = 0
-
-    phases = {
-        0: "🌑 • Nów",
-        1: "🌒 • Sierp przybywający",
-        2: "🌓 • Pierwsza kwadra",
-        3: "🌔 • Garb przybywający",
-        4: "🌕 • Pełnia",
-        5: "🌖 • Garb ubywający",
-        6: "🌗 • Ostatnia kwadra",
-        7: "🌘 • Sierp ubywający",
-    }
-
-    return phases.get(phase_index, "🌙 • Księżyc")
 
 # ================================
 # AKTUALIZACJA KANAŁÓW
@@ -511,7 +504,7 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict):
 
     await safe_edit_channel_name(
         get_channel_from_config(guild, cfg, "date"),
-        f"📅 • {weekdays[now.weekday()]} {now.strftime('%d.%m.%Y')}"
+        f"📅 Data {weekdays[now.weekday()]} {now.strftime('%d.%m.%Y')}"
     )
     await safe_edit_channel_name(
         get_channel_from_config(guild, cfg, "part_of_day"),
@@ -559,19 +552,19 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
 
     await safe_edit_channel_name(
         get_channel_from_config(guild, cfg, "members"),
-        f"👥 • Wszyscy {members_count}"
+        f"👥 Wszyscy {members_count}"
     )
     await safe_edit_channel_name(
         get_channel_from_config(guild, cfg, "online"),
-        f"🟢 • Online {online_count}"
+        f"🟢 Online {online_count}"
     )
     await safe_edit_channel_name(
         get_channel_from_config(guild, cfg, "bots"),
-        f"🤖 • Boty {bots_count}"
+        f"🤖 Boty {bots_count}"
     )
     await safe_edit_channel_name(
         get_channel_from_config(guild, cfg, "vc"),
-        f"🔊 • Na VC {vc_count}"
+        f"🔊 Na VC {vc_count}"
     )
 
 
@@ -756,6 +749,7 @@ async def delete_category_with_channels(guild: discord.Guild, category_id: int |
     for ch in list(category.channels):
         try:
             await ch.delete(reason="Kosmiczny Zegar: usuwanie kategorii")
+            await asyncio.sleep(0.7)
         except Exception as e:
             logging.error(f"Błąd usuwania kanału {getattr(ch, 'id', 'brak_id')}: {e}")
 
