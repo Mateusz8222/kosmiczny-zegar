@@ -1,6 +1,11 @@
 # ================================
 # KOSMICZNY ZEGAR 24 - BOT
 # PEŁNA POPRAWNA WERSJA
+# - kanały tworzą się tylko po /setup
+# - brak OPENWEATHER_API_KEY
+# - 1 kanał pylenia
+# - blokada dubli kanałów
+# - bez kanału godziny
 # ================================
 
 import discord
@@ -391,7 +396,10 @@ async def create_or_get_voice_channel(
     )
 
 
-async def ensure_categories_and_channels(guild: discord.Guild):
+async def setup_categories_and_channels(guild: discord.Guild):
+    """
+    Tworzy kategorie i kanały tylko dla komendy /setup.
+    """
     cfg = get_guild_config(guild.id)
 
     if not cfg:
@@ -440,8 +448,6 @@ async def ensure_categories_and_channels(guild: discord.Guild):
                 target_category,
                 fallback_name
             )
-            if current_channel is not None:
-                logging.info(f"Znaleziono istniejący kanał dla '{key}' po nazwie: {current_channel.name}")
 
         if current_channel is None:
             current_channel = await create_or_get_voice_channel(
@@ -449,7 +455,6 @@ async def ensure_categories_and_channels(guild: discord.Guild):
                 target_category,
                 fallback_name
             )
-            logging.info(f"Utworzono nowy kanał dla '{key}': {current_channel.name}")
 
         channels[key] = current_channel.id
 
@@ -568,20 +573,35 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
     )
 
 
-async def refresh_all(guild: discord.Guild):
-    cfg = await ensure_categories_and_channels(guild)
+async def refresh_existing_panel(guild: discord.Guild):
+    """
+    Odświeża tylko istniejący panel.
+    Niczego nie tworzy.
+    """
+    cfg = get_guild_config(guild.id)
+
+    if not cfg:
+        return False
+
     weather = await get_weather_data()
 
     await update_weather_channels(guild, cfg, weather)
     await update_clock_channels(guild, cfg, weather)
     await update_stats_channels(guild, cfg)
 
+    return True
+
 
 @tasks.loop(minutes=10)
 async def auto_refresh():
     for guild in bot.guilds:
         try:
-            await refresh_all(guild)
+            cfg = get_guild_config(guild.id)
+            if not cfg:
+                continue
+
+            await refresh_existing_panel(guild)
+
         except Exception as e:
             logging.error(f"Błąd auto_refresh dla {guild.id}: {e}")
 
@@ -609,8 +629,9 @@ async def setup_command(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
 
     try:
-        await ensure_categories_and_channels(guild)
-        await refresh_all(guild)
+        await setup_categories_and_channels(guild)
+        await refresh_existing_panel(guild)
+
         await interaction.followup.send(
             "✅ Utworzono i odświeżono wszystkie kategorie oraz kanały.",
             ephemeral=True
@@ -637,7 +658,15 @@ async def refresh_command(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
 
     try:
-        await refresh_all(guild)
+        refreshed = await refresh_existing_panel(guild)
+
+        if not refreshed:
+            await interaction.followup.send(
+                "ℹ️ Brak konfiguracji. Najpierw użyj `/setup`.",
+                ephemeral=True
+            )
+            return
+
         await interaction.followup.send(
             "✅ Wszystkie kanały zostały odświeżone.",
             ephemeral=True
