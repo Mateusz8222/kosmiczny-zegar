@@ -1,11 +1,6 @@
 # ================================
 # KOSMICZNY ZEGAR 24 - BOT
-# PEŁNA POPRAWNA WERSJA
-# - kanały tworzą się tylko po /setup
-# - brak OPENWEATHER_API_KEY
-# - 1 kanał pylenia
-# - blokada dubli kanałów
-# - bez kanału godziny
+# PEŁNA STABILNA WERSJA
 # ================================
 
 import discord
@@ -180,8 +175,17 @@ async def fetch_json(url: str):
 
     async with aiohttp.ClientSession(timeout=timeout) as session:
         async with session.get(url) as response:
-            response.raise_for_status()
-            return await response.json()
+            text = await response.text()
+
+            # Cloudflare / HTML / błędna odpowiedź
+            lowered = text.lower()
+            if text.startswith("<!DOCTYPE") or "<html" in lowered:
+                raise RuntimeError("API zwróciło HTML zamiast JSON (Cloudflare / blokada)")
+
+            try:
+                return json.loads(text)
+            except Exception as e:
+                raise RuntimeError(f"Nie udało się odczytać JSON z API: {e}")
 
 
 def air_quality_text(eaqi):
@@ -397,9 +401,6 @@ async def create_or_get_voice_channel(
 
 
 async def setup_categories_and_channels(guild: discord.Guild):
-    """
-    Tworzy kategorie i kanały tylko dla komendy /setup.
-    """
     cfg = get_guild_config(guild.id)
 
     if not cfg:
@@ -574,10 +575,6 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
 
 
 async def refresh_existing_panel(guild: discord.Guild):
-    """
-    Odświeża tylko istniejący panel.
-    Niczego nie tworzy.
-    """
     cfg = get_guild_config(guild.id)
 
     if not cfg:
@@ -592,7 +589,7 @@ async def refresh_existing_panel(guild: discord.Guild):
     return True
 
 
-@tasks.loop(minutes=10)
+@tasks.loop(minutes=15)
 async def auto_refresh():
     for guild in bot.guilds:
         try:
