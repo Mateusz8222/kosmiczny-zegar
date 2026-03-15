@@ -1,6 +1,6 @@
 # ================================
 # KOSMICZNY ZEGAR 24 - BOT
-# PEŁNA WERSJA BEZ KANAŁU GODZINY
+# PEŁNA WERSJA ZE STATYSTYKAMI REALTIME
 # ================================
 
 import discord
@@ -34,6 +34,7 @@ LONGITUDE = 21.0122
 intents = discord.Intents.default()
 intents.guilds = True
 intents.members = True
+intents.presences = True
 intents.voice_states = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -461,10 +462,26 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict):
 
 
 async def update_stats_channels(guild: discord.Guild, cfg: dict):
-    members_count = guild.member_count or 0
-    bots_count = len([m for m in guild.members if m.bot])
-    online_count = len([m for m in guild.members if m.status != discord.Status.offline])
-    vc_count = len([m for m in guild.members if m.voice and m.voice.channel])
+    members = [m for m in guild.members]
+    human_members = [m for m in members if not m.bot]
+    bot_members = [m for m in members if m.bot]
+
+    members_count = len(members)
+    bots_count = len(bot_members)
+
+    online_count = len([
+        m for m in human_members
+        if m.status in (
+            discord.Status.online,
+            discord.Status.idle,
+            discord.Status.dnd
+        )
+    ])
+
+    vc_count = len([
+        m for m in human_members
+        if m.voice and m.voice.channel is not None
+    ])
 
     await safe_edit_channel_name(
         get_channel_from_config(guild, cfg, "members"),
@@ -493,7 +510,7 @@ async def refresh_all(guild: discord.Guild):
     await update_stats_channels(guild, cfg)
 
 
-@tasks.loop(minutes=10)
+@tasks.loop(minutes=5)
 async def auto_refresh():
     for guild in bot.guilds:
         try:
