@@ -1,5 +1,5 @@
 # ================================
-# KOSMICZNY ZEGAR PUBLIC - BOT v20
+# KOSMICZNY ZEGAR PUBLIC - BOT v21
 # ================================
 
 import asyncio
@@ -66,6 +66,7 @@ CHANNEL_TEMPLATES = {
     "rain": ("weather", "🌧 Opady"),
     "wind": ("weather", "💨 Wiatr"),
     "pressure": ("weather", "⏱ Ciśnienie"),
+    "alerts": ("weather", "🚨 Alerty brak"),
 
     # KOSMICZNY ZEGAR
     "date": ("clock", "📅 Data"),
@@ -311,25 +312,27 @@ async def geocode_city(city_query: str, count: int = 10):
 def trim_channel_name(text: str) -> str:
     return text[:MAX_CHANNEL_NAME_LEN]
 
+# ================================
+# POWIETRZE / PYLENIE / ALERTY
+# ================================
 
 def air_quality_text(eaqi):
     if eaqi is None:
-        return "🌫 Powietrze brak danych"
+        return "⚪ Powietrze brak danych"
 
     value = float(eaqi)
 
     if value <= 20:
-        return "🌫 Powietrze bardzo dobre"
+        return "🟢 Powietrze bardzo dobre"
     if value <= 40:
-        return "🌫 Powietrze dobre"
+        return "🟡 Powietrze dobre"
     if value <= 60:
-        return "🌫 Powietrze umiarkowane"
+        return "🟠 Powietrze umiarkowane"
     if value <= 80:
-        return "🌫 Powietrze dostateczne"
+        return "🔴 Powietrze dostateczne"
     if value <= 100:
-        return "🌫 Powietrze złe"
-
-    return "🌫 Powietrze bardzo złe"
+        return "🟣 Powietrze złe"
+    return "⚫ Powietrze bardzo złe"
 
 
 def pollen_level_name(value: float) -> str:
@@ -466,6 +469,87 @@ def moon_phase_name(now: datetime) -> str:
 
     return phases.get(phase_index, "🌙 Faza księżyca --")
 
+
+def build_weather_alerts(current: dict) -> list[str]:
+    alerts: list[str] = []
+
+    weather_code = int(current.get("weather_code", -1)) if current.get("weather_code") is not None else -1
+    temperature = float(current.get("temperature_2m", 999)) if current.get("temperature_2m") is not None else 999
+    precipitation = float(current.get("precipitation", 0) or 0)
+    rain = float(current.get("rain", 0) or 0)
+    showers = float(current.get("showers", 0) or 0)
+    snowfall = float(current.get("snowfall", 0) or 0)
+    gusts = float(current.get("wind_gusts_10m", 0) or 0)
+    visibility = float(current.get("visibility", 999999) or 999999)
+
+    if weather_code in {95, 96, 99}:
+        alerts.append("burze")
+
+    if weather_code in {96, 99}:
+        alerts.append("grad")
+
+    if weather_code in {45, 48} or visibility <= 1000:
+        alerts.append("mgła")
+
+    if weather_code in {56, 57, 66, 67} or (temperature <= 1 and precipitation > 0):
+        alerts.append("gołoledź")
+
+    if weather_code in {75, 86} or snowfall >= 1.0:
+        alerts.append("intensywne opady śniegu")
+
+    if snowfall > 0 and gusts >= 40:
+        alerts.append("zawieje śnieżne")
+
+    if snowfall > 0 and gusts >= 55:
+        alerts.append("zamiecie śnieżne")
+
+    if weather_code in {65, 82} or precipitation >= 10 or rain >= 10 or showers >= 10:
+        alerts.append("ulewy")
+
+    if gusts >= 70:
+        alerts.append("wichury")
+
+    if gusts >= 118:
+        alerts.append("orkan")
+
+    # unikalne i zachowana kolejność
+    unique_alerts: list[str] = []
+    for alert in alerts:
+        if alert not in unique_alerts:
+            unique_alerts.append(alert)
+
+    return unique_alerts
+
+
+def format_alerts_channel(alerts: list[str]) -> str:
+    if not alerts:
+        return "✅ Alerty brak"
+
+    base = "🚨 Alerty "
+    joined = " • ".join(alerts)
+
+    text = base + joined
+    if len(text) <= MAX_CHANNEL_NAME_LEN:
+        return text
+
+    # jeśli za długie, tnij z licznikiem
+    trimmed: list[str] = []
+    for alert in alerts:
+        candidate = base + " • ".join(trimmed + [alert])
+        if len(candidate) <= MAX_CHANNEL_NAME_LEN:
+            trimmed.append(alert)
+        else:
+            break
+
+    remaining = len(alerts) - len(trimmed)
+    if remaining > 0:
+        suffix = f" +{remaining}"
+        candidate = base + " • ".join(trimmed) + suffix
+        if len(candidate) <= MAX_CHANNEL_NAME_LEN:
+            return candidate
+
+    return trim_channel_name(base + " • ".join(trimmed))
+
 # ================================
 # POBIERANIE POGODY
 # ================================
@@ -477,7 +561,8 @@ async def get_weather_data(city_name: str, latitude: float, longitude: float, ti
         "https://api.open-meteo.com/v1/forecast"
         f"?latitude={latitude}"
         f"&longitude={longitude}"
-        "&current=temperature_2m,apparent_temperature,precipitation,wind_speed_10m,surface_pressure,cloud_cover"
+        "&current=temperature_2m,apparent_temperature,precipitation,rain,showers,snowfall,"
+        "wind_speed_10m,wind_gusts_10m,surface_pressure,cloud_cover,weather_code,visibility"
         "&daily=sunrise,sunset"
         f"&timezone={encoded_timezone}"
     )
@@ -521,6 +606,8 @@ async def get_weather_data(city_name: str, latitude: float, longitude: float, ti
     sunrise_time = sunrise.split("T")[1][:5] if sunrise else "--:--"
     sunset_time = sunset.split("T")[1][:5] if sunset else "--:--"
 
+    alerts = build_weather_alerts(current)
+
     return {
         "temperature": f"🌡 {city_name.upper()} {round(float(temp))}°C" if temp is not None else f"🌡 {city_name.upper()} --°C",
         "feels": f"🥵 Odczuwalna {round(float(feels))}°C" if feels is not None else "🥵 Odczuwalna --°C",
@@ -532,6 +619,8 @@ async def get_weather_data(city_name: str, latitude: float, longitude: float, ti
         ),
         "wind": f"💨 Wiatr {round(float(wind))} km/h" if wind is not None else "💨 Wiatr -- km/h",
         "pressure": f"⏱ Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "⏱ Ciśnienie -- hPa",
+        "alerts": format_alerts_channel(alerts),
+        "alerts_list": alerts,
         "sunrise": f"🌅 Wschód {sunrise_time}",
         "sunset": f"🌇 Zachód {sunset_time}",
         "sunrise_time": sunrise_time,
@@ -663,11 +752,12 @@ async def update_weather_channels(guild: discord.Guild, cfg: dict, weather: dict
         "temperature",
         "feels",
         "clouds",
-        "air",
-        "pollen",
         "rain",
         "wind",
-        "pressure"
+        "pressure",
+        "air",
+        "pollen",
+        "alerts",
     ]:
         await safe_edit_channel_name(
             get_channel_from_config(guild, cfg, key),
@@ -1043,6 +1133,7 @@ async def weather_command(interaction: discord.Interaction):
         embed.add_field(name="Opady", value=weather["rain"], inline=False)
         embed.add_field(name="Wiatr", value=weather["wind"], inline=False)
         embed.add_field(name="Ciśnienie", value=weather["pressure"], inline=False)
+        embed.add_field(name="Alerty", value=", ".join(weather["alerts_list"]) if weather["alerts_list"] else "brak", inline=False)
         embed.add_field(name="Wschód", value=weather["sunrise"], inline=False)
         embed.add_field(name="Zachód", value=weather["sunset"], inline=False)
         embed.add_field(name="Długość dnia", value=weather["day_length"], inline=False)
