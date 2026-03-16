@@ -1,5 +1,5 @@
 # ================================
-# KOSMICZNY ZEGAR PUBLIC - BOT v16
+# KOSMICZNY ZEGAR PUBLIC - BOT v17
 # ================================
 
 import asyncio
@@ -59,9 +59,9 @@ DB_FILE = "bot_data_public.db"
 CHANNEL_TEMPLATES = {
     # POGODA
     "temperature": ("weather", "🌡 Temperatura"),
-    "feels": ("weather", "🤒 Odczuwalna"),
+    "feels": ("weather", "🥵 Odczuwalna"),
     "clouds": ("weather", "☁ Zachmurzenie"),
-    "air": ("weather", "🌬 Powietrze"),
+    "air": ("weather", "🌫 Powietrze"),
     "pollen": ("weather", "🌿 Pylenie"),
     "rain": ("weather", "🌧 Opady"),
     "wind": ("weather", "💨 Wiatr"),
@@ -313,22 +313,22 @@ def trim_channel_name(text: str) -> str:
 
 def air_quality_text(eaqi):
     if eaqi is None:
-        return "🌬 Powietrze brak danych"
+        return "🌫 Powietrze brak danych"
 
     value = float(eaqi)
 
     if value <= 20:
-        return "🌬 Powietrze bardzo dobre"
+        return "🌫 Powietrze bardzo dobre"
     if value <= 40:
-        return "🌬 Powietrze dobre"
+        return "🌫 Powietrze dobre"
     if value <= 60:
-        return "🌬 Powietrze umiarkowane"
+        return "🌫 Powietrze umiarkowane"
     if value <= 80:
-        return "🌬 Powietrze dostateczne"
+        return "🌫 Powietrze dostateczne"
     if value <= 100:
-        return "🌬 Powietrze złe"
+        return "🌫 Powietrze złe"
 
-    return "🌬 Powietrze bardzo złe"
+    return "🌫 Powietrze bardzo złe"
 
 
 def pollen_level_name(value: float) -> str:
@@ -369,16 +369,18 @@ def parse_hhmm_to_today(now: datetime, hhmm: str) -> datetime | None:
         return None
 
 
-def fallback_part_of_day(hour: int) -> str:
-    if 5 <= hour < 7:
+def fallback_part_of_day(hour: int, minute: int = 0) -> str:
+    total_minutes = hour * 60 + minute
+
+    if 4 * 60 <= total_minutes < 6 * 60:
         return "🌓 Pora dnia świt"
-    if 7 <= hour < 11:
-        return "🌓 Pora dnia poranek"
-    if 11 <= hour < 16:
-        return "🌓 Pora dnia dzień"
-    if 16 <= hour < 20:
-        return "🌓 Pora dnia popołudnie"
-    if 20 <= hour < 22:
+    if 6 * 60 <= total_minutes < 11 * 60:
+        return "🌓 Pora dnia przed południem"
+    if 11 * 60 <= total_minutes < 13 * 60:
+        return "🌓 Pora dnia południe"
+    if 13 * 60 <= total_minutes < 18 * 60:
+        return "🌓 Pora dnia po południu"
+    if 18 * 60 <= total_minutes < 20 * 60:
         return "🌓 Pora dnia zmierzch"
     return "🌓 Pora dnia noc"
 
@@ -388,24 +390,28 @@ def format_part_of_day(now: datetime, sunrise_str: str | None = None, sunset_str
     sunset = parse_hhmm_to_today(now, sunset_str) if sunset_str else None
 
     if sunrise is None or sunset is None or sunrise >= sunset:
-        return fallback_part_of_day(now.hour)
+        return fallback_part_of_day(now.hour, now.minute)
 
     dawn_start = sunrise - timedelta(minutes=45)
-    morning_end = sunrise + timedelta(hours=4)
-    day_end = sunset - timedelta(hours=2)
+    dawn_end = sunrise + timedelta(minutes=30)
+
+    noon_start = now.replace(hour=11, minute=0, second=0, microsecond=0)
+    noon_end = now.replace(hour=13, minute=0, second=0, microsecond=0)
+
+    dusk_start = sunset - timedelta(minutes=45)
     dusk_end = sunset + timedelta(minutes=35)
 
     if now < dawn_start:
         return "🌓 Pora dnia noc"
-    if dawn_start <= now < sunrise + timedelta(minutes=35):
+    if dawn_start <= now < dawn_end:
         return "🌓 Pora dnia świt"
-    if sunrise + timedelta(minutes=35) <= now < morning_end:
-        return "🌓 Pora dnia poranek"
-    if morning_end <= now < day_end:
-        return "🌓 Pora dnia dzień"
-    if day_end <= now < sunset:
-        return "🌓 Pora dnia popołudnie"
-    if sunset <= now < dusk_end:
+    if dawn_end <= now < noon_start:
+        return "🌓 Pora dnia przed południem"
+    if noon_start <= now < noon_end:
+        return "🌓 Pora dnia południe"
+    if noon_end <= now < dusk_start:
+        return "🌓 Pora dnia po południu"
+    if dusk_start <= now < dusk_end:
         return "🌓 Pora dnia zmierzch"
     return "🌓 Pora dnia noc"
 
@@ -516,7 +522,7 @@ async def get_weather_data(city_name: str, latitude: float, longitude: float, ti
 
     return {
         "temperature": f"🌡 {city_name.upper()} {round(float(temp))}°C" if temp is not None else f"🌡 {city_name.upper()} --°C",
-        "feels": f"🤒 Odczuwalna {round(float(feels))}°C" if feels is not None else "🤒 Odczuwalna --°C",
+        "feels": f"🥵 Odczuwalna {round(float(feels))}°C" if feels is not None else "🥵 Odczuwalna --°C",
         "clouds": f"☁ Zachmurzenie {round(float(clouds))}%" if clouds is not None else "☁ Zachmurzenie --%",
         "air": air_quality_text(air_current.get("european_aqi")),
         "pollen": build_single_pollen_text(alder, birch, grass, mugwort, ragweed),
