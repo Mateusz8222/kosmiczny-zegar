@@ -446,22 +446,51 @@ def pollen_level_name(value: float) -> str:
     return "bardzo wysokie"
 
 
-def build_single_pollen_text(alder, birch, grass, mugwort, ragweed) -> str:
-    values = {
-        "Olsza": float(alder or 0),
-        "Brzoza": float(birch or 0),
-        "Trawy": float(grass or 0),
-        "Bylica": float(mugwort or 0),
-        "Ambrozja": float(ragweed or 0),
-    }
+def build_pollen_channel_text(alder, birch, grass, mugwort, ragweed) -> str:
+    pollens = [
+        ("Olsza", float(alder or 0)),
+        ("Brzoza", float(birch or 0)),
+        ("Trawy", float(grass or 0)),
+        ("Bylica", float(mugwort or 0)),
+        ("Ambrozja", float(ragweed or 0)),
+    ]
 
-    top_name = max(values, key=values.get)
-    top_value = values[top_name]
+    active = [(name, value) for name, value in pollens if value > 0]
 
-    if top_value <= 0:
+    if not active:
         return "🌿 Pylenie brak"
 
-    return f"🌿 Pylenie {top_name} {pollen_level_name(top_value)}"
+    # najpierw najwyższe stężenia
+    active.sort(key=lambda x: x[1], reverse=True)
+
+    formatted_items = [
+        f"{name} {pollen_level_name(value)}"
+        for name, value in active
+    ]
+
+    base = "🌿 Pylenie "
+    joined = " • ".join(formatted_items)
+    text = base + joined
+
+    if len(text) <= MAX_CHANNEL_NAME_LEN:
+        return text
+
+    trimmed: list[str] = []
+    for item in formatted_items:
+        candidate = base + " • ".join(trimmed + [item])
+        if len(candidate) <= MAX_CHANNEL_NAME_LEN:
+            trimmed.append(item)
+        else:
+            break
+
+    remaining = len(formatted_items) - len(trimmed)
+    if remaining > 0:
+        suffix = f" +{remaining}"
+        candidate = base + " • ".join(trimmed) + suffix
+        if len(candidate) <= MAX_CHANNEL_NAME_LEN:
+            return candidate
+
+    return trim_channel_name(base + " • ".join(trimmed))
 
 
 def format_precipitation_channel(current: dict) -> str:
@@ -636,7 +665,6 @@ def build_weather_alerts(current: dict) -> dict:
     gusts = float(current.get("wind_gusts_10m", 0) or 0)
     visibility = float(current.get("visibility", 999999) or 999999)
 
-    # ALERT 1°
     if weather_code in {45, 48} or visibility <= 1000:
         alerts.append("mgła")
         level = max(level, 1)
@@ -645,7 +673,6 @@ def build_weather_alerts(current: dict) -> dict:
         alerts.append("zawieje śnieżne")
         level = max(level, 1)
 
-    # ALERT 2°
     if weather_code in {56, 57, 66, 67} or (temperature <= 1 and precipitation > 0):
         alerts.append("gołoledź")
         level = max(level, 2)
@@ -666,7 +693,6 @@ def build_weather_alerts(current: dict) -> dict:
         alerts.append("wichury")
         level = max(level, 2)
 
-    # ALERT 3°
     if weather_code in {95, 96, 99}:
         alerts.append("burze")
         level = max(level, 3)
@@ -790,7 +816,7 @@ async def get_weather_data(city_name: str, latitude: float, longitude: float, ti
         "feels": f"🥵 Odczuwalna {round(float(feels))}°C" if feels is not None else "🥵 Odczuwalna --°C",
         "clouds": f"☁ Zachmurzenie {round(float(clouds))}%" if clouds is not None else "☁ Zachmurzenie --%",
         "air": air_quality_text(air_current.get("european_aqi")),
-        "pollen": build_single_pollen_text(alder, birch, grass, mugwort, ragweed),
+        "pollen": build_pollen_channel_text(alder, birch, grass, mugwort, ragweed),
         "rain": format_precipitation_channel(current),
         "wind": f"💨 Wiatr {round(float(wind))} km/h" if wind is not None else "💨 Wiatr -- km/h",
         "pressure": f"⏱ Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "⏱ Ciśnienie -- hPa",
