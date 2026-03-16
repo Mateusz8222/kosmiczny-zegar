@@ -1,5 +1,5 @@
 # ================================
-# KOSMICZNY ZEGAR PUBLIC - BOT v14
+# KOSMICZNY ZEGAR PUBLIC - BOT v15
 # ================================
 
 import asyncio
@@ -29,9 +29,9 @@ logging.basicConfig(
 # KONFIGURACJA
 # ================================
 
-TOKEN = os.getenv("DISCORD_TOKEN_PUBLIC")
+TOKEN = os.getenv("DISCORD_TOKEN_PUBLIC") or os.getenv("DISCORD_TOKEN")
 if not TOKEN:
-    raise ValueError("Brakuje DISCORD_TOKEN_PUBLIC w zmiennych środowiskowych")
+    raise ValueError("Brakuje DISCORD_TOKEN_PUBLIC lub DISCORD_TOKEN w zmiennych środowiskowych")
 
 DEFAULT_CITY_NAME = "Warszawa"
 DEFAULT_LATITUDE = 52.2297
