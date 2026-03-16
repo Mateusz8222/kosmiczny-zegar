@@ -66,7 +66,7 @@ CHANNEL_TEMPLATES = {
     "rain": ("weather", "🌧 Opady"),
     "wind": ("weather", "💨 Wiatr"),
     "pressure": ("weather", "⏱ Ciśnienie"),
-    "alerts": ("weather", "🚨 ALERT brak"),
+    "alerts": ("weather", "🟢 ALERT brak"),
 
     # KOSMICZNY ZEGAR
     "date": ("clock", "📅 Data"),
@@ -470,8 +470,9 @@ def moon_phase_name(now: datetime) -> str:
     return phases.get(phase_index, "🌙 Faza księżyca --")
 
 
-def build_weather_alerts(current: dict) -> list[str]:
+def build_weather_alerts(current: dict) -> dict:
     alerts: list[str] = []
+    level = 0
 
     weather_code = int(current.get("weather_code", -1)) if current.get("weather_code") is not None else -1
     temperature = float(current.get("temperature_2m", 999)) if current.get("temperature_2m") is not None else 999
@@ -482,54 +483,76 @@ def build_weather_alerts(current: dict) -> list[str]:
     gusts = float(current.get("wind_gusts_10m", 0) or 0)
     visibility = float(current.get("visibility", 999999) or 999999)
 
-    if weather_code in {95, 96, 99}:
-        alerts.append("burze")
-
-    if weather_code in {96, 99}:
-        alerts.append("grad")
-
+    # ALERT 1°
     if weather_code in {45, 48} or visibility <= 1000:
         alerts.append("mgła")
-
-    if weather_code in {56, 57, 66, 67} or (temperature <= 1 and precipitation > 0):
-        alerts.append("gołoledź")
-
-    if weather_code in {75, 86} or snowfall >= 1.0:
-        alerts.append("intensywne opady śniegu")
+        level = max(level, 1)
 
     if snowfall > 0 and gusts >= 40:
         alerts.append("zawieje śnieżne")
+        level = max(level, 1)
 
-    if snowfall > 0 and gusts >= 55:
-        alerts.append("zamiecie śnieżne")
+    # ALERT 2°
+    if weather_code in {56, 57, 66, 67} or (temperature <= 1 and precipitation > 0):
+        alerts.append("gołoledź")
+        level = max(level, 2)
 
     if weather_code in {65, 82} or precipitation >= 10 or rain >= 10 or showers >= 10:
         alerts.append("ulewy")
+        level = max(level, 2)
+
+    if weather_code in {75, 86} or snowfall >= 1.0:
+        alerts.append("intensywne opady śniegu")
+        level = max(level, 2)
+
+    if snowfall > 0 and gusts >= 55:
+        alerts.append("zamiecie śnieżne")
+        level = max(level, 2)
 
     if gusts >= 70:
         alerts.append("wichury")
+        level = max(level, 2)
+
+    # ALERT 3°
+    if weather_code in {95, 96, 99}:
+        alerts.append("burze")
+        level = max(level, 3)
+
+    if weather_code in {96, 99}:
+        alerts.append("grad")
+        level = max(level, 3)
 
     if gusts >= 118:
         alerts.append("orkan")
+        level = max(level, 3)
 
     unique_alerts: list[str] = []
     for alert in alerts:
         if alert not in unique_alerts:
             unique_alerts.append(alert)
 
-    return unique_alerts
+    return {
+        "alerts": unique_alerts,
+        "level": level
+    }
 
 
-def format_alerts_channel(alerts: list[str]) -> str:
-    if not alerts:
-        return "🚨 ALERT brak"
+def format_alerts_channel(alerts: list[str], level: int) -> str:
+    if not alerts or level == 0:
+        return "🟢 ALERT brak"
 
     formatted_alerts = [f"❗{alert}" for alert in alerts]
 
-    base = "🚨 ALERT "
-    joined = " ".join(formatted_alerts)
+    if level == 1:
+        base = "🟡 ALERT 1° "
+    elif level == 2:
+        base = "🟠 ALERT 2° "
+    else:
+        base = "🔴 ALERT 3° "
 
+    joined = " ".join(formatted_alerts)
     text = base + joined
+
     if len(text) <= MAX_CHANNEL_NAME_LEN:
         return text
 
@@ -606,7 +629,9 @@ async def get_weather_data(city_name: str, latitude: float, longitude: float, ti
     sunrise_time = sunrise.split("T")[1][:5] if sunrise else "--:--"
     sunset_time = sunset.split("T")[1][:5] if sunset else "--:--"
 
-    alerts = build_weather_alerts(current)
+    alerts_data = build_weather_alerts(current)
+    alerts = alerts_data["alerts"]
+    alert_level = alerts_data["level"]
 
     return {
         "temperature": f"🌡 {city_name.upper()} {round(float(temp))}°C" if temp is not None else f"🌡 {city_name.upper()} --°C",
@@ -619,8 +644,9 @@ async def get_weather_data(city_name: str, latitude: float, longitude: float, ti
         ),
         "wind": f"💨 Wiatr {round(float(wind))} km/h" if wind is not None else "💨 Wiatr -- km/h",
         "pressure": f"⏱ Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "⏱ Ciśnienie -- hPa",
-        "alerts": format_alerts_channel(alerts),
+        "alerts": format_alerts_channel(alerts, alert_level),
         "alerts_list": alerts,
+        "alert_level": alert_level,
         "sunrise": f"🌅 Wschód {sunrise_time}",
         "sunset": f"🌇 Zachód {sunset_time}",
         "sunrise_time": sunrise_time,
@@ -1134,6 +1160,7 @@ async def weather_command(interaction: discord.Interaction):
         embed.add_field(name="Wiatr", value=weather["wind"], inline=False)
         embed.add_field(name="Ciśnienie", value=weather["pressure"], inline=False)
         embed.add_field(name="Alerty", value=", ".join(weather["alerts_list"]) if weather["alerts_list"] else "brak", inline=False)
+        embed.add_field(name="Poziom alertu", value=f"{weather['alert_level']}°" if weather["alert_level"] > 0 else "brak", inline=False)
         embed.add_field(name="Wschód", value=weather["sunrise"], inline=False)
         embed.add_field(name="Zachód", value=weather["sunset"], inline=False)
         embed.add_field(name="Długość dnia", value=weather["day_length"], inline=False)
