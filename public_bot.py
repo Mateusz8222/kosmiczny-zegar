@@ -1,5 +1,5 @@
 # ================================
-# KOSMICZNY ZEGAR PUBLIC - BOT v15
+# KOSMICZNY ZEGAR PUBLIC - BOT v16
 # ================================
 
 import asyncio
@@ -7,7 +7,7 @@ import json
 import logging
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import quote
 
 import aiohttp
@@ -361,15 +361,52 @@ def build_single_pollen_text(alder, birch, grass, mugwort, ragweed) -> str:
     return f"🌿 Pylenie {top_name} {pollen_level_name(top_value)}"
 
 
-def format_part_of_day(hour: int) -> str:
-    if 5 <= hour < 8:
+def parse_hhmm_to_today(now: datetime, hhmm: str) -> datetime | None:
+    try:
+        hour, minute = map(int, hhmm.split(":"))
+        return now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    except Exception:
+        return None
+
+
+def fallback_part_of_day(hour: int) -> str:
+    if 5 <= hour < 7:
         return "🌓 Pora dnia świt"
-    if 8 <= hour < 12:
+    if 7 <= hour < 11:
         return "🌓 Pora dnia poranek"
-    if 12 <= hour < 17:
+    if 11 <= hour < 16:
         return "🌓 Pora dnia dzień"
-    if 17 <= hour < 21:
-        return "🌓 Pora dnia wieczór"
+    if 16 <= hour < 20:
+        return "🌓 Pora dnia popołudnie"
+    if 20 <= hour < 22:
+        return "🌓 Pora dnia zmierzch"
+    return "🌓 Pora dnia noc"
+
+
+def format_part_of_day(now: datetime, sunrise_str: str | None = None, sunset_str: str | None = None) -> str:
+    sunrise = parse_hhmm_to_today(now, sunrise_str) if sunrise_str else None
+    sunset = parse_hhmm_to_today(now, sunset_str) if sunset_str else None
+
+    if sunrise is None or sunset is None or sunrise >= sunset:
+        return fallback_part_of_day(now.hour)
+
+    dawn_start = sunrise - timedelta(minutes=45)
+    morning_end = sunrise + timedelta(hours=4)
+    day_end = sunset - timedelta(hours=2)
+    dusk_end = sunset + timedelta(minutes=35)
+
+    if now < dawn_start:
+        return "🌓 Pora dnia noc"
+    if dawn_start <= now < sunrise + timedelta(minutes=35):
+        return "🌓 Pora dnia świt"
+    if sunrise + timedelta(minutes=35) <= now < morning_end:
+        return "🌓 Pora dnia poranek"
+    if morning_end <= now < day_end:
+        return "🌓 Pora dnia dzień"
+    if day_end <= now < sunset:
+        return "🌓 Pora dnia popołudnie"
+    if sunset <= now < dusk_end:
+        return "🌓 Pora dnia zmierzch"
     return "🌓 Pora dnia noc"
 
 
@@ -490,6 +527,8 @@ async def get_weather_data(city_name: str, latitude: float, longitude: float, ti
         "pressure": f"⏱ Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "⏱ Ciśnienie -- hPa",
         "sunrise": f"🌅 Wschód {sunrise_time}",
         "sunset": f"🌇 Zachód {sunset_time}",
+        "sunrise_time": sunrise_time,
+        "sunset_time": sunset_time,
         "day_length": day_length_text(sunrise_time, sunset_time)
     }
 
@@ -640,7 +679,7 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict):
     )
     await safe_edit_channel_name(
         get_channel_from_config(guild, cfg, "part_of_day"),
-        format_part_of_day(now.hour)
+        format_part_of_day(now, weather.get("sunrise_time"), weather.get("sunset_time"))
     )
     await safe_edit_channel_name(
         get_channel_from_config(guild, cfg, "sunrise"),
@@ -991,6 +1030,20 @@ async def time_command(interaction: discord.Interaction):
     timezone_obj = get_timezone_object(timezone_name)
     now = datetime.now(timezone_obj)
 
+    sunrise_time = None
+    sunset_time = None
+    try:
+        weather = await get_weather_data(
+            city_name=city_name,
+            latitude=cfg["latitude"] if cfg else DEFAULT_LATITUDE,
+            longitude=cfg["longitude"] if cfg else DEFAULT_LONGITUDE,
+            timezone_name=timezone_name
+        )
+        sunrise_time = weather.get("sunrise_time")
+        sunset_time = weather.get("sunset_time")
+    except Exception:
+        pass
+
     embed = discord.Embed(
         title="🕐 Aktualny czas",
         color=discord.Color.orange()
@@ -998,7 +1051,7 @@ async def time_command(interaction: discord.Interaction):
     embed.add_field(name="Miasto", value=city_name, inline=False)
     embed.add_field(name="Godzina", value=now.strftime("%H:%M:%S"), inline=False)
     embed.add_field(name="Data", value=now.strftime("%d.%m.%Y"), inline=False)
-    embed.add_field(name="Pora dnia", value=format_part_of_day(now.hour), inline=False)
+    embed.add_field(name="Pora dnia", value=format_part_of_day(now, sunrise_time, sunset_time), inline=False)
     embed.add_field(name="Strefa czasowa", value=timezone_name, inline=False)
 
     await interaction.response.send_message(embed=embed, ephemeral=True)
