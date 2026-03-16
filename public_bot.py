@@ -313,7 +313,7 @@ def trim_channel_name(text: str) -> str:
     return text[:MAX_CHANNEL_NAME_LEN]
 
 # ================================
-# POWIETRZE / PYLENIE / ALERTY
+# POWIETRZE / PYLENIE / OPADY / ALERTY
 # ================================
 
 def air_quality_text(eaqi):
@@ -363,6 +363,60 @@ def build_single_pollen_text(alder, birch, grass, mugwort, ragweed) -> str:
         return "🌿 Pylenie brak"
 
     return f"🌿 Pylenie {top_name} {pollen_level_name(top_value)}"
+
+
+def format_precipitation_channel(current: dict) -> str:
+    weather_code = int(current.get("weather_code", -1)) if current.get("weather_code") is not None else -1
+    precipitation = float(current.get("precipitation", 0) or 0)
+    rain = float(current.get("rain", 0) or 0)
+    showers = float(current.get("showers", 0) or 0)
+    snowfall = float(current.get("snowfall", 0) or 0)
+
+    rain_total = rain + showers
+
+    hail_codes = {96, 99}
+    snow_codes = {71, 73, 75, 77, 85, 86}
+    rain_codes = {51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82}
+
+    has_hail = weather_code in hail_codes
+    has_snow = snowfall > 0 or weather_code in snow_codes
+    has_rain = rain_total > 0 or (precipitation > 0 and weather_code in rain_codes)
+
+    if not has_rain and not has_snow and not has_hail and precipitation <= 0:
+        return "🌧 Opady brak"
+
+    parts = []
+
+    if has_hail:
+        parts.append("grad")
+
+    if has_rain:
+        parts.append(f"deszcz {round(rain_total, 1)} mm")
+
+    if has_snow:
+        parts.append(f"śnieg {round(snowfall, 1)} cm")
+
+    if not parts and precipitation > 0:
+        parts.append(f"opad {round(precipitation, 1)} mm")
+
+    text = "Opady " + " / ".join(parts)
+
+    if has_hail and has_rain and has_snow:
+        text = f"⛈🌧🌨 {text}"
+    elif has_hail and has_rain:
+        text = f"⛈🌧 {text}"
+    elif has_hail and has_snow:
+        text = f"⛈🌨 {text}"
+    elif has_rain and has_snow:
+        text = f"🌨🌧 {text}"
+    elif has_hail:
+        text = f"⛈ {text}"
+    elif has_snow:
+        text = f"🌨 {text}"
+    else:
+        text = f"🌧 {text}"
+
+    return trim_channel_name(text)
 
 
 def parse_hhmm_to_today(now: datetime, hhmm: str) -> datetime | None:
@@ -609,7 +663,6 @@ async def get_weather_data(city_name: str, latitude: float, longitude: float, ti
 
     temp = current.get("temperature_2m")
     feels = current.get("apparent_temperature")
-    precip = current.get("precipitation")
     wind = current.get("wind_speed_10m")
     pressure = current.get("surface_pressure")
     clouds = current.get("cloud_cover")
@@ -639,9 +692,7 @@ async def get_weather_data(city_name: str, latitude: float, longitude: float, ti
         "clouds": f"☁ Zachmurzenie {round(float(clouds))}%" if clouds is not None else "☁ Zachmurzenie --%",
         "air": air_quality_text(air_current.get("european_aqi")),
         "pollen": build_single_pollen_text(alder, birch, grass, mugwort, ragweed),
-        "rain": "🌧 Opady brak" if precip is not None and float(precip) == 0 else (
-            f"🌧 Opady {round(float(precip), 1)} mm" if precip is not None else "🌧 Opady --"
-        ),
+        "rain": format_precipitation_channel(current),
         "wind": f"💨 Wiatr {round(float(wind))} km/h" if wind is not None else "💨 Wiatr -- km/h",
         "pressure": f"⏱ Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "⏱ Ciśnienie -- hPa",
         "alerts": format_alerts_channel(alerts, alert_level),
