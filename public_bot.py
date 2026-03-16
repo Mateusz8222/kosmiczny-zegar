@@ -1,5 +1,5 @@
 # ================================
-# KOSMICZNY ZEGAR PUBLIC - BOT v18
+# KOSMICZNY ZEGAR PUBLIC - BOT v19
 # ================================
 
 import asyncio
@@ -796,6 +796,30 @@ async def refresh_stats_only(guild: discord.Guild):
     await update_stats_channels(guild, cfg)
 
 # ================================
+# STATUS ZEGARA BOTA
+# ================================
+
+@tasks.loop(seconds=60)
+async def update_status_clock():
+    timezone = pytz.timezone("Europe/Warsaw")
+    now = datetime.now(timezone)
+
+    activity = discord.Activity(
+        type=discord.ActivityType.watching,
+        name=f"🕒 {now.strftime('%H:%M')}"
+    )
+
+    await bot.change_presence(
+        status=discord.Status.online,
+        activity=activity
+    )
+
+
+@update_status_clock.before_loop
+async def before_update_status_clock():
+    await bot.wait_until_ready()
+
+# ================================
 # AUTO REFRESH POGODY I ZEGARA
 # ================================
 
@@ -1337,6 +1361,9 @@ async def on_ready():
 
     if not auto_refresh.is_running():
         auto_refresh.start()
+
+    if not update_status_clock.is_running():
+        update_status_clock.start()
 
 
 init_db()
