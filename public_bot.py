@@ -82,6 +82,7 @@ CHANNEL_TEMPLATES = {
     "online": ("stats", "🟢 Online"),
     "bots": ("stats", "🤖 Boty"),
     "vc": ("stats", "🔊 Na VC"),
+    "joined_today": ("stats", "📥 Dzisiaj weszło 0"),
 }
 
 CATEGORY_NAMES = {
@@ -112,6 +113,14 @@ def init_db():
         longitude REAL,
         country TEXT,
         timezone TEXT
+    )
+    """)
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS guild_daily_stats (
+        guild_id INTEGER PRIMARY KEY,
+        stats_date TEXT,
+        joined_today_count INTEGER DEFAULT 0
     )
     """)
 
@@ -219,6 +228,96 @@ def get_channel_from_config(guild: discord.Guild, cfg: dict, key: str):
         logging.warning(f"Nie znaleziono kanału w guild dla klucza: {key}, id: {channel_id}")
 
     return channel
+
+
+def get_today_string_for_timezone(timezone_name: str) -> str:
+    timezone_obj = get_timezone_object(timezone_name)
+    return datetime.now(timezone_obj).strftime("%Y-%m-%d")
+
+
+def get_joined_today_count(guild_id: int, timezone_name: str) -> int:
+    today = get_today_string_for_timezone(timezone_name)
+
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT stats_date, joined_today_count
+        FROM guild_daily_stats
+        WHERE guild_id=?
+    """, (guild_id,))
+    row = c.fetchone()
+
+    if not row:
+        c.execute("""
+            INSERT INTO guild_daily_stats (guild_id, stats_date, joined_today_count)
+            VALUES (?, ?, 0)
+        """, (guild_id, today))
+        conn.commit()
+        conn.close()
+        return 0
+
+    stats_date, joined_today_count = row
+
+    if stats_date != today:
+        c.execute("""
+            UPDATE guild_daily_stats
+            SET stats_date=?, joined_today_count=0
+            WHERE guild_id=?
+        """, (today, guild_id))
+        conn.commit()
+        conn.close()
+        return 0
+
+    conn.close()
+    return int(joined_today_count or 0)
+
+
+def increment_joined_today_count(guild_id: int, timezone_name: str) -> int:
+    today = get_today_string_for_timezone(timezone_name)
+
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT stats_date, joined_today_count
+        FROM guild_daily_stats
+        WHERE guild_id=?
+    """, (guild_id,))
+    row = c.fetchone()
+
+    if not row:
+        new_count = 1
+        c.execute("""
+            INSERT INTO guild_daily_stats (guild_id, stats_date, joined_today_count)
+            VALUES (?, ?, ?)
+        """, (guild_id, today, new_count))
+        conn.commit()
+        conn.close()
+        return new_count
+
+    stats_date, joined_today_count = row
+
+    if stats_date != today:
+        new_count = 1
+        c.execute("""
+            UPDATE guild_daily_stats
+            SET stats_date=?, joined_today_count=?
+            WHERE guild_id=?
+        """, (today, new_count, guild_id))
+        conn.commit()
+        conn.close()
+        return new_count
+
+    new_count = int(joined_today_count or 0) + 1
+    c.execute("""
+        UPDATE guild_daily_stats
+        SET joined_today_count=?
+        WHERE guild_id=?
+    """, (new_count, guild_id))
+    conn.commit()
+    conn.close()
+    return new_count
 
 # ================================
 # POMOCNICZE
@@ -896,6 +995,11 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
         if m.voice and m.voice.channel is not None
     ])
 
+    joined_today_count = get_joined_today_count(
+        guild.id,
+        cfg.get("timezone", DEFAULT_TIMEZONE)
+    )
+
     await safe_edit_channel_name(
         get_channel_from_config(guild, cfg, "members"),
         f"👥 Wszyscy {members_count}"
@@ -915,6 +1019,10 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
     await safe_edit_channel_name(
         get_channel_from_config(guild, cfg, "vc"),
         f"🔊 Na VC {vc_count}"
+    )
+    await safe_edit_channel_name(
+        get_channel_from_config(guild, cfg, "joined_today"),
+        f"📥 Dzisiaj weszło {joined_today_count}"
     )
 
 
@@ -1493,6 +1601,10 @@ async def delete_all_command(interaction: discord.Interaction):
 
 @bot.event
 async def on_member_join(member: discord.Member):
+    cfg = get_guild_config(member.guild.id)
+    timezone_name = cfg.get("timezone", DEFAULT_TIMEZONE) if cfg else DEFAULT_TIMEZONE
+
+    increment_joined_today_count(member.guild.id, timezone_name)
     schedule_stats_refresh(member.guild)
 
 
