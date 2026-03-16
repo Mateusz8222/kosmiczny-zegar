@@ -1,5 +1,5 @@
 # ================================
-# KOSMICZNY ZEGAR PUBLIC - BOT v19
+# KOSMICZNY ZEGAR PUBLIC - BOT v20
 # ================================
 
 import asyncio
@@ -799,14 +799,14 @@ async def refresh_stats_only(guild: discord.Guild):
 # STATUS ZEGARA BOTA
 # ================================
 
-@tasks.loop(seconds=60)
+@tasks.loop(seconds=1)
 async def update_status_clock():
     timezone = pytz.timezone("Europe/Warsaw")
     now = datetime.now(timezone)
 
     activity = discord.Activity(
         type=discord.ActivityType.watching,
-        name=f"🕒 {now.strftime('%H:%M')}"
+        name=f"🕒 {now.strftime('%H:%M:%S')}"
     )
 
     await bot.change_presence(
