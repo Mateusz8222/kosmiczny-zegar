@@ -1,25 +1,19 @@
 # ================================
-# KOSMICZNY ZEGAR 24 - BOT
-# WERSJA FINALNA
-# - kanały tworzą się tylko po /setup
-# - bez OPENWEATHER_API_KEY
-# - 1 kanał pylenia
-# - blokada dubli
-# - statystyki live
-# - zabezpieczenie na Cloudflare/HTML
+# KOSMICZNY ZEGAR 24 - BOT v10
 # ================================
 
-import discord
-from discord.ext import commands, tasks
-from discord import app_commands
-import aiohttp
 import asyncio
-import sqlite3
 import json
-import os
 import logging
+import os
+import sqlite3
 from datetime import datetime
+
+import aiohttp
+import discord
 import pytz
+from discord import app_commands
+from discord.ext import commands, tasks
 
 # ================================
 # LOGI
@@ -35,7 +29,6 @@ logging.basicConfig(
 # ================================
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-
 if not TOKEN:
     raise ValueError("Brakuje DISCORD_TOKEN w zmiennych środowiskowych")
 
@@ -45,11 +38,11 @@ CITY_NAME = "WARSZAWA"
 LATITUDE = 52.2297
 LONGITUDE = 21.0122
 
-# co ile minut odświeżać pogodę i zegar
 WEATHER_REFRESH_MINUTES = 15
-
-# mała przerwa między zmianami nazw kanałów
 CHANNEL_EDIT_DELAY = 1.1
+CATEGORY_DELETE_DELAY = 0.7
+STATS_DEBOUNCE_SECONDS = 2.0
+MAX_CHANNEL_NAME_LEN = 95
 
 intents = discord.Intents.default()
 intents.guilds = True
@@ -94,7 +87,6 @@ CATEGORY_NAMES = {
     "stats": "📊 Statystyki",
 }
 
-# debounce live update statystyk
 stats_update_tasks: dict[int, asyncio.Task] = {}
 
 # ================================
@@ -125,7 +117,6 @@ def get_guild_config(guild_id: int):
 
     c.execute("SELECT * FROM guild_config WHERE guild_id=?", (guild_id,))
     row = c.fetchone()
-
     conn.close()
 
     if not row:
@@ -161,10 +152,8 @@ def save_guild_config(guild_id: int, cfg: dict):
 
 def get_channel_from_config(guild: discord.Guild, cfg: dict, key: str):
     channel_id = cfg["channels"].get(key)
-
     if not channel_id:
         return None
-
     return guild.get_channel(channel_id)
 
 # ================================
@@ -191,8 +180,8 @@ async def fetch_json(url: str):
     async with aiohttp.ClientSession(timeout=timeout) as session:
         async with session.get(url) as response:
             text = await response.text()
-
             lowered = text.lower()
+
             if text.startswith("<!DOCTYPE") or "<html" in lowered:
                 raise RuntimeError("API zwróciło HTML zamiast JSON (Cloudflare / blokada)")
 
@@ -200,6 +189,10 @@ async def fetch_json(url: str):
                 return json.loads(text)
             except Exception as e:
                 raise RuntimeError(f"Nie udało się odczytać JSON z API: {e}")
+
+
+def trim_channel_name(text: str) -> str:
+    return text[:MAX_CHANNEL_NAME_LEN]
 
 
 def air_quality_text(eaqi):
@@ -275,7 +268,6 @@ def day_length_text(sunrise_str, sunset_str):
         mins = minutes % 60
 
         return f"☀️ Dzień {hours}h {mins}m"
-
     except Exception:
         return "☀️ Dzień --"
 
@@ -483,7 +475,7 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
     if channel is None:
         return
 
-    new_name = new_name[:95]
+    new_name = trim_channel_name(new_name)
 
     if channel.name == new_name:
         return
@@ -590,7 +582,6 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
 
 async def refresh_existing_panel(guild: discord.Guild):
     cfg = get_guild_config(guild.id)
-
     if not cfg:
         return False
 
@@ -638,7 +629,7 @@ async def before_auto_refresh():
 
 async def _debounced_stats_refresh(guild: discord.Guild):
     try:
-        await asyncio.sleep(2.0)
+        await asyncio.sleep(STATS_DEBOUNCE_SECONDS)
         await refresh_stats_only(guild)
     except Exception as e:
         logging.error(f"Błąd live stats dla {guild.id}: {e}")
@@ -827,7 +818,7 @@ async def delete_category_with_channels(guild: discord.Guild, category_id: int |
     for ch in list(category.channels):
         try:
             await ch.delete(reason="Kosmiczny Zegar: usuwanie kategorii")
-            await asyncio.sleep(0.7)
+            await asyncio.sleep(CATEGORY_DELETE_DELAY)
         except Exception as e:
             logging.error(f"Błąd usuwania kanału {getattr(ch, 'id', 'brak_id')}: {e}")
 
@@ -864,7 +855,6 @@ async def delete_weather_category_command(interaction: discord.Interaction):
         return
 
     cfg = get_guild_config(guild.id)
-
     if not cfg:
         await interaction.response.send_message("ℹ️ Brak konfiguracji.", ephemeral=True)
         return
@@ -889,7 +879,6 @@ async def delete_clock_category_command(interaction: discord.Interaction):
         return
 
     cfg = get_guild_config(guild.id)
-
     if not cfg:
         await interaction.response.send_message("ℹ️ Brak konfiguracji.", ephemeral=True)
         return
@@ -914,7 +903,6 @@ async def delete_stats_category_command(interaction: discord.Interaction):
         return
 
     cfg = get_guild_config(guild.id)
-
     if not cfg:
         await interaction.response.send_message("ℹ️ Brak konfiguracji.", ephemeral=True)
         return
@@ -939,7 +927,6 @@ async def delete_all_command(interaction: discord.Interaction):
         return
 
     cfg = get_guild_config(guild.id)
-
     if not cfg:
         await interaction.response.send_message("ℹ️ Brak konfiguracji.", ephemeral=True)
         return
