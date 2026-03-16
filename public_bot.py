@@ -66,7 +66,7 @@ CHANNEL_TEMPLATES = {
     "rain": ("weather", "🌧 Opady"),
     "wind": ("weather", "💨 Wiatr"),
     "pressure": ("weather", "⏱ Ciśnienie"),
-    "alerts": ("weather", "🚨 Alerty brak"),
+    "alerts": ("weather", "🚨 ALERT brak"),
 
     # KOSMICZNY ZEGAR
     "date": ("clock", "📅 Data"),
@@ -512,7 +512,6 @@ def build_weather_alerts(current: dict) -> list[str]:
     if gusts >= 118:
         alerts.append("orkan")
 
-    # unikalne i zachowana kolejność
     unique_alerts: list[str] = []
     for alert in alerts:
         if alert not in unique_alerts:
@@ -523,32 +522,33 @@ def build_weather_alerts(current: dict) -> list[str]:
 
 def format_alerts_channel(alerts: list[str]) -> str:
     if not alerts:
-        return "✅ Alerty brak"
+        return "🚨 ALERT brak"
 
-    base = "🚨 Alerty "
-    joined = " • ".join(alerts)
+    formatted_alerts = [f"❗{alert}" for alert in alerts]
+
+    base = "🚨 ALERT "
+    joined = " ".join(formatted_alerts)
 
     text = base + joined
     if len(text) <= MAX_CHANNEL_NAME_LEN:
         return text
 
-    # jeśli za długie, tnij z licznikiem
     trimmed: list[str] = []
-    for alert in alerts:
-        candidate = base + " • ".join(trimmed + [alert])
+    for alert in formatted_alerts:
+        candidate = base + " ".join(trimmed + [alert])
         if len(candidate) <= MAX_CHANNEL_NAME_LEN:
             trimmed.append(alert)
         else:
             break
 
-    remaining = len(alerts) - len(trimmed)
+    remaining = len(formatted_alerts) - len(trimmed)
     if remaining > 0:
         suffix = f" +{remaining}"
-        candidate = base + " • ".join(trimmed) + suffix
+        candidate = base + " ".join(trimmed) + suffix
         if len(candidate) <= MAX_CHANNEL_NAME_LEN:
             return candidate
 
-    return trim_channel_name(base + " • ".join(trimmed))
+    return trim_channel_name(base + " ".join(trimmed))
 
 # ================================
 # POBIERANIE POGODY
