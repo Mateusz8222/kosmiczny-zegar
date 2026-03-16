@@ -1,6 +1,12 @@
 # ================================
 # KOSMICZNY ZEGAR 24 - BOT
-# PEŁNA STABILNA WERSJA
+# WERSJA FINALNA
+# - kanały tworzą się tylko po /setup
+# - bez OPENWEATHER_API_KEY
+# - 1 kanał pylenia
+# - blokada dubli
+# - statystyki live
+# - zabezpieczenie na Cloudflare/HTML
 # ================================
 
 import discord
@@ -38,6 +44,12 @@ TIMEZONE = pytz.timezone("Europe/Warsaw")
 CITY_NAME = "WARSZAWA"
 LATITUDE = 52.2297
 LONGITUDE = 21.0122
+
+# co ile minut odświeżać pogodę i zegar
+WEATHER_REFRESH_MINUTES = 15
+
+# mała przerwa między zmianami nazw kanałów
+CHANNEL_EDIT_DELAY = 1.1
 
 intents = discord.Intents.default()
 intents.guilds = True
@@ -81,6 +93,9 @@ CATEGORY_NAMES = {
     "clock": "🛰️ Kosmiczny Zegar",
     "stats": "📊 Statystyki",
 }
+
+# debounce live update statystyk
+stats_update_tasks: dict[int, asyncio.Task] = {}
 
 # ================================
 # BAZA DANYCH
@@ -177,7 +192,6 @@ async def fetch_json(url: str):
         async with session.get(url) as response:
             text = await response.text()
 
-            # Cloudflare / HTML / błędna odpowiedź
             lowered = text.lower()
             if text.startswith("<!DOCTYPE") or "<html" in lowered:
                 raise RuntimeError("API zwróciło HTML zamiast JSON (Cloudflare / blokada)")
@@ -479,7 +493,7 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
             name=new_name,
             reason="Kosmiczny Zegar: aktualizacja nazwy kanału"
         )
-        await asyncio.sleep(1.2)
+        await asyncio.sleep(CHANNEL_EDIT_DELAY)
     except Exception as e:
         logging.error(f"Błąd zmiany nazwy kanału {getattr(channel, 'id', 'brak_id')}: {e}")
 
@@ -589,7 +603,18 @@ async def refresh_existing_panel(guild: discord.Guild):
     return True
 
 
-@tasks.loop(minutes=15)
+async def refresh_stats_only(guild: discord.Guild):
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        return
+
+    await update_stats_channels(guild, cfg)
+
+# ================================
+# AUTO REFRESH POGODY I ZEGARA
+# ================================
+
+@tasks.loop(minutes=WEATHER_REFRESH_MINUTES)
 async def auto_refresh():
     for guild in bot.guilds:
         try:
@@ -606,6 +631,33 @@ async def auto_refresh():
 @auto_refresh.before_loop
 async def before_auto_refresh():
     await bot.wait_until_ready()
+
+# ================================
+# LIVE STATYSTYKI
+# ================================
+
+async def _debounced_stats_refresh(guild: discord.Guild):
+    try:
+        await asyncio.sleep(2.0)
+        await refresh_stats_only(guild)
+    except Exception as e:
+        logging.error(f"Błąd live stats dla {guild.id}: {e}")
+    finally:
+        stats_update_tasks.pop(guild.id, None)
+
+
+def schedule_stats_refresh(guild: discord.Guild):
+    if guild is None:
+        return
+
+    if not get_guild_config(guild.id):
+        return
+
+    existing = stats_update_tasks.get(guild.id)
+    if existing and not existing.done():
+        existing.cancel()
+
+    stats_update_tasks[guild.id] = asyncio.create_task(_debounced_stats_refresh(guild))
 
 # ================================
 # KOMENDY
@@ -906,6 +958,31 @@ async def delete_all_command(interaction: discord.Interaction):
     save_guild_config(guild.id, cfg)
 
     await interaction.followup.send("✅ Usunięto wszystkie kategorie bota.", ephemeral=True)
+
+# ================================
+# EVENTY LIVE STATYSTYK
+# ================================
+
+@bot.event
+async def on_member_join(member: discord.Member):
+    schedule_stats_refresh(member.guild)
+
+
+@bot.event
+async def on_member_remove(member: discord.Member):
+    schedule_stats_refresh(member.guild)
+
+
+@bot.event
+async def on_presence_update(before: discord.Member, after: discord.Member):
+    if before.status != after.status:
+        schedule_stats_refresh(after.guild)
+
+
+@bot.event
+async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+    if before.channel != after.channel:
+        schedule_stats_refresh(member.guild)
 
 # ================================
 # START BOTA
