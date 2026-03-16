@@ -1,5 +1,5 @@
 # ================================
-# KOSMICZNY ZEGAR 24 - BOT v13
+# KOSMICZNY ZEGAR PUBLIC - BOT v14
 # ================================
 
 import asyncio
@@ -29,9 +29,9 @@ logging.basicConfig(
 # KONFIGURACJA
 # ================================
 
-TOKEN = os.getenv("DISCORD_TOKEN")
+TOKEN = os.getenv("DISCORD_TOKEN_PUBLIC")
 if not TOKEN:
-    raise ValueError("Brakuje DISCORD_TOKEN w zmiennych środowiskowych")
+    raise ValueError("Brakuje DISCORD_TOKEN_PUBLIC w zmiennych środowiskowych")
 
 DEFAULT_CITY_NAME = "Warszawa"
 DEFAULT_LATITUDE = 52.2297
@@ -54,7 +54,7 @@ intents.message_content = False
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-DB_FILE = "bot_data.db"
+DB_FILE = "bot_data_public.db"
 
 CHANNEL_TEMPLATES = {
     # POGODA
@@ -1260,11 +1260,13 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
 
 @bot.event
 async def on_ready():
-    logging.info(f"Zalogowano jako {bot.user}")
+    logging.info(f"Zalogowano jako {bot.user} (ID: {bot.user.id})")
 
     try:
         synced = await bot.tree.sync()
         logging.info(f"Zsynchronizowano {len(synced)} komend")
+        for cmd in synced:
+            logging.info(f"Komenda aktywna: /{cmd.name}")
     except Exception as e:
         logging.error(f"Błąd synchronizacji komend: {e}")
 
