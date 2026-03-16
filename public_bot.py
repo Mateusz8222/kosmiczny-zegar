@@ -1,5 +1,5 @@
 # ================================
-# KOSMICZNY ZEGAR 24 - BOT v12
+# KOSMICZNY ZEGAR 24 - BOT v13
 # ================================
 
 import asyncio
@@ -40,9 +40,9 @@ DEFAULT_COUNTRY = "Polska"
 DEFAULT_TIMEZONE = "Europe/Warsaw"
 
 WEATHER_REFRESH_MINUTES = 15
-CHANNEL_EDIT_DELAY = 1.1
-CATEGORY_DELETE_DELAY = 0.7
-STATS_DEBOUNCE_SECONDS = 2.0
+CHANNEL_EDIT_DELAY = 0.3
+CATEGORY_DELETE_DELAY = 0.5
+STATS_DEBOUNCE_SECONDS = 1.5
 MAX_CHANNEL_NAME_LEN = 95
 
 intents = discord.Intents.default()
@@ -209,8 +209,14 @@ def save_guild_config(guild_id: int, cfg: dict):
 def get_channel_from_config(guild: discord.Guild, cfg: dict, key: str):
     channel_id = cfg["channels"].get(key)
     if not channel_id:
+        logging.warning(f"Brak channel_id w config dla klucza: {key}")
         return None
-    return guild.get_channel(channel_id)
+
+    channel = guild.get_channel(channel_id)
+    if channel is None:
+        logging.warning(f"Nie znaleziono kanału w guild dla klucza: {key}, id: {channel_id}")
+
+    return channel
 
 # ================================
 # POMOCNICZE
@@ -579,21 +585,28 @@ async def setup_categories_and_channels(guild: discord.Guild):
 
 async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_name: str):
     if channel is None:
+        logging.warning(f"Nie znaleziono kanału do zmiany nazwy na: {new_name}")
         return
 
     new_name = trim_channel_name(new_name)
 
     if channel.name == new_name:
+        logging.info(f"Bez zmian: {channel.name}")
         return
 
     try:
+        old_name = channel.name
         await channel.edit(
             name=new_name,
             reason="Kosmiczny Zegar: aktualizacja nazwy kanału"
         )
+        logging.info(f"Zmieniono kanał: {old_name} -> {new_name}")
         await asyncio.sleep(CHANNEL_EDIT_DELAY)
     except Exception as e:
-        logging.error(f"Błąd zmiany nazwy kanału {getattr(channel, 'id', 'brak_id')}: {e}")
+        logging.error(
+            f"Błąd zmiany nazwy kanału {getattr(channel, 'id', 'brak_id')} "
+            f"({getattr(channel, 'name', 'brak_nazwy')}): {e}"
+        )
 
 # ================================
 # AKTUALIZACJA KANAŁÓW
@@ -702,6 +715,24 @@ async def refresh_existing_panel(guild: discord.Guild):
     await update_weather_channels(guild, cfg, weather)
     await update_clock_channels(guild, cfg, weather)
     await update_stats_channels(guild, cfg)
+
+    return True
+
+
+async def refresh_weather_and_clock_only(guild: discord.Guild):
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        return False
+
+    weather = await get_weather_data(
+        city_name=cfg["city_name"],
+        latitude=cfg["latitude"],
+        longitude=cfg["longitude"],
+        timezone_name=cfg.get("timezone", DEFAULT_TIMEZONE)
+    )
+
+    await update_weather_channels(guild, cfg, weather)
+    await update_clock_channels(guild, cfg, weather)
 
     return True
 
@@ -1031,7 +1062,7 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
 
         save_guild_config(guild.id, cfg)
 
-        refreshed = await refresh_existing_panel(guild)
+        refreshed = await refresh_weather_and_clock_only(guild)
 
         if not refreshed:
             await interaction.followup.send(
@@ -1045,7 +1076,7 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
             extra = f", {city['admin1']}"
 
         await interaction.followup.send(
-            f"✅ Ustawiono miasto: **{city['name']}{extra}, {city['country']}** i zaktualizowano istniejące kanały.",
+            f"✅ Ustawiono miasto: **{city['name']}{extra}, {city['country']}** i zaktualizowano pogodę oraz zegar.",
             ephemeral=True
         )
 
