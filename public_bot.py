@@ -1,5 +1,5 @@
 # ================================
-# KOSMICZNY ZEGAR PUBLIC - BOT v17
+# KOSMICZNY ZEGAR PUBLIC - BOT v18
 # ================================
 
 import asyncio
@@ -77,6 +77,7 @@ CHANNEL_TEMPLATES = {
 
     # STATYSTYKI
     "members": ("stats", "👥 Wszyscy"),
+    "humans": ("stats", "👤 Ludzie"),
     "online": ("stats", "🟢 Online"),
     "bots": ("stats", "🤖 Boty"),
     "vc": ("stats", "🔊 Na VC"),
@@ -711,6 +712,7 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
     bot_members = [m for m in members if m.bot]
 
     members_count = len(members)
+    humans_count = len(human_members)
     bots_count = len(bot_members)
 
     online_count = len([
@@ -730,6 +732,10 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
     await safe_edit_channel_name(
         get_channel_from_config(guild, cfg, "members"),
         f"👥 Wszyscy {members_count}"
+    )
+    await safe_edit_channel_name(
+        get_channel_from_config(guild, cfg, "humans"),
+        f"👤 Ludzie {humans_count}"
     )
     await safe_edit_channel_name(
         get_channel_from_config(guild, cfg, "online"),
