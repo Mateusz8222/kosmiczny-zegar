@@ -1,5 +1,5 @@
 # ================================
-# KOSMICZNY ZEGAR 24 - BOT v11
+# KOSMICZNY ZEGAR 24 - BOT v12
 # ================================
 
 import asyncio
@@ -1001,6 +1001,14 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
         )
         return
 
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        await interaction.response.send_message(
+            "ℹ️ Najpierw użyj `/setup`, aby utworzyć kategorie i kanały.",
+            ephemeral=True
+        )
+        return
+
     await interaction.response.defer(ephemeral=True)
 
     try:
@@ -1015,10 +1023,6 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
 
         city = results[0]
 
-        cfg = get_guild_config(guild.id)
-        if not cfg:
-            cfg = build_default_guild_config(guild.id)
-
         cfg["city_name"] = city["name"] or DEFAULT_CITY_NAME
         cfg["latitude"] = city["latitude"] if city["latitude"] is not None else DEFAULT_LATITUDE
         cfg["longitude"] = city["longitude"] if city["longitude"] is not None else DEFAULT_LONGITUDE
@@ -1027,15 +1031,21 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
 
         save_guild_config(guild.id, cfg)
 
-        await setup_categories_and_channels(guild)
-        await refresh_existing_panel(guild)
+        refreshed = await refresh_existing_panel(guild)
+
+        if not refreshed:
+            await interaction.followup.send(
+                "ℹ️ Nie udało się odświeżyć kanałów. Użyj najpierw `/setup`.",
+                ephemeral=True
+            )
+            return
 
         extra = ""
         if city.get("admin1"):
             extra = f", {city['admin1']}"
 
         await interaction.followup.send(
-            f"✅ Ustawiono miasto: **{city['name']}{extra}, {city['country']}**",
+            f"✅ Ustawiono miasto: **{city['name']}{extra}, {city['country']}** i zaktualizowano istniejące kanały.",
             ephemeral=True
         )
 
