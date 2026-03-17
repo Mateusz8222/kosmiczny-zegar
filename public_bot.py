@@ -40,9 +40,9 @@ DEFAULT_COUNTRY = "Polska"
 DEFAULT_TIMEZONE = "Europe/Warsaw"
 
 WEATHER_REFRESH_MINUTES = 15
-CHANNEL_EDIT_DELAY = 0.3
+CHANNEL_EDIT_DELAY = 1.2
 CATEGORY_DELETE_DELAY = 0.5
-STATS_DEBOUNCE_SECONDS = 1.5
+STATS_DEBOUNCE_SECONDS = 10
 MAX_CHANNEL_NAME_LEN = 95
 
 intents = discord.Intents.default()
@@ -460,7 +460,6 @@ def build_pollen_channel_text(alder, birch, grass, mugwort, ragweed) -> str:
     if not active:
         return "🌿 Pylenie brak"
 
-    # najpierw najwyższe stężenia
     active.sort(key=lambda x: x[1], reverse=True)
 
     formatted_items = [
@@ -939,6 +938,14 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
         )
         logging.info(f"Zmieniono kanał: {old_name} -> {new_name}")
         await asyncio.sleep(CHANNEL_EDIT_DELAY)
+
+    except discord.HTTPException as e:
+        logging.error(
+            f"HTTPException przy zmianie kanału {getattr(channel, 'id', 'brak_id')} "
+            f"({getattr(channel, 'name', 'brak_nazwy')}): {e}"
+        )
+        await asyncio.sleep(5)
+
     except Exception as e:
         logging.error(
             f"Błąd zmiany nazwy kanału {getattr(channel, 'id', 'brak_id')} "
@@ -1100,20 +1107,25 @@ async def refresh_stats_only(guild: discord.Guild):
 # STATUS ZEGARA BOTA
 # ================================
 
-@tasks.loop(seconds=1)
+@tasks.loop(minutes=1)
 async def update_status_clock():
     timezone = pytz.timezone("Europe/Warsaw")
     now = datetime.now(timezone)
 
     activity = discord.Activity(
         type=discord.ActivityType.watching,
-        name=f"🕒 {now.strftime('%H:%M:%S')}"
+        name=f"🕒 {now.strftime('%H:%M')}"
     )
 
-    await bot.change_presence(
-        status=discord.Status.online,
-        activity=activity
-    )
+    try:
+        await bot.change_presence(
+            status=discord.Status.online,
+            activity=activity
+        )
+    except discord.HTTPException as e:
+        logging.error(f"Błąd zmiany statusu bota: {e}")
+    except Exception as e:
+        logging.error(f"Nieoczekiwany błąd zmiany statusu bota: {e}")
 
 
 @update_status_clock.before_loop
@@ -1132,7 +1144,7 @@ async def auto_refresh():
             if not cfg:
                 continue
 
-            await refresh_existing_panel(guild)
+            await refresh_weather_and_clock_only(guild)
 
         except Exception as e:
             logging.error(f"Błąd auto_refresh dla {guild.id}: {e}")
@@ -1150,6 +1162,8 @@ async def _debounced_stats_refresh(guild: discord.Guild):
     try:
         await asyncio.sleep(STATS_DEBOUNCE_SECONDS)
         await refresh_stats_only(guild)
+    except asyncio.CancelledError:
+        return
     except Exception as e:
         logging.error(f"Błąd live stats dla {guild.id}: {e}")
     finally:
@@ -1639,10 +1653,11 @@ async def on_member_remove(member: discord.Member):
     schedule_stats_refresh(member.guild)
 
 
-@bot.event
-async def on_presence_update(before: discord.Member, after: discord.Member):
-    if before.status != after.status:
-        schedule_stats_refresh(after.guild)
+# Celowo wyłączone, żeby ograniczyć rate limit:
+# @bot.event
+# async def on_presence_update(before: discord.Member, after: discord.Member):
+#     if before.status != after.status:
+#         schedule_stats_refresh(after.guild)
 
 
 @bot.event
