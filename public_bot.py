@@ -1,5 +1,5 @@
 # ================================
-# KOSMICZNY ZEGAR PUBLIC - BOT v22
+# KOSMICZNY ZEGAR PUBLIC - BOT v23
 # ================================
 
 import asyncio
@@ -7,7 +7,7 @@ import json
 import logging
 import os
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from urllib.parse import quote
 
 import aiohttp
@@ -55,7 +55,7 @@ intents.message_content = False
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 DB_FILE = "bot_data_public.db"
-bot_start_time = datetime.utcnow()
+bot_start_time = datetime.now(UTC)
 
 CHANNEL_TEMPLATES = {
     # POGODA
@@ -1347,7 +1347,7 @@ async def status_command(interaction: discord.Interaction):
 
 @bot.tree.command(name="info", description="Pokazuje informacje o bocie")
 async def info_command(interaction: discord.Interaction):
-    uptime = datetime.utcnow() - bot_start_time
+    uptime = datetime.now(UTC) - bot_start_time
     uptime_str = format_uptime(uptime)
 
     guild_count = len(bot.guilds)
@@ -1411,7 +1411,7 @@ async def info_command(interaction: discord.Interaction):
 
     embed.add_field(
         name="🤖 Wersja",
-        value="**v22**",
+        value="**v23**",
         inline=True
     )
 
