@@ -1125,14 +1125,14 @@ async def refresh_stats_only(guild: discord.Guild):
 # STATUS ZEGARA BOTA
 # ================================
 
-@tasks.loop(minutes=1)
+@tasks.loop(seconds=5)
 async def update_status_clock():
     timezone = pytz.timezone("Europe/Warsaw")
     now = datetime.now(timezone)
 
     activity = discord.Activity(
         type=discord.ActivityType.watching,
-        name=f"🕒 {now.strftime('%H:%M')}"
+        name=f"🕒 {now.strftime('%H:%M:%S')}"
     )
 
     try:
@@ -1244,6 +1244,66 @@ async def city_autocomplete(
 # ================================
 # KOMENDY
 # ================================
+
+@bot.tree.command(name="help", description="Pokazuje listę komend bota")
+async def help_command(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="📘 Pomoc • Kosmiczny Zegar 24",
+        description=(
+            "Lista dostępnych komend slash.\n"
+            "Bot tworzy kanały z czasem, pogodą, fazą księżyca i statystykami serwera."
+        ),
+        color=discord.Color.green()
+    )
+
+    embed.add_field(
+        name="🌍 Komendy ogólne",
+        value=(
+            "`/help` — pokazuje pomoc\n"
+            "`/info` — informacje o bocie\n"
+            "`/pogoda` — aktualna pogoda\n"
+            "`/czas` — aktualny czas\n"
+            "`/ksiezyc` — aktualna faza księżyca"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="🛠️ Komendy administracyjne",
+        value=(
+            "`/setup` — tworzy kategorie i kanały bota\n"
+            "`/refresh` — odświeża wszystkie kanały bota\n"
+            "`/status` — pokazuje status konfiguracji\n"
+            "`/miasto` — ustawia miasto dla pogody i zegara"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="🗑️ Komendy usuwania",
+        value=(
+            "`/usun_pogoda` — usuwa kategorię Pogoda\n"
+            "`/usun_kosmiczny_zegar` — usuwa kategorię Kosmiczny Zegar\n"
+            "`/usun_statystyki` — usuwa kategorię Statystyki\n"
+            "`/usun_wszystko` — usuwa wszystkie kategorie bota"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="ℹ️ Jak zacząć",
+        value=(
+            "1. Użyj `/setup`\n"
+            "2. Ustaw `/miasto` dla swojego serwera\n"
+            "3. Użyj `/refresh`, aby ręcznie odświeżyć dane"
+        ),
+        inline=False
+    )
+
+    embed.set_footer(text="Kosmiczny Zegar 24 • Pomoc")
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
 
 @bot.tree.command(name="setup", description="Tworzy kategorie i kanały bota")
 @app_commands.checks.has_permissions(manage_guild=True)
@@ -1395,7 +1455,7 @@ async def info_command(interaction: discord.Interaction):
     embed.add_field(
         name="🧩 Dostępne moduły",
         value=(
-            "`/setup` `/refresh` `/status` `/info`\n"
+            "`/help` `/setup` `/refresh` `/status` `/info`\n"
             "`/pogoda` `/czas` `/ksiezyc` `/miasto`\n"
             "`/usun_pogoda` `/usun_kosmiczny_zegar`\n"
             "`/usun_statystyki` `/usun_wszystko`"
