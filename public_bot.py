@@ -1,5 +1,5 @@
 # ================================
-# KOSMICZNY ZEGAR PUBLIC - BOT v21
+# KOSMICZNY ZEGAR PUBLIC - BOT v22
 # ================================
 
 import asyncio
@@ -55,6 +55,7 @@ intents.message_content = False
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 DB_FILE = "bot_data_public.db"
+bot_start_time = datetime.utcnow()
 
 CHANNEL_TEMPLATES = {
     # POGODA
@@ -410,6 +411,23 @@ async def geocode_city(city_query: str, count: int = 10):
 
 def trim_channel_name(text: str) -> str:
     return text[:MAX_CHANNEL_NAME_LEN]
+
+
+def format_uptime(delta):
+    days = delta.days
+    hours, remainder = divmod(delta.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    parts = []
+    if days > 0:
+        parts.append(f"{days}d")
+    if hours > 0 or days > 0:
+        parts.append(f"{hours}h")
+    if minutes > 0 or hours > 0 or days > 0:
+        parts.append(f"{minutes}m")
+    parts.append(f"{seconds}s")
+
+    return " ".join(parts)
 
 # ================================
 # POWIETRZE / PYLENIE / OPADY / ALERTY
@@ -1327,6 +1345,87 @@ async def status_command(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+@bot.tree.command(name="info", description="Pokazuje informacje o bocie")
+async def info_command(interaction: discord.Interaction):
+    uptime = datetime.utcnow() - bot_start_time
+    uptime_str = format_uptime(uptime)
+
+    guild_count = len(bot.guilds)
+    user_count = sum(guild.member_count or 0 for guild in bot.guilds)
+
+    embed = discord.Embed(
+        title="🌌 Kosmiczny Zegar 24",
+        description=(
+            "Nowoczesny bot Discord 24/7 do automatycznej prezentacji "
+            "czasu, pogody, fazy księżyca i statystyk serwera w formie "
+            "czytelnych kanałów głosowych oraz wygodnych komend slash."
+        ),
+        color=discord.Color.blurple()
+    )
+
+    if bot.user and bot.user.avatar:
+        embed.set_thumbnail(url=bot.user.avatar.url)
+    elif bot.user and bot.user.default_avatar:
+        embed.set_thumbnail(url=bot.user.default_avatar.url)
+
+    embed.add_field(
+        name="✨ Najważniejsze funkcje",
+        value=(
+            "• 🛰️ Kosmiczny zegar w kanałach\n"
+            "• 🌤️ Pogoda dla wybranego miasta\n"
+            "• 🌙 Faza księżyca i długość dnia\n"
+            "• 📊 Statystyki członków serwera\n"
+            "• ⚡ Automatyczne aktualizacje 24/7\n"
+            "• 🛠️ Wygodne komendy administracyjne"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="📈 Status bota",
+        value=(
+            f"**Uptime:** `{uptime_str}`\n"
+            f"**Serwery:** `{guild_count}`\n"
+            f"**Użytkownicy:** `{user_count}`\n"
+            f"**Tryb pracy:** `Online 24/7`"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="🧩 Dostępne moduły",
+        value=(
+            "`/setup` `/refresh` `/status` `/info`\n"
+            "`/pogoda` `/czas` `/ksiezyc` `/miasto`\n"
+            "`/usun_pogoda` `/usun_kosmiczny_zegar`\n"
+            "`/usun_statystyki` `/usun_wszystko`"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="👨‍💻 Twórca",
+        value="**Mati**",
+        inline=True
+    )
+
+    embed.add_field(
+        name="🤖 Wersja",
+        value="**v22**",
+        inline=True
+    )
+
+    embed.add_field(
+        name="🛡️ Stabilność",
+        value="Zoptymalizowany pod Railway i limity Discord API",
+        inline=False
+    )
+
+    embed.set_footer(text="Kosmiczny Zegar 24 • Bot Discord działający 24/7")
+
+    await interaction.response.send_message(embed=embed, ephemeral=False)
+
+
 @bot.tree.command(name="pogoda", description="Pokazuje aktualną pogodę")
 async def weather_command(interaction: discord.Interaction):
     try:
@@ -1653,7 +1752,7 @@ async def on_member_remove(member: discord.Member):
     schedule_stats_refresh(member.guild)
 
 
-# Celowo wyłączone, żeby ograniczyć rate limit:
+# Wyłączone celowo, żeby ograniczyć rate limit
 # @bot.event
 # async def on_presence_update(before: discord.Member, after: discord.Member):
 #     if before.status != after.status:
