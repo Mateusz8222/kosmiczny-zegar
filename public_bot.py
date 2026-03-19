@@ -549,66 +549,76 @@ CHANNEL_TEMPLATE_KEYS = {
 
 # ================================
 # PANEL STATUSÓW / NASTROJU / AKTYWNOŚCI
+# WERSJA PO ID RÓL
 # ================================
 
-STATUS_ROLE_NAMES = [
-    "🟢 Dostępny",
-    "🌙 Idę spać",
-    "🚫 Nie przeszkadzać",
-    "😴 - AFK",
-    "⏳ Zaraz wracam",
-    "🚫 Poza kompem",
-    "🚗 Poza domem",
-    "💼 W pracy",
-    "🏫 W szkole",
-]
+ROLE_IDS = {
+    "status": {
+        "Dostępny": 1475627194582831184,
+        "Idę spać": 1475627705188880547,
+        "Nie przeszkadzać": 1475627340494278727,
+        "AFK": 1475592478286676160,
+        "Zaraz wracam": 1475595615055511747,
+        "Poza kompem": 1475627428217884764,
+        "Poza domem": 1475627463865270404,
+        "W pracy": 1475627537022582804,
+        "W szkole": 1475627641582391457,
+    },
+    "mood": {
+        "Na luzie": 1475616916348604618,
+        "W dobrym humorze": 1475625302641086504,
+        "Wkurzony": 1475625886886662324,
+        "Zmęczony": 1475625667075768395,
+        "Full energia": 1475625987914858677,
+        "Nocny tryb": 1475626089597374680,
+        "Chory": 1475645832702328884,
+    },
+    "activity": {
+        "Słucham muzyki": 1475586115569324043,
+        "Czatuję": 1475591441085366273,
+        "Gram": 1475591583314477278,
+        "Oglądam streama": 1475596164026859745,
+        "Uczę się": 1475594865860542554,
+        "Na VC": 1475595019770396932,
+        "Streamuję": 1475595081200304259,
+        "Chcę poznać nowych ludzi": 1475595483899494492,
+        "Nowy tutaj": 1475592165227761704,
+    }
+}
 
-MOOD_ROLE_NAMES = [
-    "😎 Na luzie",
-    "😊 W dobrym humorze",
-    "🤬 Wkurzony",
-    "🥶 Zmęczony",
-    "⚡ Full energia",
-    "🌙 Nocny tryb",
-    "🤒 Chory",
-]
 
-ACTIVITY_ROLE_NAMES = [
-    "🎧 Słucham muzyki",
-    "💬 Czatuję",
-    "🎮 Gram",
-    "👀 Oglądam streama",
-    "📚 Uczę się",
-    "🗣️ Na VC",
-    "📹 Streamuję",
-    "🤝 Chcę poznać nowych ludzi",
-    "🆕 Nowy tutaj",
-]
-
-
-async def replace_role_group(
+async def replace_role_group_by_id(
     member: discord.Member,
     guild: discord.Guild,
-    target_role_name: str,
-    role_group: list[str]
+    selected_key: str,
+    group_key: str
 ) -> tuple[bool, str]:
-    target_role = discord.utils.get(guild.roles, name=target_role_name)
+    group_map = ROLE_IDS.get(group_key, {})
+    target_role_id = group_map.get(selected_key)
+
+    if not target_role_id:
+        return False, f"Brak ID roli dla opcji: {selected_key}"
+
+    target_role = guild.get_role(target_role_id)
     if target_role is None:
-        return False, f"Nie znaleziono roli: {target_role_name}"
+        return False, f"Nie znaleziono roli po ID dla opcji: {selected_key}"
+
+    group_role_ids = set(group_map.values())
 
     roles_to_remove = [
         role for role in member.roles
-        if role.name in role_group and role.name != target_role_name
+        if role.id in group_role_ids and role.id != target_role.id
     ]
 
     try:
         if roles_to_remove:
-            await member.remove_roles(*roles_to_remove, reason="Kosmiczny Zegar - zmiana statusu z panelu")
+            await member.remove_roles(*roles_to_remove, reason="Kosmiczny Zegar - zmiana roli z panelu")
 
         if target_role not in member.roles:
-            await member.add_roles(target_role, reason="Kosmiczny Zegar - nadanie statusu z panelu")
+            await member.add_roles(target_role, reason="Kosmiczny Zegar - nadanie roli z panelu")
 
         return True, target_role.name
+
     except discord.Forbidden:
         return False, "Bot nie ma uprawnień do nadawania/usuwania ról."
     except discord.HTTPException as e:
@@ -618,15 +628,15 @@ async def replace_role_group(
 class StatusAvailabilitySelect(discord.ui.Select):
     def __init__(self):
         options = [
-            discord.SelectOption(label="Dostępny", emoji="🟢", value="🟢 Dostępny"),
-            discord.SelectOption(label="Idę spać", emoji="🌙", value="🌙 Idę spać"),
-            discord.SelectOption(label="Nie przeszkadzać", emoji="🚫", value="🚫 Nie przeszkadzać"),
-            discord.SelectOption(label="AFK", emoji="😴", value="😴 - AFK"),
-            discord.SelectOption(label="Zaraz wracam", emoji="⏳", value="⏳ Zaraz wracam"),
-            discord.SelectOption(label="Poza kompem", emoji="🚫", value="🚫 Poza kompem"),
-            discord.SelectOption(label="Poza domem", emoji="🚗", value="🚗 Poza domem"),
-            discord.SelectOption(label="W pracy", emoji="💼", value="💼 W pracy"),
-            discord.SelectOption(label="W szkole", emoji="🏫", value="🏫 W szkole"),
+            discord.SelectOption(label="Dostępny", emoji="🟢", value="Dostępny"),
+            discord.SelectOption(label="Idę spać", emoji="🌙", value="Idę spać"),
+            discord.SelectOption(label="Nie przeszkadzać", emoji="🚫", value="Nie przeszkadzać"),
+            discord.SelectOption(label="AFK", emoji="😴", value="AFK"),
+            discord.SelectOption(label="Zaraz wracam", emoji="⏳", value="Zaraz wracam"),
+            discord.SelectOption(label="Poza kompem", emoji="🚫", value="Poza kompem"),
+            discord.SelectOption(label="Poza domem", emoji="🚗", value="Poza domem"),
+            discord.SelectOption(label="W pracy", emoji="💼", value="W pracy"),
+            discord.SelectOption(label="W szkole", emoji="🏫", value="W szkole"),
         ]
 
         super().__init__(
@@ -642,11 +652,11 @@ class StatusAvailabilitySelect(discord.ui.Select):
             await interaction.response.send_message("Ta opcja działa tylko na serwerze.", ephemeral=True)
             return
 
-        ok, message = await replace_role_group(
+        ok, message = await replace_role_group_by_id(
             member=interaction.user,
             guild=interaction.guild,
-            target_role_name=self.values[0],
-            role_group=STATUS_ROLE_NAMES
+            selected_key=self.values[0],
+            group_key="status"
         )
 
         if ok:
@@ -658,13 +668,13 @@ class StatusAvailabilitySelect(discord.ui.Select):
 class StatusMoodSelect(discord.ui.Select):
     def __init__(self):
         options = [
-            discord.SelectOption(label="Na luzie", emoji="😎", value="😎 Na luzie"),
-            discord.SelectOption(label="W dobrym humorze", emoji="😊", value="😊 W dobrym humorze"),
-            discord.SelectOption(label="Wkurzony", emoji="🤬", value="🤬 Wkurzony"),
-            discord.SelectOption(label="Zmęczony", emoji="🥶", value="🥶 Zmęczony"),
-            discord.SelectOption(label="Full energia", emoji="⚡", value="⚡ Full energia"),
-            discord.SelectOption(label="Nocny tryb", emoji="🌙", value="🌙 Nocny tryb"),
-            discord.SelectOption(label="Chory", emoji="🤒", value="🤒 Chory"),
+            discord.SelectOption(label="Na luzie", emoji="😎", value="Na luzie"),
+            discord.SelectOption(label="W dobrym humorze", emoji="😊", value="W dobrym humorze"),
+            discord.SelectOption(label="Wkurzony", emoji="🤬", value="Wkurzony"),
+            discord.SelectOption(label="Zmęczony", emoji="🥶", value="Zmęczony"),
+            discord.SelectOption(label="Full energia", emoji="⚡", value="Full energia"),
+            discord.SelectOption(label="Nocny tryb", emoji="🌙", value="Nocny tryb"),
+            discord.SelectOption(label="Chory", emoji="🤒", value="Chory"),
         ]
 
         super().__init__(
@@ -680,11 +690,11 @@ class StatusMoodSelect(discord.ui.Select):
             await interaction.response.send_message("Ta opcja działa tylko na serwerze.", ephemeral=True)
             return
 
-        ok, message = await replace_role_group(
+        ok, message = await replace_role_group_by_id(
             member=interaction.user,
             guild=interaction.guild,
-            target_role_name=self.values[0],
-            role_group=MOOD_ROLE_NAMES
+            selected_key=self.values[0],
+            group_key="mood"
         )
 
         if ok:
@@ -696,15 +706,15 @@ class StatusMoodSelect(discord.ui.Select):
 class StatusActivitySelect(discord.ui.Select):
     def __init__(self):
         options = [
-            discord.SelectOption(label="Słucham muzyki", emoji="🎧", value="🎧 Słucham muzyki"),
-            discord.SelectOption(label="Czatuję", emoji="💬", value="💬 Czatuję"),
-            discord.SelectOption(label="Gram", emoji="🎮", value="🎮 Gram"),
-            discord.SelectOption(label="Oglądam streama", emoji="👀", value="👀 Oglądam streama"),
-            discord.SelectOption(label="Uczę się", emoji="📚", value="📚 Uczę się"),
-            discord.SelectOption(label="Na VC", emoji="🗣️", value="🗣️ Na VC"),
-            discord.SelectOption(label="Streamuję", emoji="📹", value="📹 Streamuję"),
-            discord.SelectOption(label="Chcę poznać nowych ludzi", emoji="🤝", value="🤝 Chcę poznać nowych ludzi"),
-            discord.SelectOption(label="Nowy tutaj", emoji="🆕", value="🆕 Nowy tutaj"),
+            discord.SelectOption(label="Słucham muzyki", emoji="🎧", value="Słucham muzyki"),
+            discord.SelectOption(label="Czatuję", emoji="💬", value="Czatuję"),
+            discord.SelectOption(label="Gram", emoji="🎮", value="Gram"),
+            discord.SelectOption(label="Oglądam streama", emoji="👀", value="Oglądam streama"),
+            discord.SelectOption(label="Uczę się", emoji="📚", value="Uczę się"),
+            discord.SelectOption(label="Na VC", emoji="🗣️", value="Na VC"),
+            discord.SelectOption(label="Streamuję", emoji="📹", value="Streamuję"),
+            discord.SelectOption(label="Chcę poznać nowych ludzi", emoji="🤝", value="Chcę poznać nowych ludzi"),
+            discord.SelectOption(label="Nowy tutaj", emoji="🆕", value="Nowy tutaj"),
         ]
 
         super().__init__(
@@ -720,11 +730,11 @@ class StatusActivitySelect(discord.ui.Select):
             await interaction.response.send_message("Ta opcja działa tylko na serwerze.", ephemeral=True)
             return
 
-        ok, message = await replace_role_group(
+        ok, message = await replace_role_group_by_id(
             member=interaction.user,
             guild=interaction.guild,
-            target_role_name=self.values[0],
-            role_group=ACTIVITY_ROLE_NAMES
+            selected_key=self.values[0],
+            group_key="activity"
         )
 
         if ok:
