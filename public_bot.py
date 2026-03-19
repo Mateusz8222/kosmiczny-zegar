@@ -59,6 +59,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 DB_FILE = "bot_data_public.db"
 bot_start_time = datetime.now(UTC)
 
+# KLUCZOWA POPRAWKA
+stats_update_tasks: dict[int, asyncio.Task] = {}
+
 # ================================
 # TŁUMACZENIA
 # ================================
@@ -214,6 +217,7 @@ LANGUAGES = {
         "field_sunrise": "Wschód",
         "field_sunset": "Zachód",
         "field_day_length": "Długość dnia",
+        "field_date": "Data",
         "none": "brak",
 
         "time_title": "🕐 Aktualny czas",
@@ -434,6 +438,7 @@ LANGUAGES = {
         "field_sunrise": "Sunrise",
         "field_sunset": "Sunset",
         "field_day_length": "Day length",
+        "field_date": "Date",
         "none": "none",
 
         "time_title": "🕐 Current time",
@@ -1481,7 +1486,7 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict):
 
     await safe_edit_channel_name(
         get_channel_from_config(guild, cfg, "date"),
-        f"📅 {tr(lang, 'field_date') if 'field_date' in LANGUAGES[lang] else tr(lang, 'time_date')} {weekdays[now.weekday()]} {now.strftime('%d.%m.%Y')}"
+        f"📅 {tr(lang, 'field_date')} {weekdays[now.weekday()]} {now.strftime('%d.%m.%Y')}"
     )
     await safe_edit_channel_name(
         get_channel_from_config(guild, cfg, "part_of_day"),
@@ -1678,7 +1683,7 @@ async def _debounced_stats_refresh(guild: discord.Guild):
         stats_update_tasks.pop(guild.id, None)
 
 
-def schedule_stats_refresh(guild: discord.Guild):
+def schedule_stats_refresh(guild: discord.Guild | None):
     if guild is None:
         return
 
@@ -2153,7 +2158,6 @@ async def language_command(interaction: discord.Interaction, code: str):
 
     await interaction.response.defer(ephemeral=True)
 
-    # Jeśli panel istnieje, odśwież kanały w nowym języku
     try:
         if cfg.get("channels"):
             await refresh_existing_panel(guild)
@@ -2339,12 +2343,22 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
     if before.channel != after.channel:
         schedule_stats_refresh(member.guild)
 
+
+@bot.event
+async def on_presence_update(before: discord.Member, after: discord.Member):
+    if before.status != after.status:
+        schedule_stats_refresh(after.guild)
+
 # ================================
 # START BOTA
 # ================================
 
 @bot.event
 async def on_ready():
+    if bot.user is None:
+        logging.error("Bot.user jest None w on_ready")
+        return
+
     logging.info(f"Zalogowano jako {bot.user} (ID: {bot.user.id})")
 
     try:
@@ -2360,6 +2374,12 @@ async def on_ready():
 
     if not update_status_clock.is_running():
         update_status_clock.start()
+
+    for guild in bot.guilds:
+        try:
+            await refresh_stats_only(guild)
+        except Exception as e:
+            logging.error(f"Błąd odświeżania statystyk po starcie dla {guild.id}: {e}")
 
 
 init_db()
