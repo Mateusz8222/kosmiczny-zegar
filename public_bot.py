@@ -1,6 +1,7 @@
 # ================================
 # KOSMICZNY ZEGAR PUBLIC - BOT v24
 # MULTILANGUAGE: PL / EN
+# + PANEL STATUSÓW / NASTROJU / AKTYWNOŚCI
 # ================================
 
 import asyncio
@@ -58,8 +59,6 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 DB_FILE = "bot_data_public.db"
 bot_start_time = datetime.now(UTC)
-
-# KLUCZOWA POPRAWKA
 stats_update_tasks: dict[int, asyncio.Task] = {}
 
 # ================================
@@ -136,7 +135,8 @@ LANGUAGES = {
             "`/info` — informacje o bocie\n"
             "`/pogoda` — aktualna pogoda\n"
             "`/czas` — aktualny czas\n"
-            "`/ksiezyc` — aktualna faza księżyca"
+            "`/ksiezyc` — aktualna faza księżyca\n"
+            "`/panel_statusow` — wysyła panel statusów"
         ),
         "help_admin_value": (
             "`/setup` — tworzy kategorie i kanały bota\n"
@@ -154,7 +154,8 @@ LANGUAGES = {
         "help_start_value": (
             "1. Użyj `/setup`\n"
             "2. Ustaw `/miasto` dla swojego serwera\n"
-            "3. Użyj `/refresh`, aby ręcznie odświeżyć dane"
+            "3. Użyj `/refresh`, aby ręcznie odświeżyć dane\n"
+            "4. Użyj `/panel_statusow`, aby wysłać panel statusów"
         ),
 
         "status_title": "📊 Status Kosmicznego Zegara",
@@ -186,6 +187,7 @@ LANGUAGES = {
             "• 🌤️ Pogoda dla wybranego miasta\n"
             "• 🌙 Faza księżyca i długość dnia\n"
             "• 📊 Statystyki członków serwera\n"
+            "• 🎭 Panel statusów, nastroju i aktywności\n"
             "• ⚡ Automatyczne aktualizacje 24/7\n"
             "• 🛠️ Wygodne komendy administracyjne"
         ),
@@ -198,6 +200,7 @@ LANGUAGES = {
         "info_modules_value": (
             "`/help` `/setup` `/refresh` `/status` `/info`\n"
             "`/pogoda` `/czas` `/ksiezyc` `/miasto` `/language`\n"
+            "`/panel_statusow`\n"
             "`/usun_pogoda` `/usun_kosmiczny_zegar`\n"
             "`/usun_statystyki` `/usun_wszystko`"
         ),
@@ -357,7 +360,8 @@ LANGUAGES = {
             "`/info` — bot information\n"
             "`/pogoda` — current weather\n"
             "`/czas` — current time\n"
-            "`/ksiezyc` — current moon phase"
+            "`/ksiezyc` — current moon phase\n"
+            "`/panel_statusow` — sends status panel"
         ),
         "help_admin_value": (
             "`/setup` — create bot categories and channels\n"
@@ -375,7 +379,8 @@ LANGUAGES = {
         "help_start_value": (
             "1. Use `/setup`\n"
             "2. Set `/miasto` for your server\n"
-            "3. Use `/refresh` to manually refresh data"
+            "3. Use `/refresh` to manually refresh data\n"
+            "4. Use `/panel_statusow` to send the status panel"
         ),
 
         "status_title": "📊 Cosmic Clock Status",
@@ -407,6 +412,7 @@ LANGUAGES = {
             "• 🌤️ Weather for selected city\n"
             "• 🌙 Moon phase and day length\n"
             "• 📊 Server member statistics\n"
+            "• 🎭 Status, mood and activity panel\n"
             "• ⚡ Automatic 24/7 updates\n"
             "• 🛠️ Convenient admin commands"
         ),
@@ -419,6 +425,7 @@ LANGUAGES = {
         "info_modules_value": (
             "`/help` `/setup` `/refresh` `/status` `/info`\n"
             "`/pogoda` `/czas` `/ksiezyc` `/miasto` `/language`\n"
+            "`/panel_statusow`\n"
             "`/usun_pogoda` `/usun_kosmiczny_zegar`\n"
             "`/usun_statystyki` `/usun_wszystko`"
         ),
@@ -539,6 +546,199 @@ CHANNEL_TEMPLATE_KEYS = {
     "vc": ("stats", "ch_vc"),
     "joined_today": ("stats", "ch_joined_today"),
 }
+
+# ================================
+# PANEL STATUSÓW / NASTROJU / AKTYWNOŚCI
+# ================================
+
+STATUS_ROLE_NAMES = [
+    "🟢 Dostępny",
+    "🌙 Idę spać",
+    "🚫 Nie przeszkadzać",
+    "😴 - AFK",
+    "⏳ Zaraz wracam",
+    "🚫 Poza kompem",
+    "🚗 Poza domem",
+    "💼 W pracy",
+    "🏫 W szkole",
+]
+
+MOOD_ROLE_NAMES = [
+    "😎 Na luzie",
+    "😊 W dobrym humorze",
+    "🤬 Wkurzony",
+    "🥶 Zmęczony",
+    "⚡ Full energia",
+    "🌙 Nocny tryb",
+    "🤒 Chory",
+]
+
+ACTIVITY_ROLE_NAMES = [
+    "🎧 Słucham muzyki",
+    "💬 Czatuję",
+    "🎮 Gram",
+    "👀 Oglądam streama",
+    "📚 Uczę się",
+    "🗣️ Na VC",
+    "📹 Streamuję",
+    "🤝 Chcę poznać nowych ludzi",
+    "🆕 Nowy tutaj",
+]
+
+
+async def replace_role_group(
+    member: discord.Member,
+    guild: discord.Guild,
+    target_role_name: str,
+    role_group: list[str]
+) -> tuple[bool, str]:
+    target_role = discord.utils.get(guild.roles, name=target_role_name)
+    if target_role is None:
+        return False, f"Nie znaleziono roli: {target_role_name}"
+
+    roles_to_remove = [
+        role for role in member.roles
+        if role.name in role_group and role.name != target_role_name
+    ]
+
+    try:
+        if roles_to_remove:
+            await member.remove_roles(*roles_to_remove, reason="Kosmiczny Zegar - zmiana statusu z panelu")
+
+        if target_role not in member.roles:
+            await member.add_roles(target_role, reason="Kosmiczny Zegar - nadanie statusu z panelu")
+
+        return True, target_role.name
+    except discord.Forbidden:
+        return False, "Bot nie ma uprawnień do nadawania/usuwania ról."
+    except discord.HTTPException as e:
+        return False, f"Błąd Discord API: {e}"
+
+
+class StatusAvailabilitySelect(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="Dostępny", emoji="🟢", value="🟢 Dostępny"),
+            discord.SelectOption(label="Idę spać", emoji="🌙", value="🌙 Idę spać"),
+            discord.SelectOption(label="Nie przeszkadzać", emoji="🚫", value="🚫 Nie przeszkadzać"),
+            discord.SelectOption(label="AFK", emoji="😴", value="😴 - AFK"),
+            discord.SelectOption(label="Zaraz wracam", emoji="⏳", value="⏳ Zaraz wracam"),
+            discord.SelectOption(label="Poza kompem", emoji="🚫", value="🚫 Poza kompem"),
+            discord.SelectOption(label="Poza domem", emoji="🚗", value="🚗 Poza domem"),
+            discord.SelectOption(label="W pracy", emoji="💼", value="💼 W pracy"),
+            discord.SelectOption(label="W szkole", emoji="🏫", value="🏫 W szkole"),
+        ]
+
+        super().__init__(
+            placeholder="Wybierz swój status...",
+            min_values=1,
+            max_values=1,
+            options=options,
+            custom_id="kosmiczny_zegar_status_select"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.guild is None or not isinstance(interaction.user, discord.Member):
+            await interaction.response.send_message("Ta opcja działa tylko na serwerze.", ephemeral=True)
+            return
+
+        ok, message = await replace_role_group(
+            member=interaction.user,
+            guild=interaction.guild,
+            target_role_name=self.values[0],
+            role_group=STATUS_ROLE_NAMES
+        )
+
+        if ok:
+            await interaction.response.send_message(f"✅ Ustawiono status: **{message}**", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"❌ {message}", ephemeral=True)
+
+
+class StatusMoodSelect(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="Na luzie", emoji="😎", value="😎 Na luzie"),
+            discord.SelectOption(label="W dobrym humorze", emoji="😊", value="😊 W dobrym humorze"),
+            discord.SelectOption(label="Wkurzony", emoji="🤬", value="🤬 Wkurzony"),
+            discord.SelectOption(label="Zmęczony", emoji="🥶", value="🥶 Zmęczony"),
+            discord.SelectOption(label="Full energia", emoji="⚡", value="⚡ Full energia"),
+            discord.SelectOption(label="Nocny tryb", emoji="🌙", value="🌙 Nocny tryb"),
+            discord.SelectOption(label="Chory", emoji="🤒", value="🤒 Chory"),
+        ]
+
+        super().__init__(
+            placeholder="Wybierz swój nastrój...",
+            min_values=1,
+            max_values=1,
+            options=options,
+            custom_id="kosmiczny_zegar_mood_select"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.guild is None or not isinstance(interaction.user, discord.Member):
+            await interaction.response.send_message("Ta opcja działa tylko na serwerze.", ephemeral=True)
+            return
+
+        ok, message = await replace_role_group(
+            member=interaction.user,
+            guild=interaction.guild,
+            target_role_name=self.values[0],
+            role_group=MOOD_ROLE_NAMES
+        )
+
+        if ok:
+            await interaction.response.send_message(f"✅ Ustawiono nastrój: **{message}**", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"❌ {message}", ephemeral=True)
+
+
+class StatusActivitySelect(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="Słucham muzyki", emoji="🎧", value="🎧 Słucham muzyki"),
+            discord.SelectOption(label="Czatuję", emoji="💬", value="💬 Czatuję"),
+            discord.SelectOption(label="Gram", emoji="🎮", value="🎮 Gram"),
+            discord.SelectOption(label="Oglądam streama", emoji="👀", value="👀 Oglądam streama"),
+            discord.SelectOption(label="Uczę się", emoji="📚", value="📚 Uczę się"),
+            discord.SelectOption(label="Na VC", emoji="🗣️", value="🗣️ Na VC"),
+            discord.SelectOption(label="Streamuję", emoji="📹", value="📹 Streamuję"),
+            discord.SelectOption(label="Chcę poznać nowych ludzi", emoji="🤝", value="🤝 Chcę poznać nowych ludzi"),
+            discord.SelectOption(label="Nowy tutaj", emoji="🆕", value="🆕 Nowy tutaj"),
+        ]
+
+        super().__init__(
+            placeholder="Wybierz swoją aktywność...",
+            min_values=1,
+            max_values=1,
+            options=options,
+            custom_id="kosmiczny_zegar_activity_select"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.guild is None or not isinstance(interaction.user, discord.Member):
+            await interaction.response.send_message("Ta opcja działa tylko na serwerze.", ephemeral=True)
+            return
+
+        ok, message = await replace_role_group(
+            member=interaction.user,
+            guild=interaction.guild,
+            target_role_name=self.values[0],
+            role_group=ACTIVITY_ROLE_NAMES
+        )
+
+        if ok:
+            await interaction.response.send_message(f"✅ Ustawiono aktywność: **{message}**", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"❌ {message}", ephemeral=True)
+
+
+class StatusPanelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(StatusAvailabilitySelect())
+        self.add_item(StatusMoodSelect())
+        self.add_item(StatusActivitySelect())
 
 # ================================
 # BAZA DANYCH
@@ -2169,6 +2369,40 @@ async def language_command(interaction: discord.Interaction, code: str):
         ephemeral=True
     )
 
+
+@bot.tree.command(name="panel_statusow", description="Wysyła panel wyboru statusów, nastroju i aktywności")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def panel_statusow_command(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="🛰️ Panel statusów • Kosmiczny Zegar",
+        description=(
+            "Wybierz z menu swój **status**, **nastrój** i **aktywność**.\n\n"
+            "• w każdej grupie możesz mieć tylko **jedną** rolę\n"
+            "• wybranie nowej opcji automatycznie usuwa starą z tej samej grupy"
+        ),
+        color=discord.Color.blurple()
+    )
+
+    embed.add_field(
+        name="🟢 Status",
+        value="Dostępny, AFK, Idę spać, W pracy, W szkole i inne",
+        inline=False
+    )
+    embed.add_field(
+        name="😎 Nastrój",
+        value="Na luzie, W dobrym humorze, Wkurzony, Chory i inne",
+        inline=False
+    )
+    embed.add_field(
+        name="🎮 Aktywność",
+        value="Gram, Czatuję, Streamuję, Na VC, Uczę się i inne",
+        inline=False
+    )
+
+    embed.set_footer(text="Kosmiczny Zegar 24 • Panel ról")
+
+    await interaction.response.send_message(embed=embed, view=StatusPanelView())
+
 # ================================
 # USUWANIE KATEGORII
 # ================================
@@ -2368,6 +2602,8 @@ async def on_ready():
             logging.info(f"Komenda aktywna: /{cmd.name}")
     except Exception as e:
         logging.error(f"Błąd synchronizacji komend: {e}")
+
+    bot.add_view(StatusPanelView())
 
     if not auto_refresh.is_running():
         auto_refresh.start()
