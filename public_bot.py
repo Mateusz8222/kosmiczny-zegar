@@ -549,40 +549,40 @@ CHANNEL_TEMPLATE_KEYS = {
 
 # ================================
 # PANEL STATUSÓW / NASTROJU / AKTYWNOŚCI
-# WERSJA PO ID RÓL
+# STABILNA WERSJA PO KLUCZACH
 # ================================
 
 ROLE_IDS = {
     "status": {
-        "Dostępny": 1475627194582831184,
-        "Idę spać": 1475627705188880547,
-        "Nie przeszkadzać": 1475627340494278727,
-        "AFK": 1475592478286676160,
-        "Zaraz wracam": 1475595615055511747,
-        "Poza kompem": 1475627428217884764,
-        "Poza domem": 1475627463865270404,
-        "W pracy": 1475627537022582804,
-        "W szkole": 1475627641582391457,
+        "status_dostepny": 1475627194582831184,
+        "status_spie": 1475627705188880547,
+        "status_dnd": 1475627340494278727,
+        "status_afk": 1475592478286676160,
+        "status_brb": 1475595615055511747,
+        "status_offpc": 1475627428217884764,
+        "status_offhome": 1475627463865270404,
+        "status_work": 1475627537022582804,
+        "status_school": 1475627641582391457,
     },
     "mood": {
-        "Na luzie": 1475616916348604618,
-        "W dobrym humorze": 1475625302641086504,
-        "Wkurzony": 1475625886886662324,
-        "Zmęczony": 1475625667075768395,
-        "Full energia": 1475625987914858677,
-        "Nocny tryb": 1475626089597374680,
-        "Chory": 1475645832702328884,
+        "mood_chill": 1475616916348604618,
+        "mood_happy": 1475625302641086504,
+        "mood_angry": 1475625886886662324,
+        "mood_tired": 1475625667075768395,
+        "mood_energy": 1475625987914858677,
+        "mood_night": 1475626089597374680,
+        "mood_sick": 1475645832702328884,
     },
     "activity": {
-        "Słucham muzyki": 1475586115569324043,
-        "Czatuję": 1475591441085366273,
-        "Gram": 1475591583314477278,
-        "Oglądam streama": 1475596164026859745,
-        "Uczę się": 1475594865860542554,
-        "Na VC": 1475595019770396932,
-        "Streamuję": 1475595081200304259,
-        "Chcę poznać nowych ludzi": 1475595483899494492,
-        "Nowy tutaj": 1475592165227761704,
+        "act_music": 1475586115569324043,
+        "act_chat": 1475591441085366273,
+        "act_game": 1475591583314477278,
+        "act_watch": 1475596164026859745,
+        "act_study": 1475594865860542554,
+        "act_vc": 1475595019770396932,
+        "act_stream": 1475595081200304259,
+        "act_people": 1475595483899494492,
+        "act_new": 1475592165227761704,
     }
 }
 
@@ -628,15 +628,15 @@ async def replace_role_group_by_id(
 class StatusAvailabilitySelect(discord.ui.Select):
     def __init__(self):
         options = [
-            discord.SelectOption(label="Dostępny", emoji="🟢", value="Dostępny"),
-            discord.SelectOption(label="Idę spać", emoji="🌙", value="Idę spać"),
-            discord.SelectOption(label="Nie przeszkadzać", emoji="🚫", value="Nie przeszkadzać"),
-            discord.SelectOption(label="AFK", emoji="😴", value="AFK"),
-            discord.SelectOption(label="Zaraz wracam", emoji="⏳", value="Zaraz wracam"),
-            discord.SelectOption(label="Poza kompem", emoji="🚫", value="Poza kompem"),
-            discord.SelectOption(label="Poza domem", emoji="🚗", value="Poza domem"),
-            discord.SelectOption(label="W pracy", emoji="💼", value="W pracy"),
-            discord.SelectOption(label="W szkole", emoji="🏫", value="W szkole"),
+            discord.SelectOption(label="Dostępny", emoji="🟢", value="status_dostepny"),
+            discord.SelectOption(label="Idę spać", emoji="🛌", value="status_spie"),
+            discord.SelectOption(label="Nie przeszkadzać", emoji="🚫", value="status_dnd"),
+            discord.SelectOption(label="AFK", emoji="😴", value="status_afk"),
+            discord.SelectOption(label="Zaraz wracam", emoji="⏳", value="status_brb"),
+            discord.SelectOption(label="Poza kompem", emoji="📵", value="status_offpc"),
+            discord.SelectOption(label="Poza domem", emoji="🚗", value="status_offhome"),
+            discord.SelectOption(label="W pracy", emoji="💼", value="status_work"),
+            discord.SelectOption(label="W szkole", emoji="🏫", value="status_school"),
         ]
 
         super().__init__(
@@ -668,13 +668,13 @@ class StatusAvailabilitySelect(discord.ui.Select):
 class StatusMoodSelect(discord.ui.Select):
     def __init__(self):
         options = [
-            discord.SelectOption(label="Na luzie", emoji="😎", value="Na luzie"),
-            discord.SelectOption(label="W dobrym humorze", emoji="😊", value="W dobrym humorze"),
-            discord.SelectOption(label="Wkurzony", emoji="🤬", value="Wkurzony"),
-            discord.SelectOption(label="Zmęczony", emoji="🥶", value="Zmęczony"),
-            discord.SelectOption(label="Full energia", emoji="⚡", value="Full energia"),
-            discord.SelectOption(label="Nocny tryb", emoji="🌙", value="Nocny tryb"),
-            discord.SelectOption(label="Chory", emoji="🤒", value="Chory"),
+            discord.SelectOption(label="Na luzie", emoji="😎", value="mood_chill"),
+            discord.SelectOption(label="W dobrym humorze", emoji="😄", value="mood_happy"),
+            discord.SelectOption(label="Wkurzony", emoji="😤", value="mood_angry"),
+            discord.SelectOption(label="Zmęczony", emoji="🥶", value="mood_tired"),
+            discord.SelectOption(label="Full energia", emoji="⚡", value="mood_energy"),
+            discord.SelectOption(label="Nocny tryb", emoji="🌙", value="mood_night"),
+            discord.SelectOption(label="Chory", emoji="🤒", value="mood_sick"),
         ]
 
         super().__init__(
@@ -706,15 +706,15 @@ class StatusMoodSelect(discord.ui.Select):
 class StatusActivitySelect(discord.ui.Select):
     def __init__(self):
         options = [
-            discord.SelectOption(label="Słucham muzyki", emoji="🎧", value="Słucham muzyki"),
-            discord.SelectOption(label="Czatuję", emoji="💬", value="Czatuję"),
-            discord.SelectOption(label="Gram", emoji="🎮", value="Gram"),
-            discord.SelectOption(label="Oglądam streama", emoji="👀", value="Oglądam streama"),
-            discord.SelectOption(label="Uczę się", emoji="📚", value="Uczę się"),
-            discord.SelectOption(label="Na VC", emoji="🗣️", value="Na VC"),
-            discord.SelectOption(label="Streamuję", emoji="📹", value="Streamuję"),
-            discord.SelectOption(label="Chcę poznać nowych ludzi", emoji="🤝", value="Chcę poznać nowych ludzi"),
-            discord.SelectOption(label="Nowy tutaj", emoji="🆕", value="Nowy tutaj"),
+            discord.SelectOption(label="Słucham muzyki", emoji="🎧", value="act_music"),
+            discord.SelectOption(label="Czatuję", emoji="💬", value="act_chat"),
+            discord.SelectOption(label="Gram", emoji="🎮", value="act_game"),
+            discord.SelectOption(label="Oglądam streama", emoji="👀", value="act_watch"),
+            discord.SelectOption(label="Uczę się", emoji="📚", value="act_study"),
+            discord.SelectOption(label="Na VC", emoji="🗣️", value="act_vc"),
+            discord.SelectOption(label="Streamuję", emoji="🎥", value="act_stream"),
+            discord.SelectOption(label="Chcę poznać nowych ludzi", emoji="🤝", value="act_people"),
+            discord.SelectOption(label="Nowy tutaj", emoji="🆕", value="act_new"),
         ]
 
         super().__init__(
