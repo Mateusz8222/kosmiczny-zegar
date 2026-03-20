@@ -13,14 +13,20 @@ from discord import app_commands
 from discord.ext import commands, tasks
 
 # ================================
-# KOSMICZNY ZEGAR PUBLIC - BOT v24
+# KOSMICZNY ZEGAR PUBLIC - BOT v25
 # MULTILANGUAGE: PL / EN
 # FULL + SYSTEM STATUSÓW
+# ================================
+# WAŻNE:
+# 1. Ustaw DISCORD_TOKEN w zmiennych środowiskowych.
+# 2. Wstaw prawdziwe ID ról w STATUS_ROLES / MOOD_ROLES / ACTIVITY_ROLES.
+# 3. Bot musi mieć uprawnienie: Zarządzanie rolami.
+# 4. Rola bota musi być WYŻEJ niż role statusowe.
 # ================================
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -37,6 +43,7 @@ WEATHER_REFRESH_MINUTES = 15
 CHANNEL_EDIT_DELAY = 1.2
 STATS_REFRESH_DEBOUNCE_SECONDS = 10
 MAX_CHANNEL_NAME_LENGTH = 100
+STATUS_CITY_NAME = "Warszawa"
 
 bot_start_time = datetime.now(UTC)
 stats_update_tasks: dict[int, asyncio.Task] = {}
@@ -130,6 +137,10 @@ ROLE_EMOJIS = {
     "pracuje": "🛠️",
 }
 
+# ================================
+# MAPA KANAŁÓW
+# ================================
+
 CHANNEL_TEMPLATE_KEYS = {
     "temperature": ("weather", "ch_temperature"),
     "feels": ("weather", "ch_feels"),
@@ -158,7 +169,7 @@ LANGUAGES = {
     "pl": {
         "lang_name": "Polski",
         "creator": "Mati",
-        "bot_version": "v24",
+        "bot_version": "v25",
         "cat_weather": "🌤️ Pogoda",
         "cat_clock": "🛰️ Kosmiczny Zegar",
         "cat_stats": "📊 Statystyki",
@@ -204,39 +215,56 @@ LANGUAGES = {
         "language_set": "✅ Ustawiono język bota na: **Polski**",
         "language_invalid": "❌ Nieobsługiwany język. Dostępne: `pl`, `en`",
         "help_title": "📘 Pomoc • Kosmiczny Zegar 24",
-        "help_desc": "Lista dostępnych komend slash.\nBot tworzy kanały z czasem, pogodą, fazą księżyca i statystykami serwera.",
+        "help_desc": "Lista dostępnych komend slash. Bot tworzy kanały z czasem, pogodą, fazą księżyca, statystykami i panelem statusów.",
         "help_general": "🌍 Komendy ogólne",
         "help_admin": "🛠️ Komendy administracyjne",
         "help_delete": "🗑️ Komendy usuwania",
         "help_start": "ℹ️ Jak zacząć",
         "help_footer": "Kosmiczny Zegar 24 • Pomoc",
         "help_general_value": (
-            "`/help` — pokazuje pomoc\n"
-            "`/info` — informacje o bocie\n"
-            "`/pogoda` — aktualna pogoda\n"
-            "`/czas` — aktualny czas\n"
-            "`/ksiezyc` — aktualna faza księżyca\n"
-            "`/pokaz_statusy` — statystyki ról statusowych\n"
+            "`/help` — pokazuje pomoc
+"
+            "`/info` — informacje o bocie
+"
+            "`/pogoda` — aktualna pogoda
+"
+            "`/czas` — aktualny czas
+"
+            "`/ksiezyc` — aktualna faza księżyca
+"
+            "`/pokaz_statusy` — statystyki ról statusowych
+"
             "`/ustaw_status_swoj` — ustaw ręcznie swój status"
         ),
         "help_admin_value": (
-            "`/setup` — tworzy kategorie i kanały bota\n"
-            "`/refresh` — odświeża wszystkie kanały bota\n"
-            "`/status` — pokazuje status konfiguracji\n"
-            "`/miasto` — ustawia miasto dla pogody i zegara\n"
-            "`/language` — zmienia język bota\n"
+            "`/setup` — tworzy kategorie i kanały bota
+"
+            "`/refresh` — odświeża wszystkie kanały bota
+"
+            "`/status` — pokazuje status konfiguracji
+"
+            "`/miasto` — ustawia miasto dla pogody i zegara
+"
+            "`/language` — zmienia język bota
+"
             "`/panel_statusow` — wysyła panel statusów"
         ),
         "help_delete_value": (
-            "`/usun_pogoda` — usuwa kategorię Pogoda\n"
-            "`/usun_kosmiczny_zegar` — usuwa kategorię Kosmiczny Zegar\n"
-            "`/usun_statystyki` — usuwa kategorię Statystyki\n"
+            "`/usun_pogoda` — usuwa kategorię Pogoda
+"
+            "`/usun_kosmiczny_zegar` — usuwa kategorię Kosmiczny Zegar
+"
+            "`/usun_statystyki` — usuwa kategorię Statystyki
+"
             "`/usun_wszystko` — usuwa wszystkie kategorie bota"
         ),
         "help_start_value": (
-            "1. Użyj `/setup`\n"
-            "2. Ustaw `/miasto` dla swojego serwera\n"
-            "3. Użyj `/refresh`, aby ręcznie odświeżyć dane\n"
+            "1. Użyj `/setup`
+"
+            "2. Ustaw `/miasto` dla swojego serwera
+"
+            "3. Użyj `/refresh`, aby ręcznie odświeżyć dane
+"
             "4. Wyślij `/panel_statusow`, jeśli chcesz panel ról"
         ),
         "status_title": "📊 Status Kosmicznego Zegara",
@@ -259,23 +287,34 @@ LANGUAGES = {
         "info_stability": "🛡️ Stabilność",
         "info_footer": "Kosmiczny Zegar 24 • Bot Discord działający 24/7",
         "info_features_value": (
-            "• 🛰️ Kosmiczny zegar w kanałach\n"
-            "• 🌤️ Pogoda dla wybranego miasta\n"
-            "• 🌙 Faza księżyca i długość dnia\n"
-            "• 📊 Statystyki członków serwera\n"
-            "• 🧩 Panel statusów, nastroju i aktywności\n"
+            "• 🛰️ Kosmiczny zegar w kanałach
+"
+            "• 🌤️ Pogoda dla wybranego miasta
+"
+            "• 🌙 Faza księżyca i długość dnia
+"
+            "• 📊 Statystyki członków serwera
+"
+            "• 🧩 Panel statusów, nastroju i aktywności
+"
             "• ⚡ Automatyczne aktualizacje 24/7"
         ),
         "info_status_value": (
-            "**Uptime:** `{uptime}`\n"
-            "**Serwery:** `{guilds}`\n"
-            "**Użytkownicy:** `{users}`\n"
+            "**Uptime:** `{uptime}`
+"
+            "**Serwery:** `{guilds}`
+"
+            "**Użytkownicy:** `{users}`
+"
             "**Tryb pracy:** `Online 24/7`"
         ),
         "info_modules_value": (
-            "`/help` `/setup` `/refresh` `/status` `/info`\n"
-            "`/pogoda` `/czas` `/ksiezyc` `/miasto` `/language`\n"
-            "`/panel_statusow` `/pokaz_statusy` `/ustaw_status_swoj`\n"
+            "`/help` `/setup` `/refresh` `/status` `/info`
+"
+            "`/pogoda` `/czas` `/ksiezyc` `/miasto` `/language`
+"
+            "`/panel_statusow` `/pokaz_statusy` `/ustaw_status_swoj`
+"
             "`/usun_pogoda` `/usun_kosmiczny_zegar` `/usun_statystyki` `/usun_wszystko`"
         ),
         "info_stability_value": "Zoptymalizowany pod Railway i limity Discord API",
@@ -350,11 +389,28 @@ LANGUAGES = {
         "stats_bots": "🤖 Boty {count}",
         "stats_vc": "🔊 Na VC {count}",
         "stats_joined_today": "📥 Dzisiaj weszło {count}",
+        "role_panel_server_only": "Ta komenda działa tylko na serwerze.",
+        "role_bad_option": "Nieprawidłowa opcja roli.",
+        "role_not_found": "Nie znaleziono roli na serwerze. Sprawdź ID roli w kodzie.",
+        "role_no_manage": "Bot nie ma uprawnienia **Zarządzanie rolami**.",
+        "role_hierarchy": "Bot nie może nadać roli **{role}**. Przesuń rolę bota wyżej niż role statusowe.",
+        "role_forbidden": "Bot nie ma uprawnień do nadania lub usunięcia tej roli.",
+        "role_http_error": "Wystąpił błąd Discord API: `{error}`",
+        "role_set_ok": "{emoji} Ustawiono: **{label}**",
+        "role_panel_title": "🛠️ Panel statusów • Kosmiczny Zegar",
+        "role_panel_desc": "Wybierz z menu swój **status, nastrój i aktywność**.
+
+• w każdej grupie możesz mieć tylko **jedną** rolę
+• wybranie nowej opcji automatycznie usuwa starą z tej samej grupy
+• możesz też użyć komendy **/ustaw_status_swoj**",
+        "role_panel_footer": "Kosmiczny Zegar 24 • Panel ról",
+        "role_stats_title": "📊 Statystyki ról statusowych",
+        "role_stats_desc": "Poniżej widzisz, ile osób ma każdą rolę z panelu.",
     },
     "en": {
         "lang_name": "English",
         "creator": "Mati",
-        "bot_version": "v24",
+        "bot_version": "v25",
         "cat_weather": "🌤️ Weather",
         "cat_clock": "🛰️ Cosmic Clock",
         "cat_stats": "📊 Statistics",
@@ -409,7 +465,10 @@ LANGUAGES = {
         "help_general_value": "`/help` `/info` `/pogoda` `/czas` `/ksiezyc` `/pokaz_statusy` `/ustaw_status_swoj`",
         "help_admin_value": "`/setup` `/refresh` `/status` `/miasto` `/language` `/panel_statusow`",
         "help_delete_value": "`/usun_pogoda` `/usun_kosmiczny_zegar` `/usun_statystyki` `/usun_wszystko`",
-        "help_start_value": "1. Use `/setup`\n2. Set `/miasto`\n3. Use `/refresh`\n4. Send `/panel_statusow`",
+        "help_start_value": "1. Use `/setup`
+2. Set `/miasto`
+3. Use `/refresh`
+4. Send `/panel_statusow`",
         "status_title": "📊 Cosmic Clock Status",
         "status_weather_cat": "Weather category",
         "status_clock_cat": "Cosmic Clock category",
@@ -429,8 +488,16 @@ LANGUAGES = {
         "info_version": "🤖 Version",
         "info_stability": "🛡️ Stability",
         "info_footer": "Cosmic Clock 24 • Discord bot running 24/7",
-        "info_features_value": "• Weather\n• Clock\n• Moon phase\n• Server stats\n• Status panel\n• 24/7 updates",
-        "info_status_value": "**Uptime:** `{uptime}`\n**Servers:** `{guilds}`\n**Users:** `{users}`\n**Mode:** `Online 24/7`",
+        "info_features_value": "• Weather
+• Clock
+• Moon phase
+• Server stats
+• Status panel
+• 24/7 updates",
+        "info_status_value": "**Uptime:** `{uptime}`
+**Servers:** `{guilds}`
+**Users:** `{users}`
+**Mode:** `Online 24/7`",
         "info_modules_value": "`/help` `/setup` `/refresh` `/status` `/info` `/pogoda` `/czas` `/ksiezyc` `/miasto` `/language` `/panel_statusow` `/pokaz_statusy` `/ustaw_status_swoj`",
         "info_stability_value": "Optimized for Railway and Discord API limits",
         "weather_title": "🌤️ Weather - {city}, {country}",
@@ -504,6 +571,23 @@ LANGUAGES = {
         "stats_bots": "🤖 Bots {count}",
         "stats_vc": "🔊 In VC {count}",
         "stats_joined_today": "📥 Joined today {count}",
+        "role_panel_server_only": "This command works only in a server.",
+        "role_bad_option": "Invalid role option.",
+        "role_not_found": "Role not found on the server. Check role IDs in code.",
+        "role_no_manage": "Bot does not have **Manage Roles** permission.",
+        "role_hierarchy": "Bot cannot assign **{role}**. Move bot role above status roles.",
+        "role_forbidden": "Bot does not have permission to add or remove this role.",
+        "role_http_error": "Discord API error: `{error}`",
+        "role_set_ok": "{emoji} Set: **{label}**",
+        "role_panel_title": "🛠️ Status panel • Cosmic Clock",
+        "role_panel_desc": "Choose your **status, mood and activity** from the menus.
+
+• you can have only **one** role per group
+• choosing a new option removes the old one from the same group
+• you can also use **/ustaw_status_swoj**",
+        "role_panel_footer": "Cosmic Clock 24 • Role panel",
+        "role_stats_title": "📊 Status role statistics",
+        "role_stats_desc": "Below you can see how many people have each panel role.",
     },
 }
 
@@ -749,6 +833,24 @@ def parse_hhmm_to_today(now: datetime, hhmm: str | None) -> datetime | None:
     except Exception:
         return None
 
+
+def localized_alert_name(name: str, lang: str) -> str:
+    if lang == "pl":
+        mapping = {
+            "fog": "mgła",
+            "snow drift": "zawieja śnieżna",
+            "ice": "gołoledź",
+            "heavy rain": "ulewa",
+            "heavy snow": "intensywny śnieg",
+            "blizzard": "zamieć śnieżna",
+            "strong wind": "silny wiatr",
+            "storm": "burza",
+            "hail": "grad",
+            "hurricane": "orkan",
+        }
+        return mapping.get(name, name)
+    return name
+
 # ================================
 # API / POGODA
 # ================================
@@ -756,7 +858,7 @@ def parse_hhmm_to_today(now: datetime, hhmm: str | None) -> datetime | None:
 async def fetch_json(url: str):
     timeout = aiohttp.ClientTimeout(total=20)
     async with aiohttp.ClientSession(timeout=timeout) as session:
-        async with session.get(url, headers={"User-Agent": "KosmicznyZegar/24"}) as response:
+        async with session.get(url, headers={"User-Agent": "KosmicznyZegar/25"}) as response:
             text = await response.text()
             lowered = text.lower()
             if text.startswith("<!DOCTYPE") or "<html" in lowered:
@@ -773,7 +875,7 @@ async def geocode_city(city_query: str, count: int = 10):
         return []
     url = (
         "https://geocoding-api.open-meteo.com/v1/search"
-        f"?name={quote(city_query)}&count={count}&language=en&format=json"
+        f"?name={quote(city_query)}&count={count}&language=pl&format=json"
     )
     data = await fetch_json(url)
     results = data.get("results", []) or []
@@ -928,14 +1030,14 @@ def build_weather_alerts(current: dict) -> dict:
 def format_alerts_channel(alerts: list[str], level: int, lang: str) -> str:
     if not alerts or level == 0:
         return tr(lang, "alert_none")
-    formatted_alerts = [f"❗{alert}" for alert in alerts]
+    translated_alerts = [f"❗{localized_alert_name(alert, lang)}" for alert in alerts]
     if level == 1:
         base = tr(lang, "alert_l1")
     elif level == 2:
         base = tr(lang, "alert_l2")
     else:
         base = tr(lang, "alert_l3")
-    return trim_channel_name(base + " ".join(formatted_alerts))
+    return trim_channel_name(base + " ".join(translated_alerts))
 
 
 def fallback_part_of_day(hour: int, minute: int, lang: str) -> str:
@@ -1075,7 +1177,7 @@ async def get_weather_data(city_name: str, latitude: float, longitude: float, ti
         "wind": f"💨 {tr(lang, 'field_wind')} {round(float(wind))} km/h" if wind is not None else f"💨 {tr(lang, 'field_wind')} -- km/h",
         "pressure": f"⏱ {tr(lang, 'field_pressure')} {round(float(pressure))} hPa" if pressure is not None else f"⏱ {tr(lang, 'field_pressure')} -- hPa",
         "alerts": format_alerts_channel(alerts, alert_level, lang),
-        "alerts_list": alerts,
+        "alerts_list": [localized_alert_name(a, lang) for a in alerts],
         "alert_level": alert_level,
         "sunrise": f"🌅 {tr(lang, 'field_sunrise')} {sunrise_time}",
         "sunset": f"🌇 {tr(lang, 'field_sunset')} {sunset_time}",
@@ -1180,19 +1282,26 @@ def get_panel_role(guild: discord.Guild, role_id: int) -> discord.Role | None:
     return guild.get_role(role_id)
 
 
+def get_role_lang(guild_id: int | None) -> str:
+    if guild_id is None:
+        return DEFAULT_LANGUAGE
+    return get_lang_code(get_guild_config(guild_id))
+
+
 async def set_single_role_in_group(member: discord.Member, group_name: str, role_key: str) -> tuple[bool, str]:
     guild = member.guild
+    lang = get_role_lang(guild.id)
     mapping = ROLE_GROUPS[group_name]
     if role_key not in mapping:
-        return False, "Nieprawidłowa opcja roli."
+        return False, tr(lang, "role_bad_option")
     selected_role = get_panel_role(guild, mapping[role_key])
     if selected_role is None:
-        return False, "Nie znaleziono roli na serwerze. Sprawdź ID roli w kodzie."
+        return False, tr(lang, "role_not_found")
     me = guild.me
     if me is None or not me.guild_permissions.manage_roles:
-        return False, "Bot nie ma uprawnienia **Zarządzanie rolami**."
+        return False, tr(lang, "role_no_manage")
     if selected_role >= me.top_role:
-        return False, f"Bot nie może nadać roli **{selected_role.name}**. Przesuń rolę bota wyżej niż role statusowe."
+        return False, tr(lang, "role_hierarchy", role=selected_role.name)
     roles_to_remove = []
     for other_key, other_role_id in mapping.items():
         other_role = get_panel_role(guild, other_role_id)
@@ -1205,11 +1314,11 @@ async def set_single_role_in_group(member: discord.Member, group_name: str, role
             await member.add_roles(selected_role, reason=f"Ustawienie roli z grupy {group_name}")
         label = ROLE_DISPLAY_NAMES.get(role_key, selected_role.name)
         emoji = ROLE_EMOJIS.get(role_key, "✅")
-        return True, f"{emoji} Ustawiono: **{label}**"
+        return True, tr(lang, "role_set_ok", emoji=emoji, label=label)
     except discord.Forbidden:
-        return False, "Bot nie ma uprawnień do nadania lub usunięcia tej roli."
+        return False, tr(lang, "role_forbidden")
     except discord.HTTPException as e:
-        return False, f"Wystąpił błąd Discord API: `{e}`"
+        return False, tr(lang, "role_http_error", error=e)
 
 
 class GroupSelect(discord.ui.Select):
@@ -1226,7 +1335,7 @@ class GroupSelect(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         if interaction.guild is None or not isinstance(interaction.user, discord.Member):
-            await interaction.followup.send("Ta opcja działa tylko na serwerze.", ephemeral=True)
+            await interaction.followup.send(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
             return
         selected_key = self.values[0]
         _ok, msg = await set_single_role_in_group(interaction.user, self.group_name, selected_key)
@@ -1234,15 +1343,16 @@ class GroupSelect(discord.ui.Select):
 
 
 class StatusPanelView(discord.ui.View):
-    def __init__(self, bot_instance: commands.Bot):
+    def __init__(self):
         super().__init__(timeout=None)
-        self.bot = bot_instance
         self.add_item(GroupSelect("status", "Wybierz swój status..."))
         self.add_item(GroupSelect("mood", "Wybierz swój nastrój..."))
         self.add_item(GroupSelect("activity", "Wybierz swoją aktywność..."))
 
 
 def build_panel_embed(guild: discord.Guild) -> discord.Embed:
+    lang = get_role_lang(guild.id)
+
     def role_count(role_id: int) -> int:
         role = guild.get_role(role_id)
         return len(role.members) if role else 0
@@ -1253,25 +1363,17 @@ def build_panel_embed(guild: discord.Guild) -> discord.Embed:
     total_status = sum(role_count(rid) for rid in STATUS_ROLES.values())
     total_mood = sum(role_count(rid) for rid in MOOD_ROLES.values())
     total_activity = sum(role_count(rid) for rid in ACTIVITY_ROLES.values())
-    embed = discord.Embed(
-        title="🛠️ Panel statusów • Kosmiczny Zegar",
-        description=(
-            "Wybierz z menu swój **status, nastrój i aktywność**.\n\n"
-            "• w każdej grupie możesz mieć tylko **jedną** rolę\n"
-            "• wybranie nowej opcji automatycznie usuwa starą z tej samej grupy\n"
-            "• możesz też użyć komendy **/ustaw_status_swoj**"
-        ),
-        color=discord.Color.blurple(),
-    )
+    embed = discord.Embed(title=tr(lang, "role_panel_title"), description=tr(lang, "role_panel_desc"), color=discord.Color.blurple())
     embed.add_field(name=f"🟢 Status • aktywnych ról: {total_status}", value=status_preview, inline=False)
     embed.add_field(name=f"😎 Nastrój • aktywnych ról: {total_mood}", value=mood_preview, inline=False)
     embed.add_field(name=f"🎮 Aktywność • aktywnych ról: {total_activity}", value=activity_preview, inline=False)
-    embed.set_footer(text="Kosmiczny Zegar 24 • Panel ról")
+    embed.set_footer(text=tr(lang, "role_panel_footer"))
     return embed
 
 
 def build_role_stats_embed(guild: discord.Guild) -> discord.Embed:
-    embed = discord.Embed(title="📊 Statystyki ról statusowych", description="Poniżej widzisz, ile osób ma każdą rolę z panelu.", color=discord.Color.green())
+    lang = get_role_lang(guild.id)
+    embed = discord.Embed(title=tr(lang, "role_stats_title"), description=tr(lang, "role_stats_desc"), color=discord.Color.green())
     for group_name, mapping in ROLE_GROUPS.items():
         lines = []
         total = 0
@@ -1281,11 +1383,12 @@ def build_role_stats_embed(guild: discord.Guild) -> discord.Embed:
             total += count
             emoji = ROLE_EMOJIS.get(role_key, "•")
             label = ROLE_DISPLAY_NAMES.get(role_key, role_key)
-            line = f"{emoji} **{label}** — `{count}` osób"
+            line = f"{emoji} **{label}** — `{count}`"
             if role is None:
                 line += " ⚠️"
             lines.append(line)
-        embed.add_field(name=f"{GROUP_LABELS[group_name]} • razem przypisań: {total}", value="\n".join(lines) if lines else "Brak danych", inline=False)
+        embed.add_field(name=f"{GROUP_LABELS[group_name]} • {total}", value="
+".join(lines) if lines else "Brak danych", inline=False)
     return embed
 
 # ================================
@@ -1293,26 +1396,39 @@ def build_role_stats_embed(guild: discord.Guild) -> discord.Embed:
 # ================================
 
 async def city_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    static_choices = [
+        app_commands.Choice(name="Warszawa, Polska", value="Warszawa"),
+        app_commands.Choice(name="Rzeszów, Polska", value="Rzeszów"),
+        app_commands.Choice(name="Kraków, Polska", value="Kraków"),
+        app_commands.Choice(name="Wrocław, Polska", value="Wrocław"),
+        app_commands.Choice(name="Poznań, Polska", value="Poznań"),
+        app_commands.Choice(name="Gdańsk, Polska", value="Gdańsk"),
+        app_commands.Choice(name="London, United Kingdom", value="London"),
+        app_commands.Choice(name="New York, USA", value="New York"),
+    ]
     if not current.strip():
-        return [
-            app_commands.Choice(name="Warszawa, Polska", value="Warszawa"),
-            app_commands.Choice(name="Rzeszów, Polska", value="Rzeszów"),
-            app_commands.Choice(name="London, United Kingdom", value="London"),
-            app_commands.Choice(name="New York, USA", value="New York"),
-        ]
+        return static_choices[:25]
+    lowered = current.lower()
+    filtered = [c for c in static_choices if lowered in c.name.lower() or lowered in c.value.lower()]
     try:
         results = await geocode_city(current, count=10)
-        choices = []
+        dynamic = []
         for item in results[:25]:
             label = item["name"] or "Unknown city"
             if item.get("admin1"):
                 label += f", {item['admin1']}"
             if item.get("country"):
                 label += f", {item['country']}"
-            choices.append(app_commands.Choice(name=label[:100], value=item["name"] or current))
-        return choices
+            dynamic.append(app_commands.Choice(name=label[:100], value=item["name"] or current))
+        combined = filtered[:]
+        existing_values = {c.value for c in combined}
+        for choice in dynamic:
+            if choice.value not in existing_values:
+                combined.append(choice)
+                existing_values.add(choice.value)
+        return combined[:25]
     except Exception:
-        return []
+        return filtered[:25] or static_choices[:25]
 
 
 @bot.tree.command(name="help", description="Pokazuje pomoc bota")
@@ -1484,7 +1600,7 @@ async def moon_command(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="miasto", description="Ustawia miasto dla pogody i zegara na tym serwerze")
-@app_commands.describe(nazwa="Miasto, np. Rzeszów, London, Tokyo")
+@app_commands.describe(nazwa="Miasto, np. Warszawa, Rzeszów, Kraków, London")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.autocomplete(nazwa=city_autocomplete)
 async def city_command(interaction: discord.Interaction, nazwa: str):
@@ -1503,7 +1619,15 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
         if not results:
             await interaction.followup.send(tr(lang, "city_not_found", city=nazwa), ephemeral=True)
             return
-        city = results[0]
+        preferred = None
+        lowered = nazwa.strip().lower()
+        for item in results:
+            item_name = (item.get("name") or "").lower()
+            item_country = (item.get("country") or "").lower()
+            if item_name == lowered and item_country in {"polska", "poland"}:
+                preferred = item
+                break
+        city = preferred or results[0]
         cfg["city_name"] = city["name"] or nazwa
         cfg["latitude"] = city["latitude"]
         cfg["longitude"] = city["longitude"]
@@ -1548,16 +1672,16 @@ async def language_command(interaction: discord.Interaction, code: str):
 @app_commands.checks.has_permissions(manage_guild=True)
 async def panel_statusow(interaction: discord.Interaction):
     if interaction.guild is None:
-        await interaction.response.send_message("Ta komenda działa tylko na serwerze.", ephemeral=True)
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
         return
     embed = build_panel_embed(interaction.guild)
-    await interaction.response.send_message(embed=embed, view=StatusPanelView(bot))
+    await interaction.response.send_message(embed=embed, view=StatusPanelView())
 
 
 @bot.tree.command(name="pokaz_statusy", description="Pokazuje ile osób ma każdą rolę z panelu")
 async def pokaz_statusy(interaction: discord.Interaction):
     if interaction.guild is None:
-        await interaction.response.send_message("Ta komenda działa tylko na serwerze.", ephemeral=True)
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
         return
     embed = build_role_stats_embed(interaction.guild)
     await interaction.response.send_message(embed=embed)
@@ -1574,7 +1698,7 @@ async def pokaz_statusy(interaction: discord.Interaction):
 )
 async def ustaw_status_swoj(interaction: discord.Interaction, grupa: app_commands.Choice[str], opcja: str):
     if interaction.guild is None or not isinstance(interaction.user, discord.Member):
-        await interaction.response.send_message("Ta komenda działa tylko na serwerze.", ephemeral=True)
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
         return
     _ok, msg = await set_single_role_in_group(interaction.user, grupa.value, opcja)
     await interaction.response.send_message(msg, ephemeral=True)
@@ -1765,12 +1889,14 @@ async def auto_refresh():
             logging.warning("Błąd auto_refresh dla serwera %s: %s", guild.id, e)
 
 
-@tasks.loop(minutes=1)
+@tasks.loop(seconds=1)
 async def update_status_clock():
     await bot.wait_until_ready()
     now = datetime.now(get_timezone_object(DEFAULT_TIMEZONE))
+    # Renderowanie / wyrównanie statusu ustala Discord, więc można zmienić tylko tekst.
+    status_text = f"🕒 {now.strftime('%H:%M:%S')} • {STATUS_CITY_NAME}"
     try:
-        await bot.change_presence(activity=discord.CustomActivity(name=f"🕒 {now.strftime('%H:%M')}"))
+        await bot.change_presence(activity=discord.CustomActivity(name=status_text))
     except Exception as e:
         logging.warning("Nie udało się zaktualizować statusu bota: %s", e)
 
@@ -1782,20 +1908,22 @@ async def update_status_clock():
 async def on_ready():
     logging.info("Zalogowano jako %s (ID: %s)", bot.user, bot.user.id if bot.user else "?")
     try:
+        bot.add_view(StatusPanelView())
+    except Exception as e:
+        logging.warning("Nie udało się zarejestrować StatusPanelView: %s", e)
+
+    try:
         synced = await bot.tree.sync()
         logging.info("Zsynchronizowano %s komend", len(synced))
         for cmd in synced:
             logging.info("Komenda aktywna: /%s", cmd.name)
     except Exception as e:
         logging.error("Błąd synchronizacji komend: %s", e)
+
     if not auto_refresh.is_running():
         auto_refresh.start()
     if not update_status_clock.is_running():
         update_status_clock.start()
-    try:
-        bot.add_view(StatusPanelView(bot))
-    except Exception as e:
-        logging.warning("Nie udało się zarejestrować StatusPanelView: %s", e)
 
 
 init_db()
