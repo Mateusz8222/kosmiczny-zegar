@@ -222,49 +222,32 @@ LANGUAGES = {
         "help_start": "ℹ️ Jak zacząć",
         "help_footer": "Kosmiczny Zegar 24 • Pomoc",
         "help_general_value": (
-            "`/help` — pokazuje pomoc
-"
-            "`/info` — informacje o bocie
-"
-            "`/pogoda` — aktualna pogoda
-"
-            "`/czas` — aktualny czas
-"
-            "`/ksiezyc` — aktualna faza księżyca
-"
-            "`/pokaz_statusy` — statystyki ról statusowych
-"
+            "`/help` — pokazuje pomoc\n"
+            "`/info` — informacje o bocie\n"
+            "`/pogoda` — aktualna pogoda\n"
+            "`/czas` — aktualny czas\n"
+            "`/ksiezyc` — aktualna faza księżyca\n"
+            "`/pokaz_statusy` — statystyki ról statusowych\n"
             "`/ustaw_status_swoj` — ustaw ręcznie swój status"
         ),
         "help_admin_value": (
-            "`/setup` — tworzy kategorie i kanały bota
-"
-            "`/refresh` — odświeża wszystkie kanały bota
-"
-            "`/status` — pokazuje status konfiguracji
-"
-            "`/miasto` — ustawia miasto dla pogody i zegara
-"
-            "`/language` — zmienia język bota
-"
+            "`/setup` — tworzy kategorie i kanały bota\n"
+            "`/refresh` — odświeża wszystkie kanały bota\n"
+            "`/status` — pokazuje status konfiguracji\n"
+            "`/miasto` — ustawia miasto dla pogody i zegara\n"
+            "`/language` — zmienia język bota\n"
             "`/panel_statusow` — wysyła panel statusów"
         ),
         "help_delete_value": (
-            "`/usun_pogoda` — usuwa kategorię Pogoda
-"
-            "`/usun_kosmiczny_zegar` — usuwa kategorię Kosmiczny Zegar
-"
-            "`/usun_statystyki` — usuwa kategorię Statystyki
-"
+            "`/usun_pogoda` — usuwa kategorię Pogoda\n"
+            "`/usun_kosmiczny_zegar` — usuwa kategorię Kosmiczny Zegar\n"
+            "`/usun_statystyki` — usuwa kategorię Statystyki\n"
             "`/usun_wszystko` — usuwa wszystkie kategorie bota"
         ),
         "help_start_value": (
-            "1. Użyj `/setup`
-"
-            "2. Ustaw `/miasto` dla swojego serwera
-"
-            "3. Użyj `/refresh`, aby ręcznie odświeżyć dane
-"
+            "1. Użyj `/setup`\n"
+            "2. Ustaw `/miasto` dla swojego serwera\n"
+            "3. Użyj `/refresh`, aby ręcznie odświeżyć dane\n"
             "4. Wyślij `/panel_statusow`, jeśli chcesz panel ról"
         ),
         "status_title": "📊 Status Kosmicznego Zegara",
@@ -287,34 +270,23 @@ LANGUAGES = {
         "info_stability": "🛡️ Stabilność",
         "info_footer": "Kosmiczny Zegar 24 • Bot Discord działający 24/7",
         "info_features_value": (
-            "• 🛰️ Kosmiczny zegar w kanałach
-"
-            "• 🌤️ Pogoda dla wybranego miasta
-"
-            "• 🌙 Faza księżyca i długość dnia
-"
-            "• 📊 Statystyki członków serwera
-"
-            "• 🧩 Panel statusów, nastroju i aktywności
-"
+            "• 🛰️ Kosmiczny zegar w kanałach\n"
+            "• 🌤️ Pogoda dla wybranego miasta\n"
+            "• 🌙 Faza księżyca i długość dnia\n"
+            "• 📊 Statystyki członków serwera\n"
+            "• 🧩 Panel statusów, nastroju i aktywności\n"
             "• ⚡ Automatyczne aktualizacje 24/7"
         ),
         "info_status_value": (
-            "**Uptime:** `{uptime}`
-"
-            "**Serwery:** `{guilds}`
-"
-            "**Użytkownicy:** `{users}`
-"
+            "**Uptime:** `{uptime}`\n"
+            "**Serwery:** `{guilds}`\n"
+            "**Użytkownicy:** `{users}`\n"
             "**Tryb pracy:** `Online 24/7`"
         ),
         "info_modules_value": (
-            "`/help` `/setup` `/refresh` `/status` `/info`
-"
-            "`/pogoda` `/czas` `/ksiezyc` `/miasto` `/language`
-"
-            "`/panel_statusow` `/pokaz_statusy` `/ustaw_status_swoj`
-"
+            "`/help` `/setup` `/refresh` `/status` `/info`\n"
+            "`/pogoda` `/czas` `/ksiezyc` `/miasto` `/language`\n"
+            "`/panel_statusow` `/pokaz_statusy` `/ustaw_status_swoj`\n"
             "`/usun_pogoda` `/usun_kosmiczny_zegar` `/usun_statystyki` `/usun_wszystko`"
         ),
         "info_stability_value": "Zoptymalizowany pod Railway i limity Discord API",
@@ -398,11 +370,12 @@ LANGUAGES = {
         "role_http_error": "Wystąpił błąd Discord API: `{error}`",
         "role_set_ok": "{emoji} Ustawiono: **{label}**",
         "role_panel_title": "🛠️ Panel statusów • Kosmiczny Zegar",
-        "role_panel_desc": "Wybierz z menu swój **status, nastrój i aktywność**.
-
-• w każdej grupie możesz mieć tylko **jedną** rolę
-• wybranie nowej opcji automatycznie usuwa starą z tej samej grupy
-• możesz też użyć komendy **/ustaw_status_swoj**",
+        "role_panel_desc": (
+            "Wybierz z menu swój **status, nastrój i aktywność**.\n\n"
+            "• w każdej grupie możesz mieć tylko **jedną** rolę\n"
+            "• wybranie nowej opcji automatycznie usuwa starą z tej samej grupy\n"
+            "• możesz też użyć komendy **/ustaw_status_swoj**"
+        ),
         "role_panel_footer": "Kosmiczny Zegar 24 • Panel ról",
         "role_stats_title": "📊 Statystyki ról statusowych",
         "role_stats_desc": "Poniżej widzisz, ile osób ma każdą rolę z panelu.",
@@ -462,13 +435,35 @@ LANGUAGES = {
         "help_delete": "🗑️ Delete commands",
         "help_start": "ℹ️ Getting started",
         "help_footer": "Cosmic Clock 24 • Help",
-        "help_general_value": "`/help` `/info` `/pogoda` `/czas` `/ksiezyc` `/pokaz_statusy` `/ustaw_status_swoj`",
-        "help_admin_value": "`/setup` `/refresh` `/status` `/miasto` `/language` `/panel_statusow`",
-        "help_delete_value": "`/usun_pogoda` `/usun_kosmiczny_zegar` `/usun_statystyki` `/usun_wszystko`",
-        "help_start_value": "1. Use `/setup`
-2. Set `/miasto`
-3. Use `/refresh`
-4. Send `/panel_statusow`",
+        "help_general_value": (
+            "`/help` — shows help\n"
+            "`/info` — bot information\n"
+            "`/pogoda` — current weather\n"
+            "`/czas` — current time\n"
+            "`/ksiezyc` — current moon phase\n"
+            "`/pokaz_statusy` — role statistics\n"
+            "`/ustaw_status_swoj` — set your status manually"
+        ),
+        "help_admin_value": (
+            "`/setup` — create bot categories and channels\n"
+            "`/refresh` — refresh all bot channels\n"
+            "`/status` — show bot configuration status\n"
+            "`/miasto` — set city for weather and clock\n"
+            "`/language` — change bot language\n"
+            "`/panel_statusow` — send status panel"
+        ),
+        "help_delete_value": (
+            "`/usun_pogoda` — delete Weather category\n"
+            "`/usun_kosmiczny_zegar` — delete Cosmic Clock category\n"
+            "`/usun_statystyki` — delete Statistics category\n"
+            "`/usun_wszystko` — delete all bot categories"
+        ),
+        "help_start_value": (
+            "1. Use `/setup`\n"
+            "2. Set `/miasto`\n"
+            "3. Use `/refresh`\n"
+            "4. Send `/panel_statusow`"
+        ),
         "status_title": "📊 Cosmic Clock Status",
         "status_weather_cat": "Weather category",
         "status_clock_cat": "Cosmic Clock category",
@@ -488,17 +483,25 @@ LANGUAGES = {
         "info_version": "🤖 Version",
         "info_stability": "🛡️ Stability",
         "info_footer": "Cosmic Clock 24 • Discord bot running 24/7",
-        "info_features_value": "• Weather
-• Clock
-• Moon phase
-• Server stats
-• Status panel
-• 24/7 updates",
-        "info_status_value": "**Uptime:** `{uptime}`
-**Servers:** `{guilds}`
-**Users:** `{users}`
-**Mode:** `Online 24/7`",
-        "info_modules_value": "`/help` `/setup` `/refresh` `/status` `/info` `/pogoda` `/czas` `/ksiezyc` `/miasto` `/language` `/panel_statusow` `/pokaz_statusy` `/ustaw_status_swoj`",
+        "info_features_value": (
+            "• Weather\n"
+            "• Clock\n"
+            "• Moon phase\n"
+            "• Server stats\n"
+            "• Status panel\n"
+            "• 24/7 updates"
+        ),
+        "info_status_value": (
+            "**Uptime:** `{uptime}`\n"
+            "**Servers:** `{guilds}`\n"
+            "**Users:** `{users}`\n"
+            "**Mode:** `Online 24/7`"
+        ),
+        "info_modules_value": (
+            "`/help` `/setup` `/refresh` `/status` `/info`\n"
+            "`/pogoda` `/czas` `/ksiezyc` `/miasto` `/language`\n"
+            "`/panel_statusow` `/pokaz_statusy` `/ustaw_status_swoj`"
+        ),
         "info_stability_value": "Optimized for Railway and Discord API limits",
         "weather_title": "🌤️ Weather - {city}, {country}",
         "field_temperature": "Temperature",
@@ -580,11 +583,12 @@ LANGUAGES = {
         "role_http_error": "Discord API error: `{error}`",
         "role_set_ok": "{emoji} Set: **{label}**",
         "role_panel_title": "🛠️ Status panel • Cosmic Clock",
-        "role_panel_desc": "Choose your **status, mood and activity** from the menus.
-
-• you can have only **one** role per group
-• choosing a new option removes the old one from the same group
-• you can also use **/ustaw_status_swoj**",
+        "role_panel_desc": (
+            "Choose your **status, mood and activity** from the menus.\n\n"
+            "• you can have only **one** role per group\n"
+            "• choosing a new option removes the old one from the same group\n"
+            "• you can also use **/ustaw_status_swoj**"
+        ),
         "role_panel_footer": "Cosmic Clock 24 • Role panel",
         "role_stats_title": "📊 Status role statistics",
         "role_stats_desc": "Below you can see how many people have each panel role.",
@@ -594,6 +598,7 @@ LANGUAGES = {
 # ================================
 # BAZA DANYCH
 # ================================
+
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
@@ -694,6 +699,7 @@ def save_guild_config(guild_id: int, cfg: dict):
     conn.commit()
     conn.close()
 
+
 # ================================
 # POMOCNICZE
 # ================================
@@ -766,7 +772,9 @@ def get_channel_from_config(guild: discord.Guild, cfg: dict, key: str):
     return ch if isinstance(ch, discord.VoiceChannel) else None
 
 
-def find_voice_channel_in_category_by_name(category: discord.CategoryChannel | None, name: str) -> discord.VoiceChannel | None:
+def find_voice_channel_in_category_by_name(
+    category: discord.CategoryChannel | None, name: str
+) -> discord.VoiceChannel | None:
     if category is None:
         return None
     for channel in category.voice_channels:
@@ -817,7 +825,9 @@ async def create_or_get_category(guild: discord.Guild, name: str) -> discord.Cat
     return await guild.create_category(name)
 
 
-async def create_or_get_voice_channel(category: discord.CategoryChannel, name: str) -> discord.VoiceChannel:
+async def create_or_get_voice_channel(
+    category: discord.CategoryChannel, name: str
+) -> discord.VoiceChannel:
     existing = find_voice_channel_in_category_by_name(category, name)
     if existing:
         return existing
@@ -850,6 +860,7 @@ def localized_alert_name(name: str, lang: str) -> str:
         }
         return mapping.get(name, name)
     return name
+
 
 # ================================
 # API / POGODA
@@ -990,6 +1001,7 @@ def build_weather_alerts(current: dict) -> dict:
     snowfall = float(current.get("snowfall", 0) or 0)
     gusts = float(current.get("wind_gusts_10m", 0) or 0)
     visibility = float(current.get("visibility", 999999) or 999999)
+
     if weather_code in {45, 48} or visibility <= 1000:
         alerts.append("fog")
         level = max(level, 1)
@@ -1020,6 +1032,7 @@ def build_weather_alerts(current: dict) -> dict:
     if gusts >= 118:
         alerts.append("hurricane")
         level = max(level, 3)
+
     unique_alerts: list[str] = []
     for alert in alerts:
         if alert not in unique_alerts:
@@ -1055,17 +1068,21 @@ def fallback_part_of_day(hour: int, minute: int, lang: str) -> str:
     return tr(lang, "part_night")
 
 
-def format_part_of_day(now: datetime, lang: str, sunrise_str: str | None = None, sunset_str: str | None = None) -> str:
+def format_part_of_day(
+    now: datetime, lang: str, sunrise_str: str | None = None, sunset_str: str | None = None
+) -> str:
     sunrise = parse_hhmm_to_today(now, sunrise_str) if sunrise_str else None
     sunset = parse_hhmm_to_today(now, sunset_str) if sunset_str else None
     if sunrise is None or sunset is None or sunrise >= sunset:
         return fallback_part_of_day(now.hour, now.minute, lang)
+
     dawn_start = sunrise - timedelta(minutes=45)
     dawn_end = sunrise + timedelta(minutes=30)
     noon_start = now.replace(hour=11, minute=0, second=0, microsecond=0)
     noon_end = now.replace(hour=13, minute=0, second=0, microsecond=0)
     dusk_start = sunset - timedelta(minutes=40)
     dusk_end = sunset + timedelta(minutes=35)
+
     if now < dawn_start:
         return tr(lang, "part_night")
     if dawn_start <= now < dawn_end:
@@ -1112,7 +1129,13 @@ def moon_phase_name(now: datetime, lang: str) -> str:
     return phases.get(phase_index, tr(lang, "moon_unknown"))
 
 
-async def get_weather_data(city_name: str, latitude: float, longitude: float, timezone_name: str = DEFAULT_TIMEZONE, lang: str = DEFAULT_LANGUAGE):
+async def get_weather_data(
+    city_name: str,
+    latitude: float,
+    longitude: float,
+    timezone_name: str = DEFAULT_TIMEZONE,
+    lang: str = DEFAULT_LANGUAGE,
+):
     encoded_timezone = quote(timezone_name)
     weather_url = (
         "https://api.open-meteo.com/v1/forecast"
@@ -1133,7 +1156,10 @@ async def get_weather_data(city_name: str, latitude: float, longitude: float, ti
         "&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen"
         f"&timezone={encoded_timezone}"
     )
-    weather_data, air_data, pollen_data = await asyncio.gather(fetch_json(weather_url), fetch_json(air_url), fetch_json(pollen_url))
+
+    weather_data, air_data, pollen_data = await asyncio.gather(
+        fetch_json(weather_url), fetch_json(air_url), fetch_json(pollen_url)
+    )
     current = weather_data.get("current", {}) or {}
     daily = weather_data.get("daily", {}) or {}
     air_current = air_data.get("current", {}) or {}
@@ -1167,15 +1193,26 @@ async def get_weather_data(city_name: str, latitude: float, longitude: float, ti
     sunset_raw = (daily.get("sunset") or [None])[0]
     sunrise_time = sunrise_raw[11:16] if sunrise_raw else "--:--"
     sunset_time = sunset_raw[11:16] if sunset_raw else "--:--"
+
     return {
-        "temperature": f"🌡 {city_name.upper()} {round(float(temp))}°C" if temp is not None else f"🌡 {city_name.upper()} --°C",
-        "feels": f"🥵 {tr(lang, 'field_feels')} {round(float(feels))}°C" if feels is not None else f"🥵 {tr(lang, 'field_feels')} --°C",
-        "clouds": f"☁ {tr(lang, 'field_clouds')} {round(float(clouds))}%" if clouds is not None else f"☁ {tr(lang, 'field_clouds')} --%",
+        "temperature": f"🌡 {city_name.upper()} {round(float(temp))}°C"
+        if temp is not None
+        else f"🌡 {city_name.upper()} --°C",
+        "feels": f"🥵 {tr(lang, 'field_feels')} {round(float(feels))}°C"
+        if feels is not None
+        else f"🥵 {tr(lang, 'field_feels')} --°C",
+        "clouds": f"☁ {tr(lang, 'field_clouds')} {round(float(clouds))}%"
+        if clouds is not None
+        else f"☁ {tr(lang, 'field_clouds')} --%",
         "air": air_quality_text(air_current.get("european_aqi"), lang),
         "pollen": build_pollen_channel_text(alder, birch, grass, mugwort, ragweed, lang),
         "rain": format_precipitation_channel(current, lang),
-        "wind": f"💨 {tr(lang, 'field_wind')} {round(float(wind))} km/h" if wind is not None else f"💨 {tr(lang, 'field_wind')} -- km/h",
-        "pressure": f"⏱ {tr(lang, 'field_pressure')} {round(float(pressure))} hPa" if pressure is not None else f"⏱ {tr(lang, 'field_pressure')} -- hPa",
+        "wind": f"💨 {tr(lang, 'field_wind')} {round(float(wind))} km/h"
+        if wind is not None
+        else f"💨 {tr(lang, 'field_wind')} -- km/h",
+        "pressure": f"⏱ {tr(lang, 'field_pressure')} {round(float(pressure))} hPa"
+        if pressure is not None
+        else f"⏱ {tr(lang, 'field_pressure')} -- hPa",
         "alerts": format_alerts_channel(alerts, alert_level, lang),
         "alerts_list": [localized_alert_name(a, lang) for a in alerts],
         "alert_level": alert_level,
@@ -1186,6 +1223,7 @@ async def get_weather_data(city_name: str, latitude: float, longitude: float, ti
         "day_length": day_length_text(sunrise_time, sunset_time, lang),
     }
 
+
 # ================================
 # PANEL KANAŁÓW
 # ================================
@@ -1193,32 +1231,57 @@ async def get_weather_data(city_name: str, latitude: float, longitude: float, ti
 async def setup_categories_and_channels(guild: discord.Guild):
     cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
     lang = get_lang_code(cfg)
-    weather_category = guild.get_channel(cfg.get("weather_category_id")) if cfg.get("weather_category_id") else None
-    clock_category = guild.get_channel(cfg.get("clock_category_id")) if cfg.get("clock_category_id") else None
-    stats_category = guild.get_channel(cfg.get("stats_category_id")) if cfg.get("stats_category_id") else None
+
+    weather_category = (
+        guild.get_channel(cfg.get("weather_category_id"))
+        if cfg.get("weather_category_id")
+        else None
+    )
+    clock_category = (
+        guild.get_channel(cfg.get("clock_category_id"))
+        if cfg.get("clock_category_id")
+        else None
+    )
+    stats_category = (
+        guild.get_channel(cfg.get("stats_category_id"))
+        if cfg.get("stats_category_id")
+        else None
+    )
+
     if not isinstance(weather_category, discord.CategoryChannel):
         weather_category = await create_or_get_category(guild, get_category_name(lang, "weather"))
         cfg["weather_category_id"] = weather_category.id
+
     if not isinstance(clock_category, discord.CategoryChannel):
         clock_category = await create_or_get_category(guild, get_category_name(lang, "clock"))
         cfg["clock_category_id"] = clock_category.id
+
     if not isinstance(stats_category, discord.CategoryChannel):
         stats_category = await create_or_get_category(guild, get_category_name(lang, "stats"))
         cfg["stats_category_id"] = stats_category.id
-    category_map = {"weather": weather_category, "clock": clock_category, "stats": stats_category}
+
+    category_map = {
+        "weather": weather_category,
+        "clock": clock_category,
+        "stats": stats_category,
+    }
+
     channels = dict(cfg.get("channels", {}))
     for key, (group_name, _) in CHANNEL_TEMPLATE_KEYS.items():
         target_category = category_map[group_name]
         fallback_name = get_channel_fallback_name(lang, key)
         current_channel = None
         channel_id = channels.get(key)
+
         if channel_id:
             current_channel = guild.get_channel(channel_id)
         if current_channel is None:
             current_channel = find_voice_channel_in_category_by_name(target_category, fallback_name)
         if current_channel is None:
             current_channel = await create_or_get_voice_channel(target_category, fallback_name)
+
         channels[key] = current_channel.id
+
     cfg["channels"] = channels
     save_guild_config(guild.id, cfg)
     return cfg
@@ -1226,7 +1289,10 @@ async def setup_categories_and_channels(guild: discord.Guild):
 
 async def update_weather_channels(guild: discord.Guild, cfg: dict, weather: dict):
     for key in ["temperature", "feels", "clouds", "air", "pollen", "rain", "wind", "pressure", "alerts"]:
-        await safe_edit_channel_name(get_channel_from_config(guild, cfg, key), weather.get(key, get_channel_fallback_name(get_lang_code(cfg), key)))
+        await safe_edit_channel_name(
+            get_channel_from_config(guild, cfg, key),
+            weather.get(key, get_channel_fallback_name(get_lang_code(cfg), key)),
+        )
 
 
 async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict):
@@ -1234,12 +1300,31 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict):
     timezone_obj = get_timezone_object(cfg.get("timezone", DEFAULT_TIMEZONE))
     now = datetime.now(timezone_obj)
     weekdays = LANGUAGES[lang]["weekday_short"]
-    await safe_edit_channel_name(get_channel_from_config(guild, cfg, "date"), f"{tr(lang, 'ch_date')} {weekdays[now.weekday()]} {now.strftime('%d.%m.%Y')}")
-    await safe_edit_channel_name(get_channel_from_config(guild, cfg, "part_of_day"), format_part_of_day(now, lang, weather.get("sunrise_time"), weather.get("sunset_time")))
-    await safe_edit_channel_name(get_channel_from_config(guild, cfg, "sunrise"), weather.get("sunrise", f"{tr(lang, 'ch_sunrise')} --:--"))
-    await safe_edit_channel_name(get_channel_from_config(guild, cfg, "sunset"), weather.get("sunset", f"{tr(lang, 'ch_sunset')} --:--"))
-    await safe_edit_channel_name(get_channel_from_config(guild, cfg, "day_length"), weather.get("day_length", f"{tr(lang, 'day_length_prefix')} --"))
-    await safe_edit_channel_name(get_channel_from_config(guild, cfg, "moon"), moon_phase_name(now, lang))
+
+    await safe_edit_channel_name(
+        get_channel_from_config(guild, cfg, "date"),
+        f"{tr(lang, 'ch_date')} {weekdays[now.weekday()]} {now.strftime('%d.%m.%Y')}",
+    )
+    await safe_edit_channel_name(
+        get_channel_from_config(guild, cfg, "part_of_day"),
+        format_part_of_day(now, lang, weather.get("sunrise_time"), weather.get("sunset_time")),
+    )
+    await safe_edit_channel_name(
+        get_channel_from_config(guild, cfg, "sunrise"),
+        weather.get("sunrise", f"{tr(lang, 'ch_sunrise')} --:--"),
+    )
+    await safe_edit_channel_name(
+        get_channel_from_config(guild, cfg, "sunset"),
+        weather.get("sunset", f"{tr(lang, 'ch_sunset')} --:--"),
+    )
+    await safe_edit_channel_name(
+        get_channel_from_config(guild, cfg, "day_length"),
+        weather.get("day_length", f"{tr(lang, 'day_length_prefix')} --"),
+    )
+    await safe_edit_channel_name(
+        get_channel_from_config(guild, cfg, "moon"),
+        moon_phase_name(now, lang),
+    )
 
 
 async def update_stats_channels(guild: discord.Guild, cfg: dict):
@@ -1252,15 +1337,39 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
     bots_count = len(bot_members)
     online_count = sum(1 for m in members if m.status != discord.Status.offline)
     vc_count = sum(1 for m in members if m.voice and m.voice.channel)
+
     timezone_obj = get_timezone_object(cfg.get("timezone", DEFAULT_TIMEZONE))
     today = datetime.now(timezone_obj).date()
-    joined_today_count = sum(1 for m in human_members if m.joined_at and m.joined_at.astimezone(timezone_obj).date() == today)
-    await safe_edit_channel_name(get_channel_from_config(guild, cfg, "members"), tr(lang, "stats_members", count=members_count))
-    await safe_edit_channel_name(get_channel_from_config(guild, cfg, "humans"), tr(lang, "stats_humans", count=humans_count))
-    await safe_edit_channel_name(get_channel_from_config(guild, cfg, "online"), tr(lang, "stats_online", count=online_count))
-    await safe_edit_channel_name(get_channel_from_config(guild, cfg, "bots"), tr(lang, "stats_bots", count=bots_count))
-    await safe_edit_channel_name(get_channel_from_config(guild, cfg, "vc"), tr(lang, "stats_vc", count=vc_count))
-    await safe_edit_channel_name(get_channel_from_config(guild, cfg, "joined_today"), tr(lang, "stats_joined_today", count=joined_today_count))
+    joined_today_count = sum(
+        1
+        for m in human_members
+        if m.joined_at and m.joined_at.astimezone(timezone_obj).date() == today
+    )
+
+    await safe_edit_channel_name(
+        get_channel_from_config(guild, cfg, "members"),
+        tr(lang, "stats_members", count=members_count),
+    )
+    await safe_edit_channel_name(
+        get_channel_from_config(guild, cfg, "humans"),
+        tr(lang, "stats_humans", count=humans_count),
+    )
+    await safe_edit_channel_name(
+        get_channel_from_config(guild, cfg, "online"),
+        tr(lang, "stats_online", count=online_count),
+    )
+    await safe_edit_channel_name(
+        get_channel_from_config(guild, cfg, "bots"),
+        tr(lang, "stats_bots", count=bots_count),
+    )
+    await safe_edit_channel_name(
+        get_channel_from_config(guild, cfg, "vc"),
+        tr(lang, "stats_vc", count=vc_count),
+    )
+    await safe_edit_channel_name(
+        get_channel_from_config(guild, cfg, "joined_today"),
+        tr(lang, "stats_joined_today", count=joined_today_count),
+    )
 
 
 async def refresh_existing_panel(guild: discord.Guild) -> bool:
@@ -1268,11 +1377,18 @@ async def refresh_existing_panel(guild: discord.Guild) -> bool:
     if not cfg:
         return False
     lang = get_lang_code(cfg)
-    weather = await get_weather_data(cfg["city_name"], cfg["latitude"], cfg["longitude"], cfg.get("timezone", DEFAULT_TIMEZONE), lang)
+    weather = await get_weather_data(
+        cfg["city_name"],
+        cfg["latitude"],
+        cfg["longitude"],
+        cfg.get("timezone", DEFAULT_TIMEZONE),
+        lang,
+    )
     await update_weather_channels(guild, cfg, weather)
     await update_clock_channels(guild, cfg, weather)
     await update_stats_channels(guild, cfg)
     return True
+
 
 # ================================
 # SYSTEM STATUSÓW / PANEL RÓL
@@ -1292,26 +1408,33 @@ async def set_single_role_in_group(member: discord.Member, group_name: str, role
     guild = member.guild
     lang = get_role_lang(guild.id)
     mapping = ROLE_GROUPS[group_name]
+
     if role_key not in mapping:
         return False, tr(lang, "role_bad_option")
+
     selected_role = get_panel_role(guild, mapping[role_key])
     if selected_role is None:
         return False, tr(lang, "role_not_found")
+
     me = guild.me
     if me is None or not me.guild_permissions.manage_roles:
         return False, tr(lang, "role_no_manage")
+
     if selected_role >= me.top_role:
         return False, tr(lang, "role_hierarchy", role=selected_role.name)
+
     roles_to_remove = []
     for other_key, other_role_id in mapping.items():
         other_role = get_panel_role(guild, other_role_id)
         if other_role and other_role in member.roles and other_key != role_key:
             roles_to_remove.append(other_role)
+
     try:
         if roles_to_remove:
             await member.remove_roles(*roles_to_remove, reason=f"Zmiana roli z grupy {group_name}")
         if selected_role not in member.roles:
             await member.add_roles(selected_role, reason=f"Ustawienie roli z grupy {group_name}")
+
         label = ROLE_DISPLAY_NAMES.get(role_key, selected_role.name)
         emoji = ROLE_EMOJIS.get(role_key, "✅")
         return True, tr(lang, "role_set_ok", emoji=emoji, label=label)
@@ -1330,7 +1453,13 @@ class GroupSelect(discord.ui.Select):
             label = ROLE_DISPLAY_NAMES.get(role_key, role_key)
             emoji = ROLE_EMOJIS.get(role_key)
             options.append(discord.SelectOption(label=label[:100], value=role_key, emoji=emoji))
-        super().__init__(placeholder=placeholder, min_values=1, max_values=1, options=options, custom_id=f"status_panel_select_{group_name}")
+        super().__init__(
+            placeholder=placeholder,
+            min_values=1,
+            max_values=1,
+            options=options,
+            custom_id=f"status_panel_select_{group_name}",
+        )
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
@@ -1360,10 +1489,16 @@ def build_panel_embed(guild: discord.Guild) -> discord.Embed:
     status_preview = ", ".join(ROLE_DISPLAY_NAMES[k] for k in list(STATUS_ROLES.keys())[:5])
     mood_preview = ", ".join(ROLE_DISPLAY_NAMES[k] for k in list(MOOD_ROLES.keys())[:5])
     activity_preview = ", ".join(ROLE_DISPLAY_NAMES[k] for k in list(ACTIVITY_ROLES.keys())[:6])
+
     total_status = sum(role_count(rid) for rid in STATUS_ROLES.values())
     total_mood = sum(role_count(rid) for rid in MOOD_ROLES.values())
     total_activity = sum(role_count(rid) for rid in ACTIVITY_ROLES.values())
-    embed = discord.Embed(title=tr(lang, "role_panel_title"), description=tr(lang, "role_panel_desc"), color=discord.Color.blurple())
+
+    embed = discord.Embed(
+        title=tr(lang, "role_panel_title"),
+        description=tr(lang, "role_panel_desc"),
+        color=discord.Color.blurple(),
+    )
     embed.add_field(name=f"🟢 Status • aktywnych ról: {total_status}", value=status_preview, inline=False)
     embed.add_field(name=f"😎 Nastrój • aktywnych ról: {total_mood}", value=mood_preview, inline=False)
     embed.add_field(name=f"🎮 Aktywność • aktywnych ról: {total_activity}", value=activity_preview, inline=False)
@@ -1373,7 +1508,12 @@ def build_panel_embed(guild: discord.Guild) -> discord.Embed:
 
 def build_role_stats_embed(guild: discord.Guild) -> discord.Embed:
     lang = get_role_lang(guild.id)
-    embed = discord.Embed(title=tr(lang, "role_stats_title"), description=tr(lang, "role_stats_desc"), color=discord.Color.green())
+    embed = discord.Embed(
+        title=tr(lang, "role_stats_title"),
+        description=tr(lang, "role_stats_desc"),
+        color=discord.Color.green(),
+    )
+
     for group_name, mapping in ROLE_GROUPS.items():
         lines = []
         total = 0
@@ -1387,9 +1527,14 @@ def build_role_stats_embed(guild: discord.Guild) -> discord.Embed:
             if role is None:
                 line += " ⚠️"
             lines.append(line)
-        embed.add_field(name=f"{GROUP_LABELS[group_name]} • {total}", value="
-".join(lines) if lines else "Brak danych", inline=False)
+
+        embed.add_field(
+            name=f"{GROUP_LABELS[group_name]} • {total}",
+            value="\n".join(lines) if lines else "Brak danych",
+            inline=False,
+        )
     return embed
+
 
 # ================================
 # KOMENDY / AUTOCOMPLETE
@@ -1406,10 +1551,13 @@ async def city_autocomplete(interaction: discord.Interaction, current: str) -> l
         app_commands.Choice(name="London, United Kingdom", value="London"),
         app_commands.Choice(name="New York, USA", value="New York"),
     ]
+
     if not current.strip():
         return static_choices[:25]
+
     lowered = current.lower()
     filtered = [c for c in static_choices if lowered in c.name.lower() or lowered in c.value.lower()]
+
     try:
         results = await geocode_city(current, count=10)
         dynamic = []
@@ -1420,6 +1568,7 @@ async def city_autocomplete(interaction: discord.Interaction, current: str) -> l
             if item.get("country"):
                 label += f", {item['country']}"
             dynamic.append(app_commands.Choice(name=label[:100], value=item["name"] or current))
+
         combined = filtered[:]
         existing_values = {c.value for c in combined}
         for choice in dynamic:
@@ -1436,7 +1585,12 @@ async def help_command(interaction: discord.Interaction):
     guild = interaction.guild
     cfg = get_guild_config(guild.id) if guild else None
     lang = get_lang_code(cfg)
-    embed = discord.Embed(title=tr(lang, "help_title"), description=tr(lang, "help_desc"), color=discord.Color.green())
+
+    embed = discord.Embed(
+        title=tr(lang, "help_title"),
+        description=tr(lang, "help_desc"),
+        color=discord.Color.green(),
+    )
     embed.add_field(name=tr(lang, "help_general"), value=tr(lang, "help_general_value"), inline=False)
     embed.add_field(name=tr(lang, "help_admin"), value=tr(lang, "help_admin_value"), inline=False)
     embed.add_field(name=tr(lang, "help_delete"), value=tr(lang, "help_delete_value"), inline=False)
@@ -1452,8 +1606,10 @@ async def setup_command(interaction: discord.Interaction):
     if guild is None:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "only_server"), ephemeral=True)
         return
+
     cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
     lang = get_lang_code(cfg)
+
     await interaction.response.defer(ephemeral=True)
     try:
         await setup_categories_and_channels(guild)
@@ -1470,8 +1626,10 @@ async def refresh_command(interaction: discord.Interaction):
     if guild is None:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "only_server"), ephemeral=True)
         return
+
     cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
     lang = get_lang_code(cfg)
+
     await interaction.response.defer(ephemeral=True)
     try:
         refreshed = await refresh_existing_panel(guild)
@@ -1489,17 +1647,23 @@ async def status_command(interaction: discord.Interaction):
     if guild is None:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "only_server"), ephemeral=True)
         return
+
     cfg = get_guild_config(guild.id)
     if not cfg:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "no_config"), ephemeral=True)
         return
+
     lang = get_lang_code(cfg)
     embed = discord.Embed(title=tr(lang, "status_title"), color=discord.Color.blue())
     embed.add_field(name=tr(lang, "status_weather_cat"), value=str(cfg.get("weather_category_id")), inline=False)
     embed.add_field(name=tr(lang, "status_clock_cat"), value=str(cfg.get("clock_category_id")), inline=False)
     embed.add_field(name=tr(lang, "status_stats_cat"), value=str(cfg.get("stats_category_id")), inline=False)
     embed.add_field(name=tr(lang, "status_saved_channels"), value=str(len(cfg.get("channels", {}))), inline=False)
-    embed.add_field(name=tr(lang, "status_city"), value=f"{cfg.get('city_name', DEFAULT_CITY_NAME)}, {cfg.get('country', DEFAULT_COUNTRY)}", inline=False)
+    embed.add_field(
+        name=tr(lang, "status_city"),
+        value=f"{cfg.get('city_name', DEFAULT_CITY_NAME)}, {cfg.get('country', DEFAULT_COUNTRY)}",
+        inline=False,
+    )
     embed.add_field(name=tr(lang, "status_lat"), value=str(cfg.get("latitude", DEFAULT_LATITUDE)), inline=True)
     embed.add_field(name=tr(lang, "status_lon"), value=str(cfg.get("longitude", DEFAULT_LONGITUDE)), inline=True)
     embed.add_field(name=tr(lang, "status_timezone"), value=str(cfg.get("timezone", DEFAULT_TIMEZONE)), inline=False)
@@ -1516,11 +1680,21 @@ async def info_command(interaction: discord.Interaction):
     uptime_str = format_uptime(uptime)
     guild_count = len(bot.guilds)
     user_count = sum(g.member_count or 0 for g in bot.guilds)
-    embed = discord.Embed(title=tr(lang, "info_title"), description=tr(lang, "info_desc"), color=discord.Color.blurple())
+
+    embed = discord.Embed(
+        title=tr(lang, "info_title"),
+        description=tr(lang, "info_desc"),
+        color=discord.Color.blurple(),
+    )
     if bot.user:
         embed.set_thumbnail(url=bot.user.display_avatar.url)
+
     embed.add_field(name=tr(lang, "info_features"), value=tr(lang, "info_features_value"), inline=False)
-    embed.add_field(name=tr(lang, "info_status"), value=tr(lang, "info_status_value", uptime=uptime_str, guilds=guild_count, users=user_count), inline=False)
+    embed.add_field(
+        name=tr(lang, "info_status"),
+        value=tr(lang, "info_status_value", uptime=uptime_str, guilds=guild_count, users=user_count),
+        inline=False,
+    )
     embed.add_field(name=tr(lang, "info_modules"), value=tr(lang, "info_modules_value"), inline=False)
     embed.add_field(name=tr(lang, "info_author"), value=f"**{tr(lang, 'creator')}**", inline=True)
     embed.add_field(name=tr(lang, "info_version"), value=f"**{tr(lang, 'bot_version')}**", inline=True)
@@ -1540,8 +1714,12 @@ async def weather_command(interaction: discord.Interaction):
         longitude = cfg["longitude"] if cfg else DEFAULT_LONGITUDE
         country = cfg["country"] if cfg else DEFAULT_COUNTRY
         timezone_name = cfg["timezone"] if cfg else DEFAULT_TIMEZONE
+
         weather = await get_weather_data(city_name, latitude, longitude, timezone_name, lang)
-        embed = discord.Embed(title=tr(lang, "weather_title", city=city_name, country=country), color=discord.Color.teal())
+        embed = discord.Embed(
+            title=tr(lang, "weather_title", city=city_name, country=country),
+            color=discord.Color.teal(),
+        )
         embed.add_field(name=tr(lang, "field_temperature"), value=weather["temperature"], inline=False)
         embed.add_field(name=tr(lang, "field_feels"), value=weather["feels"], inline=False)
         embed.add_field(name=tr(lang, "field_clouds"), value=weather["clouds"], inline=False)
@@ -1550,8 +1728,16 @@ async def weather_command(interaction: discord.Interaction):
         embed.add_field(name=tr(lang, "field_rain"), value=weather["rain"], inline=False)
         embed.add_field(name=tr(lang, "field_wind"), value=weather["wind"], inline=False)
         embed.add_field(name=tr(lang, "field_pressure"), value=weather["pressure"], inline=False)
-        embed.add_field(name=tr(lang, "field_alerts"), value=", ".join(weather["alerts_list"]) if weather["alerts_list"] else tr(lang, "none"), inline=False)
-        embed.add_field(name=tr(lang, "field_alert_level"), value=f"{weather['alert_level']}°" if weather["alert_level"] > 0 else tr(lang, "none"), inline=False)
+        embed.add_field(
+            name=tr(lang, "field_alerts"),
+            value=", ".join(weather["alerts_list"]) if weather["alerts_list"] else tr(lang, "none"),
+            inline=False,
+        )
+        embed.add_field(
+            name=tr(lang, "field_alert_level"),
+            value=f"{weather['alert_level']}°" if weather["alert_level"] > 0 else tr(lang, "none"),
+            inline=False,
+        )
         embed.add_field(name=tr(lang, "field_sunrise"), value=weather["sunrise"], inline=False)
         embed.add_field(name=tr(lang, "field_sunset"), value=weather["sunset"], inline=False)
         embed.add_field(name=tr(lang, "field_day_length"), value=weather["day_length"], inline=False)
@@ -1571,19 +1757,31 @@ async def time_command(interaction: discord.Interaction):
     city_name = cfg["city_name"] if cfg else DEFAULT_CITY_NAME
     timezone_obj = get_timezone_object(timezone_name)
     now = datetime.now(timezone_obj)
+
     sunrise_time = None
     sunset_time = None
     try:
-        weather = await get_weather_data(city_name, cfg["latitude"] if cfg else DEFAULT_LATITUDE, cfg["longitude"] if cfg else DEFAULT_LONGITUDE, timezone_name, lang)
+        weather = await get_weather_data(
+            city_name,
+            cfg["latitude"] if cfg else DEFAULT_LATITUDE,
+            cfg["longitude"] if cfg else DEFAULT_LONGITUDE,
+            timezone_name,
+            lang,
+        )
         sunrise_time = weather.get("sunrise_time")
         sunset_time = weather.get("sunset_time")
     except Exception:
         pass
+
     embed = discord.Embed(title=tr(lang, "time_title"), color=discord.Color.orange())
     embed.add_field(name=tr(lang, "time_city"), value=city_name, inline=False)
     embed.add_field(name=tr(lang, "time_clock"), value=now.strftime("%H:%M:%S"), inline=False)
     embed.add_field(name=tr(lang, "time_date"), value=now.strftime("%d.%m.%Y"), inline=False)
-    embed.add_field(name=tr(lang, "time_part_of_day"), value=format_part_of_day(now, lang, sunrise_time, sunset_time), inline=False)
+    embed.add_field(
+        name=tr(lang, "time_part_of_day"),
+        value=format_part_of_day(now, lang, sunrise_time, sunset_time),
+        inline=False,
+    )
     embed.add_field(name=tr(lang, "time_timezone"), value=timezone_name, inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -1608,17 +1806,21 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
     if guild is None:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "only_server"), ephemeral=True)
         return
+
     cfg = get_guild_config(guild.id)
     if not cfg:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "city_setup_first"), ephemeral=True)
         return
+
     lang = get_lang_code(cfg)
     await interaction.response.defer(ephemeral=True)
+
     try:
         results = await geocode_city(nazwa, count=10)
         if not results:
             await interaction.followup.send(tr(lang, "city_not_found", city=nazwa), ephemeral=True)
             return
+
         preferred = None
         lowered = nazwa.strip().lower()
         for item in results:
@@ -1627,6 +1829,7 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
             if item_name == lowered and item_country in {"polska", "poland"}:
                 preferred = item
                 break
+
         city = preferred or results[0]
         cfg["city_name"] = city["name"] or nazwa
         cfg["latitude"] = city["latitude"]
@@ -1634,12 +1837,17 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
         cfg["country"] = city.get("country") or DEFAULT_COUNTRY
         cfg["timezone"] = city.get("timezone") or DEFAULT_TIMEZONE
         save_guild_config(guild.id, cfg)
+
         refreshed = await refresh_existing_panel(guild)
         if not refreshed:
             await interaction.followup.send(tr(lang, "refresh_no_config"), ephemeral=True)
             return
+
         extra = f", {city['admin1']}" if city.get("admin1") else ""
-        await interaction.followup.send(tr(lang, "city_updated", city=f"{city['name']}{extra}, {city['country']}"), ephemeral=True)
+        await interaction.followup.send(
+            tr(lang, "city_updated", city=f"{city['name']}{extra}, {city['country']}"),
+            ephemeral=True,
+        )
     except Exception as e:
         await interaction.followup.send(tr(lang, "city_error", error=e), ephemeral=True)
 
@@ -1652,19 +1860,24 @@ async def language_command(interaction: discord.Interaction, code: str):
     if guild is None:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "only_server"), ephemeral=True)
         return
+
     cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
     code = code.lower().strip()
+
     if code not in LANGUAGES:
         await interaction.response.send_message(tr(get_lang_code(cfg), "language_invalid"), ephemeral=True)
         return
+
     cfg["language"] = code
     save_guild_config(guild.id, cfg)
+
     await interaction.response.defer(ephemeral=True)
     try:
         if cfg.get("channels"):
             await refresh_existing_panel(guild)
     except Exception as e:
         logging.error("Błąd odświeżania po zmianie języka: %s", e)
+
     await interaction.followup.send(tr(code, "language_set"), ephemeral=True)
 
 
@@ -1674,6 +1887,7 @@ async def panel_statusow(interaction: discord.Interaction):
     if interaction.guild is None:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
         return
+
     embed = build_panel_embed(interaction.guild)
     await interaction.response.send_message(embed=embed, view=StatusPanelView())
 
@@ -1683,6 +1897,7 @@ async def pokaz_statusy(interaction: discord.Interaction):
     if interaction.guild is None:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
         return
+
     embed = build_role_stats_embed(interaction.guild)
     await interaction.response.send_message(embed=embed)
 
@@ -1700,6 +1915,7 @@ async def ustaw_status_swoj(interaction: discord.Interaction, grupa: app_command
     if interaction.guild is None or not isinstance(interaction.user, discord.Member):
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
         return
+
     _ok, msg = await set_single_role_in_group(interaction.user, grupa.value, opcja)
     await interaction.response.send_message(msg, ephemeral=True)
 
@@ -1711,9 +1927,11 @@ async def ustaw_status_swoj_autocomplete(interaction: discord.Interaction, curre
         grupa = getattr(namespace, "grupa", None)
         if grupa is None:
             return []
+
         group_value = grupa.value if isinstance(grupa, app_commands.Choice) else str(grupa)
         if group_value not in ROLE_GROUPS:
             return []
+
         choices = []
         for role_key in ROLE_GROUPS[group_value].keys():
             label = ROLE_DISPLAY_NAMES.get(role_key, role_key)
@@ -1723,6 +1941,7 @@ async def ustaw_status_swoj_autocomplete(interaction: discord.Interaction, curre
     except Exception:
         return []
 
+
 # ================================
 # USUWANIE KATEGORII
 # ================================
@@ -1730,14 +1949,17 @@ async def ustaw_status_swoj_autocomplete(interaction: discord.Interaction, curre
 async def delete_category_with_channels(guild: discord.Guild, category_id: int | None):
     if not category_id:
         return
+
     category = guild.get_channel(category_id)
     if not isinstance(category, discord.CategoryChannel):
         return
+
     for channel in list(category.channels):
         try:
             await channel.delete()
         except Exception as e:
             logging.warning("Nie udało się usunąć kanału %s: %s", channel.id, e)
+
     try:
         await category.delete()
     except Exception as e:
@@ -1760,10 +1982,12 @@ async def delete_weather_category_command(interaction: discord.Interaction):
     if guild is None:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "delete_only_server"), ephemeral=True)
         return
+
     cfg = get_guild_config(guild.id)
     if not cfg:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "delete_no_config"), ephemeral=True)
         return
+
     lang = get_lang_code(cfg)
     await interaction.response.defer(ephemeral=True)
     await delete_category_with_channels(guild, cfg.get("weather_category_id"))
@@ -1780,10 +2004,12 @@ async def delete_clock_category_command(interaction: discord.Interaction):
     if guild is None:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "delete_only_server"), ephemeral=True)
         return
+
     cfg = get_guild_config(guild.id)
     if not cfg:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "delete_no_config"), ephemeral=True)
         return
+
     lang = get_lang_code(cfg)
     await interaction.response.defer(ephemeral=True)
     await delete_category_with_channels(guild, cfg.get("clock_category_id"))
@@ -1800,10 +2026,12 @@ async def delete_stats_category_command(interaction: discord.Interaction):
     if guild is None:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "delete_only_server"), ephemeral=True)
         return
+
     cfg = get_guild_config(guild.id)
     if not cfg:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "delete_no_config"), ephemeral=True)
         return
+
     lang = get_lang_code(cfg)
     await interaction.response.defer(ephemeral=True)
     await delete_category_with_channels(guild, cfg.get("stats_category_id"))
@@ -1820,10 +2048,12 @@ async def delete_all_command(interaction: discord.Interaction):
     if guild is None:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "delete_only_server"), ephemeral=True)
         return
+
     cfg = get_guild_config(guild.id)
     if not cfg:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "delete_no_config"), ephemeral=True)
         return
+
     lang = get_lang_code(cfg)
     await interaction.response.defer(ephemeral=True)
     await delete_category_with_channels(guild, cfg.get("weather_category_id"))
@@ -1835,6 +2065,7 @@ async def delete_all_command(interaction: discord.Interaction):
     cfg["channels"] = {}
     save_guild_config(guild.id, cfg)
     await interaction.followup.send(tr(lang, "delete_all_ok"), ephemeral=True)
+
 
 # ================================
 # EVENTY / LIVE
@@ -1873,6 +2104,7 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
     if before.channel != after.channel:
         schedule_stats_refresh(member.guild)
 
+
 # ================================
 # TASKI TŁA
 # ================================
@@ -1893,12 +2125,12 @@ async def auto_refresh():
 async def update_status_clock():
     await bot.wait_until_ready()
     now = datetime.now(get_timezone_object(DEFAULT_TIMEZONE))
-    # Renderowanie / wyrównanie statusu ustala Discord, więc można zmienić tylko tekst.
     status_text = f"🕒 {now.strftime('%H:%M:%S')} • {STATUS_CITY_NAME}"
     try:
         await bot.change_presence(activity=discord.CustomActivity(name=status_text))
     except Exception as e:
         logging.warning("Nie udało się zaktualizować statusu bota: %s", e)
+
 
 # ================================
 # START BOTA
