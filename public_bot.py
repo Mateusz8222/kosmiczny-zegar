@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import sqlite3
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from urllib.parse import quote
 
 import aiohttp
@@ -16,12 +16,6 @@ from discord.ext import commands, tasks
 # KOSMICZNY ZEGAR PUBLIC - BOT v25
 # MULTILANGUAGE: PL / EN
 # FULL + SYSTEM STATUSÓW
-# ================================
-# WAŻNE:
-# 1. Ustaw DISCORD_TOKEN w zmiennych środowiskowych.
-# 2. Wstaw prawdziwe ID ról w STATUS_ROLES / MOOD_ROLES / ACTIVITY_ROLES.
-# 3. Bot musi mieć uprawnienie: Zarządzanie rolami.
-# 4. Rola bota musi być WYŻEJ niż role statusowe.
 # ================================
 
 logging.basicConfig(
@@ -48,18 +42,18 @@ STATUS_CITY_NAME = "Warszawa"
 bot_start_time = datetime.now(UTC)
 stats_update_tasks: dict[int, asyncio.Task] = {}
 channel_edit_locks: dict[int, asyncio.Lock] = {}
+last_midnight_reset_dates: dict[int, date] = {}
 
 intents = discord.Intents.default()
 intents.guilds = True
 intents.members = True
 intents.voice_states = True
-intents.presences = False
+intents.presences = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ================================
 # SYSTEM STATUSÓW / PANEL RÓL
-# UZUPEŁNIJ PRAWDZIWE ID RÓL
 # ================================
 
 STATUS_ROLES = {
@@ -500,7 +494,8 @@ LANGUAGES = {
         "info_modules_value": (
             "`/help` `/setup` `/refresh` `/status` `/info`\n"
             "`/pogoda` `/czas` `/ksiezyc` `/miasto` `/language`\n"
-            "`/panel_statusow` `/pokaz_statusy` `/ustaw_status_swoj`"
+            "`/panel_statusow` `/pokaz_statusy` `/ustaw_status_swoj`\n"
+            "`/usun_pogoda` `/usun_kosmiczny_zegar` `/usun_statystyki` `/usun_wszystko`"
         ),
         "info_stability_value": "Optimized for Railway and Discord API limits",
         "weather_title": "🌤️ Weather - {city}, {country}",
@@ -598,7 +593,6 @@ LANGUAGES = {
 # ================================
 # BAZA DANYCH
 # ================================
-
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
@@ -698,7 +692,6 @@ def save_guild_config(guild_id: int, cfg: dict):
     )
     conn.commit()
     conn.close()
-
 
 # ================================
 # POMOCNICZE
@@ -805,6 +798,7 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
     new_name = trim_channel_name(new_name)
     if channel.name == new_name:
         return
+
     lock = get_channel_lock(channel.id)
     async with lock:
         if channel.name == new_name:
@@ -860,7 +854,6 @@ def localized_alert_name(name: str, lang: str) -> str:
         }
         return mapping.get(name, name)
     return name
-
 
 # ================================
 # API / POGODA
@@ -957,14 +950,18 @@ def format_precipitation_channel(current: dict, lang: str) -> str:
     showers = float(current.get("showers", 0) or 0)
     snowfall = float(current.get("snowfall", 0) or 0)
     rain_total = rain + showers
+
     rain_codes = {51, 53, 55, 61, 63, 65, 80, 81, 82}
     snow_codes = {71, 73, 75, 77, 85, 86}
     hail_codes = {96, 99}
+
     has_hail = weather_code in hail_codes
     has_snow = snowfall > 0 or weather_code in snow_codes
     has_rain = rain_total > 0 or (precipitation > 0 and weather_code in rain_codes)
+
     if not has_rain and not has_snow and not has_hail and precipitation <= 0:
         return tr(lang, "weather_rain_none")
+
     parts = []
     if has_hail:
         parts.append(tr(lang, "weather_hail"))
@@ -974,6 +971,7 @@ def format_precipitation_channel(current: dict, lang: str) -> str:
         parts.append(f"{tr(lang, 'weather_snow')} {round(snowfall, 1)} cm")
     if not parts and precipitation > 0:
         parts.append(f"{tr(lang, 'weather_precip')} {round(precipitation, 1)} mm")
+
     text = f"{tr(lang, 'weather_rain_text')} " + " / ".join(parts)
     if has_hail and has_rain and has_snow:
         text = f"⛈🌧🌨 {text}"
@@ -993,6 +991,7 @@ def format_precipitation_channel(current: dict, lang: str) -> str:
 def build_weather_alerts(current: dict) -> dict:
     alerts: list[str] = []
     level = 0
+
     weather_code = int(current.get("weather_code", -1)) if current.get("weather_code") is not None else -1
     temperature = float(current.get("temperature_2m", 999) or 999)
     precipitation = float(current.get("precipitation", 0) or 0)
@@ -1137,6 +1136,7 @@ async def get_weather_data(
     lang: str = DEFAULT_LANGUAGE,
 ):
     encoded_timezone = quote(timezone_name)
+
     weather_url = (
         "https://api.open-meteo.com/v1/forecast"
         f"?latitude={latitude}&longitude={longitude}"
@@ -1160,12 +1160,14 @@ async def get_weather_data(
     weather_data, air_data, pollen_data = await asyncio.gather(
         fetch_json(weather_url), fetch_json(air_url), fetch_json(pollen_url)
     )
+
     current = weather_data.get("current", {}) or {}
     daily = weather_data.get("daily", {}) or {}
     air_current = air_data.get("current", {}) or {}
     hourly = pollen_data.get("hourly", {}) or {}
     hourly_time = hourly.get("time", []) or []
     current_time = current.get("time")
+
     pollen_index = 0
     if current_time and current_time in hourly_time:
         pollen_index = hourly_time.index(current_time)
@@ -1181,14 +1183,17 @@ async def get_weather_data(
     grass = pollen_value("grass_pollen")
     mugwort = pollen_value("mugwort_pollen")
     ragweed = pollen_value("ragweed_pollen")
+
     alerts_info = build_weather_alerts(current)
     alerts = alerts_info["alerts"]
     alert_level = alerts_info["level"]
+
     temp = current.get("temperature_2m")
     feels = current.get("apparent_temperature")
     clouds = current.get("cloud_cover")
     wind = current.get("wind_speed_10m")
     pressure = current.get("surface_pressure")
+
     sunrise_raw = (daily.get("sunrise") or [None])[0]
     sunset_raw = (daily.get("sunset") or [None])[0]
     sunrise_time = sunrise_raw[11:16] if sunrise_raw else "--:--"
@@ -1196,23 +1201,18 @@ async def get_weather_data(
 
     return {
         "temperature": f"🌡 {city_name.upper()} {round(float(temp))}°C"
-        if temp is not None
-        else f"🌡 {city_name.upper()} --°C",
+        if temp is not None else f"🌡 {city_name.upper()} --°C",
         "feels": f"🥵 {tr(lang, 'field_feels')} {round(float(feels))}°C"
-        if feels is not None
-        else f"🥵 {tr(lang, 'field_feels')} --°C",
+        if feels is not None else f"🥵 {tr(lang, 'field_feels')} --°C",
         "clouds": f"☁ {tr(lang, 'field_clouds')} {round(float(clouds))}%"
-        if clouds is not None
-        else f"☁ {tr(lang, 'field_clouds')} --%",
+        if clouds is not None else f"☁ {tr(lang, 'field_clouds')} --%",
         "air": air_quality_text(air_current.get("european_aqi"), lang),
         "pollen": build_pollen_channel_text(alder, birch, grass, mugwort, ragweed, lang),
         "rain": format_precipitation_channel(current, lang),
         "wind": f"💨 {tr(lang, 'field_wind')} {round(float(wind))} km/h"
-        if wind is not None
-        else f"💨 {tr(lang, 'field_wind')} -- km/h",
+        if wind is not None else f"💨 {tr(lang, 'field_wind')} -- km/h",
         "pressure": f"⏱ {tr(lang, 'field_pressure')} {round(float(pressure))} hPa"
-        if pressure is not None
-        else f"⏱ {tr(lang, 'field_pressure')} -- hPa",
+        if pressure is not None else f"⏱ {tr(lang, 'field_pressure')} -- hPa",
         "alerts": format_alerts_channel(alerts, alert_level, lang),
         "alerts_list": [localized_alert_name(a, lang) for a in alerts],
         "alert_level": alert_level,
@@ -1223,7 +1223,6 @@ async def get_weather_data(
         "day_length": day_length_text(sunrise_time, sunset_time, lang),
     }
 
-
 # ================================
 # PANEL KANAŁÓW
 # ================================
@@ -1232,21 +1231,9 @@ async def setup_categories_and_channels(guild: discord.Guild):
     cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
     lang = get_lang_code(cfg)
 
-    weather_category = (
-        guild.get_channel(cfg.get("weather_category_id"))
-        if cfg.get("weather_category_id")
-        else None
-    )
-    clock_category = (
-        guild.get_channel(cfg.get("clock_category_id"))
-        if cfg.get("clock_category_id")
-        else None
-    )
-    stats_category = (
-        guild.get_channel(cfg.get("stats_category_id"))
-        if cfg.get("stats_category_id")
-        else None
-    )
+    weather_category = guild.get_channel(cfg.get("weather_category_id")) if cfg.get("weather_category_id") else None
+    clock_category = guild.get_channel(cfg.get("clock_category_id")) if cfg.get("clock_category_id") else None
+    stats_category = guild.get_channel(cfg.get("stats_category_id")) if cfg.get("stats_category_id") else None
 
     if not isinstance(weather_category, discord.CategoryChannel):
         weather_category = await create_or_get_category(guild, get_category_name(lang, "weather"))
@@ -1332,17 +1319,23 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
     members = list(guild.members)
     human_members = [m for m in members if not m.bot]
     bot_members = [m for m in members if m.bot]
+
     members_count = len(members)
     humans_count = len(human_members)
     bots_count = len(bot_members)
-    online_count = sum(1 for m in members if m.status != discord.Status.offline)
+
+    online_count = sum(
+        1 for m in members
+        if m.status in {discord.Status.online, discord.Status.idle, discord.Status.dnd}
+    )
+
     vc_count = sum(1 for m in members if m.voice and m.voice.channel)
 
     timezone_obj = get_timezone_object(cfg.get("timezone", DEFAULT_TIMEZONE))
     today = datetime.now(timezone_obj).date()
+
     joined_today_count = sum(
-        1
-        for m in human_members
+        1 for m in human_members
         if m.joined_at and m.joined_at.astimezone(timezone_obj).date() == today
     )
 
@@ -1388,7 +1381,6 @@ async def refresh_existing_panel(guild: discord.Guild) -> bool:
     await update_clock_channels(guild, cfg, weather)
     await update_stats_channels(guild, cfg)
     return True
-
 
 # ================================
 # SYSTEM STATUSÓW / PANEL RÓL
@@ -1534,7 +1526,6 @@ def build_role_stats_embed(guild: discord.Guild) -> discord.Embed:
             inline=False,
         )
     return embed
-
 
 # ================================
 # KOMENDY / AUTOCOMPLETE
@@ -1887,7 +1878,6 @@ async def panel_statusow(interaction: discord.Interaction):
     if interaction.guild is None:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
         return
-
     embed = build_panel_embed(interaction.guild)
     await interaction.response.send_message(embed=embed, view=StatusPanelView())
 
@@ -1897,7 +1887,6 @@ async def pokaz_statusy(interaction: discord.Interaction):
     if interaction.guild is None:
         await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
         return
-
     embed = build_role_stats_embed(interaction.guild)
     await interaction.response.send_message(embed=embed)
 
@@ -1940,7 +1929,6 @@ async def ustaw_status_swoj_autocomplete(interaction: discord.Interaction, curre
         return choices[:25]
     except Exception:
         return []
-
 
 # ================================
 # USUWANIE KATEGORII
@@ -2066,7 +2054,6 @@ async def delete_all_command(interaction: discord.Interaction):
     save_guild_config(guild.id, cfg)
     await interaction.followup.send(tr(lang, "delete_all_ok"), ephemeral=True)
 
-
 # ================================
 # EVENTY / LIVE
 # ================================
@@ -2105,6 +2092,11 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
         schedule_stats_refresh(member.guild)
 
 
+@bot.event
+async def on_presence_update(before: discord.Member, after: discord.Member):
+    if before.status != after.status:
+        schedule_stats_refresh(after.guild)
+
 # ================================
 # TASKI TŁA
 # ================================
@@ -2132,6 +2124,31 @@ async def update_status_clock():
         logging.warning("Nie udało się zaktualizować statusu bota: %s", e)
 
 
+@tasks.loop(minutes=1)
+async def midnight_stats_reset():
+    await bot.wait_until_ready()
+    for guild in bot.guilds:
+        try:
+            cfg = get_guild_config(guild.id)
+            if not cfg:
+                continue
+
+            timezone_obj = get_timezone_object(cfg.get("timezone", DEFAULT_TIMEZONE))
+            today_local = datetime.now(timezone_obj).date()
+            previous_day = last_midnight_reset_dates.get(guild.id)
+
+            if previous_day is None:
+                last_midnight_reset_dates[guild.id] = today_local
+                continue
+
+            if today_local != previous_day:
+                await update_stats_channels(guild, cfg)
+                last_midnight_reset_dates[guild.id] = today_local
+                logging.info("Zresetowano dzienne statystyki dla serwera %s", guild.id)
+
+        except Exception as e:
+            logging.warning("Błąd midnight_stats_reset dla serwera %s: %s", guild.id, e)
+
 # ================================
 # START BOTA
 # ================================
@@ -2139,6 +2156,7 @@ async def update_status_clock():
 @bot.event
 async def on_ready():
     logging.info("Zalogowano jako %s (ID: %s)", bot.user, bot.user.id if bot.user else "?")
+
     try:
         bot.add_view(StatusPanelView())
     except Exception as e:
@@ -2152,10 +2170,21 @@ async def on_ready():
     except Exception as e:
         logging.error("Błąd synchronizacji komend: %s", e)
 
+    for guild in bot.guilds:
+        try:
+            cfg = get_guild_config(guild.id)
+            if cfg:
+                timezone_obj = get_timezone_object(cfg.get("timezone", DEFAULT_TIMEZONE))
+                last_midnight_reset_dates[guild.id] = datetime.now(timezone_obj).date()
+        except Exception as e:
+            logging.warning("Nie udało się zainicjalizować daty resetu dla %s: %s", guild.id, e)
+
     if not auto_refresh.is_running():
         auto_refresh.start()
     if not update_status_clock.is_running():
         update_status_clock.start()
+    if not midnight_stats_reset.is_running():
+        midnight_stats_reset.start()
 
 
 init_db()
