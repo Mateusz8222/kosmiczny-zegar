@@ -1,113 +1,99 @@
 import os
-import asyncio
-import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import aiohttp
 import discord
 from discord.ext import commands, tasks
+from discord.ui import View
 from dotenv import load_dotenv
 
+
+# =========================
+# ŁADOWANIE .ENV
+# =========================
 load_dotenv()
 
-TOKEN = os.getenv("DISCORD_TOKEN")
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN", "").strip()
+OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "").strip()
+TIMEZONE = os.getenv("TIMEZONE", "Europe/Warsaw").strip()
 
-# =========================================================
-# KONFIGURACJA
-# =========================================================
+PANEL_CHANNEL_ID_RAW = os.getenv("PANEL_CHANNEL_ID", "").strip()
+PANEL_CHANNEL_ID = int(PANEL_CHANNEL_ID_RAW) if PANEL_CHANNEL_ID_RAW.isdigit() else 0
 
-GUILD_ID = 1217131470380994651  # Prawidłowe ID serwera Pogaduchy
+CHANNEL_DATE_ID = int(os.getenv("CHANNEL_DATE_ID", "0"))
+CHANNEL_GREETING_ID = int(os.getenv("CHANNEL_GREETING_ID", "0"))
+CHANNEL_MOON_ID = int(os.getenv("CHANNEL_MOON_ID", "0"))
+CHANNEL_TEMP_ID = int(os.getenv("CHANNEL_TEMP_ID", "0"))
+CHANNEL_FEELS_LIKE_ID = int(os.getenv("CHANNEL_FEELS_LIKE_ID", "0"))
+CHANNEL_PRECIP_ID = int(os.getenv("CHANNEL_PRECIP_ID", "0"))
+CHANNEL_WIND_ID = int(os.getenv("CHANNEL_WIND_ID", "0"))
+CHANNEL_PRESSURE_ID = int(os.getenv("CHANNEL_PRESSURE_ID", "0"))
+CHANNEL_SUNRISE_ID = int(os.getenv("CHANNEL_SUNRISE_ID", "0"))
+CHANNEL_SUNSET_ID = int(os.getenv("CHANNEL_SUNSET_ID", "0"))
 
-CHANNELS = {
-    # CZAS / DATA
-    "date": 1473701946656428221,
-    "part_of_day": 1479242955630839111,
-    "moon_phase": 1479933022508810240,
-
-    # POGODA
-    "temp": 1479938583199617085,
-    "feels_like": 1480202733125505054,
-    "precip": 1480293436761309224,
-    "wind": 1479950404539256863,
-    "pressure": 1480202713575850114,
-    "sunrise": 1479942128640462929,
-    "sunset": 1479942157518503936,
-
-    # STATYSTYKI
-    "members": 1479241181865971933,
-    "online": 1479245135119257630,
-    "voice": 1479245305449939085,
-}
+CHANNEL_MEMBERS_ID = int(os.getenv("CHANNEL_MEMBERS_ID", "0"))
+CHANNEL_ONLINE_ID = int(os.getenv("CHANNEL_ONLINE_ID", "0"))
+CHANNEL_VC_ID = int(os.getenv("CHANNEL_VC_ID", "0"))
 
 CITY_NAME = "Rzeszów"
-LATITUDE = 50.0413
-LONGITUDE = 21.9990
-TIMEZONE = "Europe/Warsaw"
+LAT = 50.0413
+LON = 21.9990
 
-EDIT_DELAY_SECONDS = 2.5
+if not DISCORD_TOKEN:
+    raise ValueError("Brakuje DISCORD_TOKEN w pliku .env")
 
-# =========================================================
-# LOGI
-# =========================================================
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(asctime)s] [%(levelname)s] %(message)s",
-)
-
-# =========================================================
-# INTENTS
-# =========================================================
-
+# =========================
+# BOT
+# =========================
 intents = discord.Intents.default()
 intents.guilds = True
 intents.members = True
 intents.presences = True
 intents.voice_states = True
-intents.message_content = False
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-warsaw_tz = ZoneInfo(TIMEZONE)
-last_channel_names = {}
+panel_message = None
 
-# =========================================================
+weather_cache = {
+    "temp": None,
+    "feels_like": None,
+    "wind": None,
+    "pressure": None,
+    "sunrise": "--:--",
+    "sunset": "--:--",
+    "rain_1h": 0.0,
+    "snow_1h": 0.0,
+    "weather_id": None,
+    "precip_text": "🌤️ | Bez opadów",
+}
+
+
+# =========================
 # FUNKCJE POMOCNICZE
-# =========================================================
-
-def now_warsaw() -> datetime:
-    return datetime.now(warsaw_tz)
-
-
-def get_guild():
-    return bot.get_guild(GUILD_ID) or discord.utils.get(bot.guilds, id=GUILD_ID)
+# =========================
+def get_now() -> datetime:
+    return datetime.now(ZoneInfo(TIMEZONE))
 
 
-def get_channel(guild: discord.Guild, key: str):
-    channel_id = CHANNELS.get(key)
-    if not channel_id:
-        return None
-    return guild.get_channel(channel_id)
+def get_polish_weekday(dt: datetime) -> str:
+    dni = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Nie"]
+    return dni[dt.weekday()]
 
 
-def format_polish_date(dt: datetime) -> str:
-    dni = ["pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz."]
-    return f"🗓️ | {dni[dt.weekday()]} {dt.strftime('%d.%m.%Y')}"
-
-
-def get_part_of_day(hour: int) -> str:
+def get_greeting(hour: int) -> str:
     if 5 <= hour < 12:
-        return "☀️ | Poranek"
-    elif 12 <= hour < 18:
-        return "🌞 | Popołudnie"
-    elif 18 <= hour < 22:
-        return "🌆 | Wieczór"
-    else:
-        return "🌙 | Noc"
+        return "🌅 | Poranek"
+    if 12 <= hour < 18:
+        return "☀️ | Popołudnie"
+    if 18 <= hour < 22:
+        return "🌇 | Wieczór"
+    return "🌙 | Noc"
 
 
-def get_moon_phase(dt: datetime) -> str:
+def get_moon_phase_name(dt: datetime) -> str:
     year = dt.year
     month = dt.month
     day = dt.day
@@ -121,305 +107,503 @@ def get_moon_phase(dt: datetime) -> str:
     e = 30.6 * month
     jd = c + e + day - 694039.09
     jd /= 29.5305882
-    b = int(jd)
-    jd -= b
-    phase_index = round(jd * 8)
-
-    if phase_index >= 8:
-        phase_index = 0
+    frac = jd - int(jd)
+    phase_index = round(frac * 8) % 8
 
     phases = {
         0: "🌑 | Nów",
-        1: "🌒 | Młody księżyc",
+        1: "🌒 | Przybywający",
         2: "🌓 | I kwadra",
-        3: "🌔 | Przybywa",
+        3: "🌔 | Garbaty przybywający",
         4: "🌕 | Pełnia",
-        5: "🌖 | Ubywa",
+        5: "🌖 | Garbaty ubywający",
         6: "🌗 | III kwadra",
-        7: "🌘 | Stary księżyc",
+        7: "🌘 | Ubywający",
     }
-    return phases.get(phase_index, "🌙 | Księżyc")
+    return phases.get(phase_index, "🌙 | Faza Księżyca")
 
 
-async def safe_edit_channel_name(channel: discord.abc.GuildChannel, new_name: str):
-    global last_channel_names
+def build_precip_text(
+    weather_id: int | None,
+    rain_1h: float,
+    snow_1h: float,
+    wind_kmh: float,
+    temp_c: float | None,
+) -> str:
+    rain_1h = float(rain_1h or 0.0)
+    snow_1h = float(snow_1h or 0.0)
+    wind_kmh = float(wind_kmh or 0.0)
+    total = round(rain_1h + snow_1h, 1)
 
-    if channel is None:
-        logging.warning("Kanał nie istnieje.")
-        return
+    # =========================
+    # PRIORYTET 1 - OBLODZENIE
+    # =========================
+    if weather_id == 511:
+        return "🚨 | Oblodzenie"
 
-    current_name = channel.name
+    if temp_c is not None and temp_c <= 0 and (rain_1h > 0 or snow_1h > 0):
+        return "🚨 | Oblodzenie"
 
-    if current_name == new_name:
-        logging.info(f"[SKIP] {channel.id}: bez zmian ('{new_name}')")
-        last_channel_names[channel.id] = current_name
-        return
+    # =========================
+    # PRIORYTET 2 - SILNE BURZE / ALARMY
+    # =========================
+    if weather_id in [202, 212, 221, 232]:
+        return f"🚨 | Silna burza {total:.1f} mm"
 
-    if last_channel_names.get(channel.id) == new_name:
-        logging.info(f"[CACHE SKIP] {channel.id}: już ustawione ('{new_name}')")
-        return
+    if weather_id is not None and 200 <= weather_id <= 299:
+        return f"⚠️ | Burza {total:.1f} mm"
 
-    try:
-        await channel.edit(name=new_name)
-        last_channel_names[channel.id] = new_name
-        logging.info(f"[EDIT] {channel.id}: zmieniono na '{new_name}'")
-        await asyncio.sleep(EDIT_DELAY_SECONDS)
+    if weather_id == 781:
+        return "🚨 | Alert: groźne zjawisko"
 
-    except discord.Forbidden:
-        logging.error(f"[ERROR] Brak uprawnień do zmiany kanału {channel.id}")
-    except discord.HTTPException as e:
-        logging.error(f"[ERROR] HTTPException dla kanału {channel.id}: {e}")
-    except Exception as e:
-        logging.error(f"[ERROR] Nieznany błąd dla kanału {channel.id}: {e}")
+    # =========================
+    # PRIORYTET 3 - ALERTY
+    # =========================
+    if weather_id == 741:
+        return "⚠️ | Alert: gęsta mgła"
 
-# =========================================================
-# POGODA
-# =========================================================
+    if wind_kmh >= 60:
+        return "🚨 | Alert: bardzo silny wiatr"
 
-async def fetch_weather():
+    if wind_kmh >= 40:
+        return "⚠️ | Alert: silny wiatr"
+
+    if weather_id in [502, 503, 504, 522]:
+        return f"⚠️ | Alert: ulewa {rain_1h:.1f} mm"
+
+    if temp_c is not None and temp_c <= -5:
+        return "❄️ | Silny mróz"
+
+    if temp_c is not None and temp_c <= 0:
+        return "⚠️ | Przymrozek"
+
+    # =========================
+    # NORMALNA POGODA
+    # =========================
+    if snow_1h > 0:
+        return f"❄️ | Śnieg {snow_1h:.1f} mm"
+
+    if rain_1h > 0:
+        return f"🌧️ | Deszcz {rain_1h:.1f} mm"
+
+    if weather_id in [701, 711, 721]:
+        return "🌫️ | Mgła"
+
+    return "🌤️ | Bez opadów"
+
+
+async def fetch_weather() -> dict:
+    default_data = {
+        "temp": None,
+        "feels_like": None,
+        "wind": None,
+        "pressure": None,
+        "sunrise": "--:--",
+        "sunset": "--:--",
+        "rain_1h": 0.0,
+        "snow_1h": 0.0,
+        "weather_id": None,
+        "precip_text": "🌤️ | Bez opadów",
+    }
+
+    if not OPENWEATHER_API_KEY:
+        print("[INFO] Brak OPENWEATHER_API_KEY - pogoda wyłączona.")
+        return default_data
+
     url = (
-        "https://api.open-meteo.com/v1/forecast"
-        f"?latitude={LATITUDE}"
-        f"&longitude={LONGITUDE}"
-        "&current=temperature_2m,apparent_temperature,precipitation,wind_speed_10m,surface_pressure"
-        "&daily=sunrise,sunset"
-        f"&timezone={TIMEZONE}"
+        "https://api.openweathermap.org/data/2.5/weather"
+        f"?lat={LAT}&lon={LON}&appid={OPENWEATHER_API_KEY}&units=metric&lang=pl"
     )
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, timeout=20) as response:
-            response.raise_for_status()
-            return await response.json()
-
-
-def parse_weather(data: dict):
-    current = data.get("current", {})
-    daily = data.get("daily", {})
-
-    temp = current.get("temperature_2m")
-    feels = current.get("apparent_temperature")
-    precip = current.get("precipitation")
-    wind = current.get("wind_speed_10m")
-    pressure = current.get("surface_pressure")
-
-    sunrise_list = daily.get("sunrise", [])
-    sunset_list = daily.get("sunset", [])
-
-    sunrise = sunrise_list[0] if sunrise_list else None
-    sunset = sunset_list[0] if sunset_list else None
-
-    sunrise_text = "--:--"
-    sunset_text = "--:--"
-
-    if sunrise:
-        sunrise_text = sunrise.split("T")[1][:5]
-
-    if sunset:
-        sunset_text = sunset.split("T")[1][:5]
-
-    if precip is None:
-        precip_text = "🌧️ | Opady --"
-    elif float(precip) <= 0:
-        precip_text = "🌤️ | Bez opadów"
-    else:
-        precip_text = f"🌧️ | Opady {round(float(precip), 1)} mm"
-
-    return {
-        "temp": f"🌡️ | {CITY_NAME} {round(float(temp))}°C" if temp is not None else f"🌡️ | {CITY_NAME} --°C",
-        "feels_like": f"🥵 | Odczuwalna {round(float(feels))}°C" if feels is not None else "🥵 | Odczuwalna --°C",
-        "precip": precip_text,
-        "wind": f"💨 | Wiatr {round(float(wind))} km/h" if wind is not None else "💨 | Wiatr -- km/h",
-        "pressure": f"🧭 | Ciśnienie {round(float(pressure))} hPa" if pressure is not None else "🧭 | Ciśnienie -- hPa",
-        "sunrise": f"🌅 | Wschód {sunrise_text}",
-        "sunset": f"🌇 | Zachód {sunset_text}",
-    }
-
-# =========================================================
-# STATUS BOTA
-# =========================================================
-
-async def update_bot_presence():
-    dt = now_warsaw()
-    current_time = dt.strftime("%H:%M:%S")
-    activity = discord.CustomActivity(name=f"🕒 {current_time}")
-    await bot.change_presence(status=discord.Status.online, activity=activity)
-
-# =========================================================
-# AKTUALIZACJE
-# =========================================================
-
-async def update_time_channels():
-    guild = get_guild()
-    if guild is None:
-        logging.warning("Nie znaleziono serwera.")
-        return
-
-    dt = now_warsaw()
-
-    updates = {
-        "date": format_polish_date(dt),
-        "part_of_day": get_part_of_day(dt.hour),
-        "moon_phase": get_moon_phase(dt),
-    }
-
-    logging.info("[LOOP] Aktualizacja kanałów czasu...")
-
-    for key, new_name in updates.items():
-        channel = get_channel(guild, key)
-        await safe_edit_channel_name(channel, new_name)
-
-    logging.info("[INFO] Kanały czasu zostały odświeżone.")
-
-
-async def update_weather_channels():
-    guild = get_guild()
-    if guild is None:
-        logging.warning("Nie znaleziono serwera.")
-        return
-
-    logging.info("[LOOP] Aktualizacja pogody...")
-
     try:
-        data = await fetch_weather()
-        weather = parse_weather(data)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=15) as response:
+                if response.status != 200:
+                    text = await response.text()
+                    print(f"[BŁĄD] OpenWeather HTTP {response.status}: {text}")
+                    return default_data
 
-        for key in ["temp", "feels_like", "precip", "wind", "pressure", "sunrise", "sunset"]:
-            channel = get_channel(guild, key)
-            await safe_edit_channel_name(channel, weather[key])
+                data = await response.json()
 
-        logging.info("[INFO] Kanały pogodowe zostały odświeżone.")
+        main_data = data.get("main", {})
+        wind_data = data.get("wind", {})
+        sys_data = data.get("sys", {})
+        rain_data = data.get("rain", {})
+        snow_data = data.get("snow", {})
+        weather_list = data.get("weather", [])
+
+        temp = main_data.get("temp")
+        feels_like = main_data.get("feels_like")
+        pressure = main_data.get("pressure")
+        wind_speed = wind_data.get("speed")
+
+        temp_int = round(temp) if temp is not None else None
+        feels_like_int = round(feels_like) if feels_like is not None else None
+        pressure_int = round(pressure) if pressure is not None else None
+        wind_kmh = round((wind_speed or 0) * 3.6) if wind_speed is not None else None
+
+        rain_1h = float(rain_data.get("1h", 0.0) or 0.0)
+        snow_1h = float(snow_data.get("1h", 0.0) or 0.0)
+        weather_id = weather_list[0].get("id") if weather_list else None
+
+        precip_text = build_precip_text(
+            weather_id=weather_id,
+            rain_1h=rain_1h,
+            snow_1h=snow_1h,
+            wind_kmh=wind_kmh or 0.0,
+            temp_c=temp_int,
+        )
+
+        sunrise_ts = sys_data.get("sunrise")
+        sunset_ts = sys_data.get("sunset")
+
+        sunrise_str = "--:--"
+        sunset_str = "--:--"
+
+        if sunrise_ts:
+            sunrise_dt = datetime.fromtimestamp(sunrise_ts, ZoneInfo(TIMEZONE))
+            sunrise_str = sunrise_dt.strftime("%H:%M")
+
+        if sunset_ts:
+            sunset_dt = datetime.fromtimestamp(sunset_ts, ZoneInfo(TIMEZONE))
+            sunset_str = sunset_dt.strftime("%H:%M")
+
+        return {
+            "temp": temp_int,
+            "feels_like": feels_like_int,
+            "wind": wind_kmh,
+            "pressure": pressure_int,
+            "sunrise": sunrise_str,
+            "sunset": sunset_str,
+            "rain_1h": rain_1h,
+            "snow_1h": snow_1h,
+            "weather_id": weather_id,
+            "precip_text": precip_text,
+        }
 
     except Exception as e:
-        logging.error(f"[ERROR] Błąd podczas pobierania pogody: {e}")
+        print(f"[BŁĄD] Nie udało się pobrać pogody: {e}")
+        return default_data
 
 
-async def update_server_stats():
-    guild = get_guild()
-    if guild is None:
-        logging.warning("Nie znaleziono serwera.")
+async def refresh_weather_cache():
+    global weather_cache
+    weather_cache = await fetch_weather()
+
+
+async def safe_edit_channel_name(channel_id: int, new_name: str):
+    if not channel_id:
         return
 
-    logging.info("[LOOP] Aktualizacja statystyk serwera...")
+    channel = bot.get_channel(channel_id)
+    if channel is None:
+        print(f"[BŁĄD] Nie znaleziono kanału o ID: {channel_id}")
+        return
 
-    members_count = 0
-    online_count = 0
-    voice_count = 0
-
-    for member in guild.members:
-        if member.bot:
-            continue
-
-        members_count += 1
-
-        if member.status != discord.Status.offline:
-            online_count += 1
-
-        if member.voice and member.voice.channel:
-            voice_count += 1
-
-    updates = {
-        "members": f"👥 Członkowie • {members_count}",
-        "online": f"🟢 Online • {online_count}",
-        "voice": f"🎤 Na VC • {voice_count}",
-    }
-
-    for key, new_name in updates.items():
-        channel = get_channel(guild, key)
-        await safe_edit_channel_name(channel, new_name)
-
-    logging.info("[INFO] Statystyki serwera zostały odświeżone.")
-
-# =========================================================
-# PĘTLE
-# =========================================================
-
-@tasks.loop(minutes=10)
-async def time_loop():
-    await update_time_channels()
+    try:
+        if channel.name != new_name:
+            await channel.edit(name=new_name)
+    except discord.Forbidden:
+        print(f"[BŁĄD] Brak uprawnień do edycji kanału: {channel_id}")
+    except discord.HTTPException as e:
+        print(f"[BŁĄD] Nie udało się zmienić nazwy kanału {channel_id}: {e}")
 
 
-@tasks.loop(minutes=15)
-async def weather_loop():
-    await update_weather_channels()
+# =========================
+# PANEL TEKSTOWY
+# ZOSTAWIONY W KODZIE NA PRZYSZŁOŚĆ
+# OBECNIE WYŁĄCZONY
+# =========================
+def build_panel_embed(weather: dict) -> discord.Embed:
+    now = get_now()
+    weekday = get_polish_weekday(now)
+    date_text = now.strftime("%d.%m.%Y")
+    time_text = now.strftime("%H:%M:%S")
+
+    temp_text = f"{weather['temp']}°C" if weather["temp"] is not None else "--°C"
+    feels_like_text = f"{weather['feels_like']}°C" if weather["feels_like"] is not None else "--°C"
+    wind_text = f"{weather['wind']} km/h" if weather["wind"] is not None else "-- km/h"
+    pressure_text = f"{weather['pressure']} hPa" if weather["pressure"] is not None else "-- hPa"
+    sunrise_text = weather["sunrise"]
+    sunset_text = weather["sunset"]
+    precip_text = weather.get("precip_text", "🌤️ | Bez opadów").replace("| ", "")
+
+    embed = discord.Embed(
+        title=f"📅 {weekday} • {date_text}",
+        description=(
+            f"🕒 **{time_text}**\n\n"
+            f"🌍 **{TIMEZONE}**\n"
+            f"🌤 **{CITY_NAME} • {temp_text}**\n"
+            f"🌡 **Odczuwalna:** {feels_like_text}\n"
+            f"🚨 **Stan:** {precip_text}\n"
+            f"🧭 **Ciśnienie:** {pressure_text}\n"
+            f"💨 **Wiatr:** {wind_text}\n"
+            f"🌅 **Wschód:** {sunrise_text}\n"
+            f"🌇 **Zachód:** {sunset_text}\n\n"
+            f"Kosmiczny Zegar 24 • Mati"
+        ),
+        color=discord.Color.blue()
+    )
+
+    return embed
 
 
-@tasks.loop(minutes=5)
-async def stats_loop():
+class RefreshView(View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label="Odśwież teraz",
+        style=discord.ButtonStyle.primary,
+        emoji="🔄",
+        custom_id="refresh_panel_button"
+    )
+    async def refresh_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await refresh_all(force_weather=True)
+
+        if interaction.response.is_done():
+            await interaction.followup.send(
+                "✅ Panel i kanały zostały odświeżone.",
+                ephemeral=True
+            )
+        else:
+            await interaction.response.send_message(
+                "✅ Panel i kanały zostały odświeżone.",
+                ephemeral=True
+            )
+
+
+async def find_existing_panel_message(channel: discord.TextChannel):
+    try:
+        async for msg in channel.history(limit=30):
+            if msg.author == bot.user:
+                return msg
+    except discord.Forbidden:
+        print("[BŁĄD] Brak uprawnień do czytania historii wiadomości na kanale panelu.")
+    except discord.HTTPException as e:
+        print(f"[BŁĄD] Nie udało się pobrać historii kanału panelu: {e}")
+    return None
+
+
+async def update_or_create_panel_message(weather: dict):
+    global panel_message
+
+    if PANEL_CHANNEL_ID == 0:
+        return
+
+    channel = bot.get_channel(PANEL_CHANNEL_ID)
+
+    if channel is None:
+        print("[BŁĄD] PANEL_CHANNEL_ID nie wskazuje na istniejący kanał.")
+        return
+
+    if not isinstance(channel, discord.TextChannel):
+        print("[BŁĄD] PANEL_CHANNEL_ID nie wskazuje na kanał tekstowy.")
+        return
+
+    embed = build_panel_embed(weather)
+    view = RefreshView()
+
+    try:
+        if panel_message is None:
+            panel_message = await find_existing_panel_message(channel)
+
+        if panel_message:
+            await panel_message.edit(embed=embed, view=view)
+        else:
+            panel_message = await channel.send(embed=embed, view=view)
+
+    except discord.Forbidden:
+        print("[BŁĄD] Bot nie ma uprawnień do wysyłania lub edycji wiadomości na kanale panelu.")
+    except discord.HTTPException as e:
+        print(f"[BŁĄD] Nie udało się zaktualizować panelu: {e}")
+
+
+# =========================
+# KANAŁY GŁOSOWE INFORMACYJNE
+# =========================
+async def update_voice_channels(weather: dict):
+    now = get_now()
+    weekday = get_polish_weekday(now)
+
+    date_name = f"📅 | {weekday} • {now.strftime('%d.%m.%Y')}"
+    greeting_name = get_greeting(now.hour)
+    moon_name = get_moon_phase_name(now)
+
+    temp_name = (
+        f"🌤️ | {CITY_NAME} {weather['temp']}°C"
+        if weather["temp"] is not None
+        else f"🌤️ | {CITY_NAME} --°C"
+    )
+
+    feels_like_name = (
+        f"🌡️ | Odczuwalna {weather['feels_like']}°C"
+        if weather["feels_like"] is not None
+        else "🌡️ | Odczuwalna --°C"
+    )
+
+    precip_name = weather.get("precip_text", "🌤️ | Bez opadów")
+
+    wind_name = (
+        f"🌬️ | Wiatr {weather['wind']} km/h"
+        if weather["wind"] is not None
+        else "🌬️ | Wiatr -- km/h"
+    )
+
+    pressure_name = (
+        f"🧭 | Ciśnienie {weather['pressure']} hPa"
+        if weather["pressure"] is not None
+        else "🧭 | Ciśnienie -- hPa"
+    )
+
+    sunrise_name = f"🌅 | Wschód {weather['sunrise']}"
+    sunset_name = f"🌇 | Zachód {weather['sunset']}"
+
+    await safe_edit_channel_name(CHANNEL_DATE_ID, date_name)
+    await safe_edit_channel_name(CHANNEL_GREETING_ID, greeting_name)
+    await safe_edit_channel_name(CHANNEL_MOON_ID, moon_name)
+    await safe_edit_channel_name(CHANNEL_TEMP_ID, temp_name)
+    await safe_edit_channel_name(CHANNEL_FEELS_LIKE_ID, feels_like_name)
+    await safe_edit_channel_name(CHANNEL_PRECIP_ID, precip_name)
+    await safe_edit_channel_name(CHANNEL_WIND_ID, wind_name)
+    await safe_edit_channel_name(CHANNEL_PRESSURE_ID, pressure_name)
+    await safe_edit_channel_name(CHANNEL_SUNRISE_ID, sunrise_name)
+    await safe_edit_channel_name(CHANNEL_SUNSET_ID, sunset_name)
+
+    print("[INFO] Kanały głosowe zostały odświeżone.")
+
+
+# =========================
+# STATYSTYKI SERWERA
+# =========================
+async def update_server_stats():
+    for guild in bot.guilds:
+        members_total = guild.member_count or 0
+
+        online_count = sum(
+            1 for member in guild.members
+            if not member.bot and member.status != discord.Status.offline
+        )
+
+        vc_count = sum(
+            1 for member in guild.members
+            if not member.bot and member.voice and member.voice.channel is not None
+        )
+
+        await safe_edit_channel_name(CHANNEL_MEMBERS_ID, f"👥 Członkowie • {members_total}")
+        await safe_edit_channel_name(CHANNEL_ONLINE_ID, f"🟢 Online • {online_count}")
+        await safe_edit_channel_name(CHANNEL_VC_ID, f"🎤 Na VC • {vc_count}")
+
+        print("[INFO] Statystyki serwera zostały odświeżone.")
+        break
+
+
+# =========================
+# STATUS BOTA NA PASKU
+# =========================
+async def update_bot_clock_status():
+    now = get_now()
+    time_text = now.strftime("%H:%M:%S")
+
+    try:
+        await bot.change_presence(
+            status=discord.Status.online,
+            activity=discord.Activity(
+                type=discord.ActivityType.watching,
+                name=f"🕒 {time_text}"
+            )
+        )
+    except Exception as e:
+        print(f"[BŁĄD] Nie udało się ustawić statusu bota: {e}")
+
+
+# =========================
+# GŁÓWNE ODŚWIEŻANIE
+# =========================
+async def refresh_all(force_weather: bool = False):
+    if force_weather:
+        await refresh_weather_cache()
+
+    await update_voice_channels(weather_cache)
     await update_server_stats()
 
+    # PANEL WYŁĄCZONY
+    # await update_or_create_panel_message(weather_cache)
 
+
+async def refresh_panel_only():
+    await update_or_create_panel_message(weather_cache)
+
+
+# =========================
+# PĘTLE
+# =========================
 @tasks.loop(seconds=5)
-async def presence_loop():
-    await update_bot_presence()
+async def panel_clock_loop():
+    await refresh_panel_only()
 
 
-@time_loop.before_loop
-async def before_time_loop():
+@panel_clock_loop.before_loop
+async def before_panel_clock_loop():
     await bot.wait_until_ready()
 
 
-@weather_loop.before_loop
-async def before_weather_loop():
+@tasks.loop(seconds=60)
+async def channels_refresh_loop():
+    await refresh_weather_cache()
+    await update_voice_channels(weather_cache)
+    await update_server_stats()
+    print("[INFO] Uruchomiono odświeżanie kanałów, statystyk i pogody.")
+
+
+@channels_refresh_loop.before_loop
+async def before_channels_refresh_loop():
     await bot.wait_until_ready()
 
 
-@stats_loop.before_loop
-async def before_stats_loop():
+@tasks.loop(seconds=15)
+async def bot_status_loop():
+    await update_bot_clock_status()
+
+
+@bot_status_loop.before_loop
+async def before_bot_status_loop():
     await bot.wait_until_ready()
 
 
-@presence_loop.before_loop
-async def before_presence_loop():
-    await bot.wait_until_ready()
-
-# =========================================================
-# EVENTY
-# =========================================================
-
+# =========================
+# READY
+# =========================
 @bot.event
 async def on_ready():
-    logging.info(f"Zalogowano jako {bot.user} (ID: {bot.user.id})")
-    logging.info(f"Bot jest na {len(bot.guilds)} serwerach.")
+    print(f"Zalogowano jako {bot.user} (ID: {bot.user.id})")
 
-    for g in bot.guilds:
-        logging.info(f"Serwer: {g.name} | ID: {g.id}")
+    try:
+        bot.add_view(RefreshView())
+        print("[INFO] Zarejestrowano persistent view")
+    except Exception as e:
+        print(f"[BŁĄD] Nie udało się zarejestrować persistent view: {e}")
 
-    guild = get_guild()
-    if guild:
-        logging.info(f"Połączono z serwerem: {guild.name} ({guild.id})")
-    else:
-        logging.warning("Bot nie widzi serwera po GUILD_ID.")
-
-    if not time_loop.is_running():
-        time_loop.start()
-
-    if not weather_loop.is_running():
-        weather_loop.start()
-
-    if not stats_loop.is_running():
-        stats_loop.start()
-
-    if not presence_loop.is_running():
-        presence_loop.start()
-
-    await update_bot_presence()
-    await update_time_channels()
-    await update_weather_channels()
+    await refresh_weather_cache()
+    await update_voice_channels(weather_cache)
     await update_server_stats()
+    await update_bot_clock_status()
 
-# =========================================================
-# TEST
-# =========================================================
+    # PANEL WYŁĄCZONY
+    # await update_or_create_panel_message(weather_cache)
 
-@bot.command()
-async def ping(ctx):
-    await ctx.send("🏓 Pong!")
+    # PANEL WYŁĄCZONY
+    # if not panel_clock_loop.is_running():
+    #     panel_clock_loop.start()
 
-# =========================================================
+    if not channels_refresh_loop.is_running():
+        channels_refresh_loop.start()
+
+    if not bot_status_loop.is_running():
+        bot_status_loop.start()
+
+
+# =========================
 # START
-# =========================================================
-
-if not TOKEN:
-    raise ValueError("Brak DISCORD_TOKEN w pliku .env lub Variables na Railway")
-
-bot.run(TOKEN)
+# =========================
+bot.run(DISCORD_TOKEN)
