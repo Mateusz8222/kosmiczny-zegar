@@ -1285,7 +1285,7 @@ async def get_weather_data(
     weather_url = (
         "https://api.open-meteo.com/v1/forecast"
         f"?latitude={latitude}&longitude={longitude}"
-        "&current=temperature_2m,apparent_temperature,cloud_cover,precipitation,rain,showers,snowfall,weather_code,wind_speed_10m,wind_gusts_10m,surface_pressure,visibility"
+        "&current=temperature_2m,apparent_temperature,cloud_cover,precipitation,rain,showers,snowfall,weather_code,wind_speed_10m,wind_gusts_10m,pressure_msl,visibility,is_day"
         "&daily=sunrise,sunset"
         f"&timezone={encoded_timezone}"
     )
@@ -1306,11 +1306,11 @@ async def get_weather_data(
         fetch_json(weather_url), fetch_json(air_url), fetch_json(pollen_url)
     )
 
-    current = weather_data.get("current", {}) or {}
-    daily = weather_data.get("daily", {}) or {}
-    air_current = air_data.get("current", {}) or {}
-    hourly = pollen_data.get("hourly", {}) or {}
-    hourly_time = hourly.get("time", []) or []
+    current = weather_data.get("current") or {}
+    daily = weather_data.get("daily") or {}
+    air_current = air_data.get("current") or {}
+    hourly = pollen_data.get("hourly") or {}
+    hourly_time = hourly.get("time") or []
     current_time = current.get("time")
 
     pollen_index = 0
@@ -1318,7 +1318,7 @@ async def get_weather_data(
         pollen_index = hourly_time.index(current_time)
 
     def pollen_value(name: str):
-        values = hourly.get(name, []) or []
+        values = hourly.get(name) or []
         if 0 <= pollen_index < len(values):
             return values[pollen_index]
         return 0
@@ -1337,12 +1337,20 @@ async def get_weather_data(
     feels = current.get("apparent_temperature")
     clouds = current.get("cloud_cover")
     wind = current.get("wind_speed_10m")
-    pressure = current.get("surface_pressure")
+    pressure = current.get("pressure_msl")
 
-    sunrise_raw = (daily.get("sunrise") or [None])[0]
-    sunset_raw = (daily.get("sunset") or [None])[0]
-    sunrise_time = sunrise_raw[11:16] if sunrise_raw else "--:--"
-    sunset_time = sunset_raw[11:16] if sunset_raw else "--:--"
+    sunrise_raw_list = daily.get("sunrise") or []
+    sunset_raw_list = daily.get("sunset") or []
+    sunrise_raw = sunrise_raw_list[0] if sunrise_raw_list else None
+    sunset_raw = sunset_raw_list[0] if sunset_raw_list else None
+
+    sunrise_time = "--:--"
+    sunset_time = "--:--"
+
+    if isinstance(sunrise_raw, str) and len(sunrise_raw) >= 16:
+        sunrise_time = sunrise_raw[11:16]
+    if isinstance(sunset_raw, str) and len(sunset_raw) >= 16:
+        sunset_time = sunset_raw[11:16]
 
     return {
         "temperature": f"🌡 {city_name.upper()} {round(float(temp))}°C"
@@ -1367,7 +1375,6 @@ async def get_weather_data(
         "sunset_time": sunset_time,
         "day_length": day_length_text(sunrise_time, sunset_time, lang),
     }
-
 
 # ================================
 # PANEL KANAŁÓW
@@ -1503,7 +1510,9 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
     )
 
     try:
-        bans_count = sum(1 async for _ in guild.bans(limit=None))
+        bans_count = 0
+        async for _ in guild.bans(limit=None):
+            bans_count += 1
     except discord.Forbidden:
         logging.warning("[STATYSTYKI] Brak uprawnień do odczytu banów na serwerze %s", guild.name)
         bans_count = 0
