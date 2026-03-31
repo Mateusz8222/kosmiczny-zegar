@@ -122,13 +122,13 @@ WEATHER_REFRESH_MINUTES = 5
 CLOCK_REFRESH_SECONDS = 60
 STATS_FALLBACK_REFRESH_SECONDS = 45
 STATUS_CLOCK_REFRESH_SECONDS = 120
-CHANNEL_EDIT_DELAY = 0.1
+CHANNEL_EDIT_DELAY = 0.05
 STATS_REFRESH_DEBOUNCE_SECONDS = 8
 WEATHER_API_MIN_INTERVAL_SECONDS = 600
 WEATHER_API_ERROR_BACKOFF_SECONDS = 900
 GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS = 0.05
 GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS = 0.05
-MAX_CHANNEL_EDITS_PER_MINUTE = 40
+MAX_CHANNEL_EDITS_PER_MINUTE = 25
 EDIT_SPAM_EXTRA_BACKOFF_SECONDS = 8
 DISCORD_RATE_LIMIT_SOFT_THRESHOLD_SECONDS = 10
 DISCORD_RATE_LIMIT_LONG_THRESHOLD_SECONDS = 45
@@ -1256,6 +1256,33 @@ def get_weather_api_backoff_remaining(guild_id: int) -> int:
     return max(0, remaining)
 
 
+
+
+def get_recent_channel_edit_count(window_seconds: int = 60) -> int:
+    now_ts = datetime.now(UTC).timestamp()
+    return sum(1 for ts in channel_edit_timestamps if now_ts - ts < window_seconds)
+
+
+def get_smart_channel_delay(guild_id: int | None) -> float:
+    # During first fill / manual turbo we still stay fast, but no longer at zero.
+    if guild_id is not None and (not initial_boot_fill_done.get(guild_id, False) or is_fast_refresh_active(guild_id)):
+        recent = get_recent_channel_edit_count(20)
+        if recent >= 18:
+            return 0.12
+        if recent >= 12:
+            return 0.08
+        return 0.05
+
+    recent = get_recent_channel_edit_count(60)
+    if recent >= 22:
+        return 0.20
+    if recent >= 16:
+        return 0.12
+    if recent >= 10:
+        return 0.08
+    return CHANNEL_EDIT_DELAY
+
+
 def get_effective_channel_edit_delay(guild_id: int | None) -> float:
     if guild_id is not None and (not initial_boot_fill_done.get(guild_id, False) or is_fast_refresh_active(guild_id)):
         return 0.0
@@ -1276,7 +1303,7 @@ def get_effective_guild_edit_cooldown(guild_id: int | None) -> float:
 
 def get_effective_max_edits_per_minute(guild_id: int | None) -> int:
     if guild_id is not None and (not initial_boot_fill_done.get(guild_id, False) or is_fast_refresh_active(guild_id)):
-        return 80
+        return 25
     return MAX_CHANNEL_EDITS_PER_MINUTE
 
 
@@ -1427,6 +1454,7 @@ async def _apply_channel_name_edit(channel: discord.abc.GuildChannel | None, new
                 set_discord_backoff(guild_id, wait_time)
 
                 if wait_time >= DISCORD_RATE_LIMIT_LONG_THRESHOLD_SECONDS:
+                    manual_fast_refresh_until.pop(guild_id, None)
                     logging.warning(
                         "[ANTI-429] Długi rate limit dla kanału %s (%.2fs). Wstrzymuję odświeżanie bez retry.",
                         channel.id,
@@ -1435,7 +1463,7 @@ async def _apply_channel_name_edit(channel: discord.abc.GuildChannel | None, new
                     return
 
                 logging.warning(
-                    "Rate limit dla kanału %s. Czekam %.2fs i próbuję ponownie.",
+                    "[SMART] Rate limit dla kanału %s. Czekam %.2fs i spowalniam scheduler.",
                     channel.id,
                     wait_time,
                 )
@@ -1656,7 +1684,7 @@ async def schedule_background_refresh(
     async def runner():
         try:
             logging.info("[REFRESH] Start pełnego odświeżenia dla serwera %s", guild.name)
-            manual_fast_refresh_until[guild.id] = datetime.now(UTC) + timedelta(seconds=20)
+            manual_fast_refresh_until[guild.id] = datetime.now(UTC) + timedelta(seconds=12)
             last_full_refresh_at[guild.id] = datetime.now(UTC)
             await ensure_guild_members_cached(guild)
             await refresh_existing_panel(
@@ -2710,7 +2738,7 @@ async def setup_command(interaction: discord.Interaction):
     try:
         await setup_categories_and_channels(guild)
         await schedule_background_refresh(guild, force_full=True)
-        await flush_channel_edit_queue(timeout=12.0)
+        await flush_channel_edit_queue(timeout=3.0)
         await interaction.followup.send(tr(lang, "setup_ok"), ephemeral=True)
     except Exception as e:
         await interaction.followup.send(tr(lang, "setup_error", error=e), ephemeral=True)
@@ -2733,7 +2761,7 @@ async def refresh_command(interaction: discord.Interaction):
             await interaction.followup.send(tr(lang, "refresh_no_config"), ephemeral=True)
             return
         await schedule_background_refresh(guild, force_full=True)
-        await flush_channel_edit_queue(timeout=12.0)
+        await flush_channel_edit_queue(timeout=3.0)
         await interaction.followup.send(tr(lang, "refresh_ok"), ephemeral=True)
     except Exception as e:
         await interaction.followup.send(tr(lang, "refresh_error", error=e), ephemeral=True)
@@ -2954,12 +2982,12 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
         weather_api_backoff_until.pop(guild.id, None)
 
         # krótki tryb turbo dla natychmiastowej aktualizacji po komendzie /miasto
-        manual_fast_refresh_until[guild.id] = datetime.now(UTC) + timedelta(seconds=20)
+        manual_fast_refresh_until[guild.id] = datetime.now(UTC) + timedelta(seconds=12)
 
         weather = await get_weather_data_for_guild(guild, cfg, force=True)
         await update_weather_channels(guild, cfg, weather)
         await update_clock_channels(guild, cfg, weather)
-        await flush_channel_edit_queue(timeout=10.0)
+        await flush_channel_edit_queue(timeout=5.0)
 
         extra = f", {city['admin1']}" if city.get("admin1") else ""
         await interaction.followup.send(
@@ -3310,7 +3338,7 @@ class AdminPanelView(discord.ui.View):
             cfg = get_guild_config(guild.id)
             if cfg and cfg.get("channels"):
                 await update_stats_channels(guild, cfg)
-                await flush_channel_edit_queue(timeout=6.0)
+                await flush_channel_edit_queue(timeout=3.0)
 
         await self._run_action(interaction, "Odświeżyłem statystyki.", action())
 
@@ -3324,7 +3352,7 @@ class AdminPanelView(discord.ui.View):
                 weather = await get_weather_data_for_guild(guild, cfg, force=True)
                 await update_weather_channels(guild, cfg, weather)
                 await update_clock_channels(guild, cfg, weather)
-                await flush_channel_edit_queue(timeout=8.0)
+                await flush_channel_edit_queue(timeout=4.0)
 
         await self._run_action(interaction, "Odświeżyłem pogodę i powiązany zegar.", action())
 
@@ -3336,7 +3364,7 @@ class AdminPanelView(discord.ui.View):
             cfg = get_guild_config(guild.id)
             if cfg and cfg.get("channels"):
                 await update_clock_channels(guild, cfg)
-                await flush_channel_edit_queue(timeout=6.0)
+                await flush_channel_edit_queue(timeout=3.0)
 
         await self._run_action(interaction, "Odświeżyłem zegar.", action())
 
@@ -3642,4 +3670,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-# v7.4 turbo patch applied
+# v7.4 turb
