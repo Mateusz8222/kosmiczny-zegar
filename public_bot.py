@@ -1,4 +1,7 @@
 import asyncio
+
+_channel_edit_worker_task = None
+
 import json
 import logging
 import os
