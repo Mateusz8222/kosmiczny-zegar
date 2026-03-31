@@ -1,0 +1,23 @@
+{
+  "common": {
+    "name": "Common Skrzynka",
+    "price": 1000,
+    "rewards": [
+      { "type": "points", "label": "250 punktów", "value": 250, "chance": 40 },
+      { "type": "points", "label": "500 punktów", "value": 500, "chance": 30 },
+      { "type": "points", "label": "1000 punktów", "value": 1000, "chance": 20 },
+      { "type": "nothing", "label": "Pusta skrzynka", "chance": 10 }
+    ]
+  },
+  "rare": {
+    "name": "Rare Skrzynka",
+    "price": 3000,
+    "rewards": [
+      { "type": "points", "label": "1000 punktów", "value": 1000, "chance": 35 },
+      { "type": "points", "label": "2500 punktów", "value": 2500, "chance": 30 },
+      { "type": "points", "label": "5000 punktów", "value": 5000, "chance": 20 },
+      { "type": "manual", "label": "Nagroda specjalna", "chance": 10 },
+      { "type": "nothing", "label": "Pusta skrzynka", "chance": 5 }
+    ]
+  }
+}
