@@ -2184,7 +2184,7 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict |
 
     keys_to_edit = edit_keys or list(clock_names.keys())
     for key in keys_to_edit:
-        await queue_channel_edit_priority(get_channel_from_config(guild, cfg, key, PRIORITY_DEFAULT), clock_names[key])
+        await queue_channel_edit_priority(get_channel_from_config(guild, cfg, key), clock_names[key], PRIORITY_DEFAULT)
 
 
 async def update_stats_channels(guild: discord.Guild, cfg: dict):
@@ -2248,7 +2248,7 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
     ]
 
     for key, new_name in updates:
-        await queue_channel_edit_priority(get_channel_from_config(guild, cfg, key, PRIORITY_DEFAULT), new_name)
+        await queue_channel_edit_priority(get_channel_from_config(guild, cfg, key), new_name, PRIORITY_DEFAULT)
 
 
 async def refresh_existing_panel(
