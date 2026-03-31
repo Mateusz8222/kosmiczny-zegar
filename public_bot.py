@@ -120,7 +120,8 @@ DEFAULT_LANGUAGE = "pl"
 # Uspokojone odświeżanie pod Discord API / 429
 WEATHER_REFRESH_MINUTES = 5
 CLOCK_REFRESH_SECONDS = 60
-STATS_FALLBACK_REFRESH_SECONDS = 45
+STATS_FALLBACK_REFRESH_SECONDS = 90
+ONLINE_CHANNEL_MIN_UPDATE_SECONDS = 45
 STATUS_CLOCK_REFRESH_SECONDS = 120
 CHANNEL_EDIT_DELAY = 0.05
 STATS_REFRESH_DEBOUNCE_SECONDS = 8
@@ -158,6 +159,7 @@ weather_cache_fetched_at: dict[int, datetime] = {}
 weather_api_backoff_until: dict[int, datetime] = {}
 background_refresh_tasks: dict[int, asyncio.Task] = {}
 last_presence_text: str | None = None
+last_online_channel_update_at: dict[int, datetime] = {}
 last_weather_snapshot: dict[int, dict[str, object]] = {}
 last_clock_snapshot: dict[int, dict[str, str]] = {}
 last_valid_clock_snapshot: dict[int, dict[str, str]] = {}
@@ -2289,7 +2291,21 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
     ]
 
     for key, new_name in updates:
-        await queue_channel_edit_priority(get_channel_from_config(guild, cfg, key), new_name, PRIORITY_DEFAULT)
+        channel = get_channel_from_config(guild, cfg, key)
+        if key == "online":
+            now = datetime.now(UTC)
+            last_online = last_online_channel_update_at.get(guild.id)
+            if last_online is not None and (now - last_online).total_seconds() < ONLINE_CHANNEL_MIN_UPDATE_SECONDS:
+                logging.info(
+                    "[STATYSTYKI] Pomijam szybkie odświeżenie kanału online dla %s",
+                    guild.name,
+                )
+                continue
+            await queue_channel_edit_priority(channel, new_name, PRIORITY_DEFAULT)
+            last_online_channel_update_at[guild.id] = now
+            continue
+
+        await queue_channel_edit_priority(channel, new_name, PRIORITY_DEFAULT)
 
 
 
@@ -3670,4 +3686,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-# v7.4 turb
+# v7.4 turbo patch applied
