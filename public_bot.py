@@ -3,26 +3,6 @@ import asyncio
 _channel_edit_worker_task = None
 
 
-async def maybe_defer(interaction: discord.Interaction, ephemeral: bool = True):
-    try:
-        if not interaction.response.is_done():
-            await interaction.response.defer(ephemeral=ephemeral)
-    except Exception:
-        pass
-
-
-async def send_interaction_message(interaction: discord.Interaction, content: str, ephemeral: bool = True, **kwargs):
-    try:
-        if interaction.response.is_done():
-            await interaction.followup.send(content, ephemeral=ephemeral, **kwargs)
-        else:
-            await send_interaction_message(interaction, content, ephemeral=ephemeral, **kwargs)
-    except Exception:
-        try:
-            await interaction.followup.send(content, ephemeral=ephemeral, **kwargs)
-        except Exception:
-            pass
-
 
 import json
 import logging
@@ -38,6 +18,28 @@ import discord
 import pytz
 from discord import app_commands
 from discord.ext import commands, tasks
+
+async def maybe_defer(interaction, ephemeral: bool = True):
+    try:
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=ephemeral)
+    except Exception:
+        pass
+
+
+async def send_interaction_message(interaction, content: str, ephemeral: bool = True, **kwargs):
+    try:
+        if interaction.response.is_done():
+            await interaction.followup.send(content, ephemeral=ephemeral, **kwargs)
+        else:
+            await send_interaction_message(interaction, content, ephemeral=ephemeral, **kwargs)
+    except Exception:
+        try:
+            await interaction.followup.send(content, ephemeral=ephemeral, **kwargs)
+        except Exception:
+            pass
+
+
 
 # ================================
 # KOSMICZNY ZEGAR PUBLIC - BOT v25
@@ -3535,3 +3537,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
