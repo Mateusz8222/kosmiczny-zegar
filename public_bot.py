@@ -2,6 +2,18 @@ import asyncio
 
 _channel_edit_worker_task = None
 
+# v7.4 turbo queue + dead channel cache
+channel_edit_priority_queue = asyncio.PriorityQueue()
+dead_channel_ids: set[int] = set()
+channel_last_desired_name: dict[int, str] = {}
+
+PRIORITY_SETUP = 0
+PRIORITY_ADMIN = 1
+PRIORITY_STATS = 2
+PRIORITY_CLOCK = 3
+PRIORITY_WEATHER = 4
+PRIORITY_DEFAULT = 5
+
 
 
 import json
@@ -18,6 +30,33 @@ import discord
 import pytz
 from discord import app_commands
 from discord.ext import commands, tasks
+
+
+async def queue_channel_edit_priority(channel, new_name: str, priority: int = PRIORITY_DEFAULT):
+    if channel is None:
+        return
+
+    channel_id = getattr(channel, "id", None)
+    if channel_id is None or channel_id in dead_channel_ids:
+        return
+
+    try:
+        new_name = trim_channel_name(new_name)
+    except Exception:
+        pass
+
+    if not new_name:
+        return
+
+    current_name = getattr(channel, "name", None)
+    if current_name == new_name:
+        return
+
+    if channel_last_desired_name.get(channel_id) == new_name:
+        return
+
+    channel_last_desired_name[channel_id] = new_name
+    await channel_edit_priority_queue.put((priority, channel_id))
 
 async def maybe_defer(interaction, ephemeral: bool = True):
     try:
@@ -1409,24 +1448,29 @@ async def _apply_channel_name_edit(channel: discord.abc.GuildChannel | None, new
 
 
 
+
 async def channel_edit_worker():
     while True:
-        channel_id = await channel_edit_queue.get()
+        priority, channel_id = await channel_edit_priority_queue.get()
         try:
-            new_name = pending_channel_edits.pop(channel_id, None)
+            if channel_id in dead_channel_ids:
+                continue
+
+            new_name = channel_last_desired_name.pop(channel_id, None)
             if not new_name:
                 continue
 
             channel = bot.get_channel(channel_id)
             if channel is None:
-                logging.warning("[QUEUE] Kanał %s nie istnieje - pomijam kolejkę edycji", channel_id)
+                dead_channel_ids.add(channel_id)
+                logging.warning("[QUEUE] Kanał %s nie istnieje - oznaczam jako martwy", channel_id)
                 continue
 
-            await queue_channel_edit(channel, new_name)
+            await queue_channel_edit_priority(channel, new_name, PRIORITY_DEFAULT)
         except Exception as e:
-            logging.warning("[QUEUE] Błąd workera edycji kanału: %s", e)
+            logging.warning("[QUEUE] Błąd workera turbo: %s", e)
         finally:
-            channel_edit_queue.task_done()
+            channel_edit_priority_queue.task_done()
 
 
 
@@ -1471,7 +1515,7 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
 
     # deduplikacja - dla danego kanału trzymamy tylko ostatnią żądaną nazwę
     queued_channel_names[channel.id] = new_name
-    await queue_channel_edit(channel, new_name)
+    await queue_channel_edit_priority(channel, new_name, PRIORITY_DEFAULT)
 
 
 async def ensure_channel_edit_worker_running():
@@ -2133,7 +2177,7 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict |
 
     keys_to_edit = edit_keys or list(clock_names.keys())
     for key in keys_to_edit:
-        await queue_channel_edit(get_channel_from_config(guild, cfg, key), clock_names[key])
+        await queue_channel_edit_priority(get_channel_from_config(guild, cfg, key, PRIORITY_DEFAULT), clock_names[key])
 
 
 async def update_stats_channels(guild: discord.Guild, cfg: dict):
@@ -2197,7 +2241,7 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
     ]
 
     for key, new_name in updates:
-        await queue_channel_edit(get_channel_from_config(guild, cfg, key), new_name)
+        await queue_channel_edit_priority(get_channel_from_config(guild, cfg, key, PRIORITY_DEFAULT), new_name)
 
 
 async def refresh_existing_panel(
@@ -3487,6 +3531,8 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
 async def on_ready():
 
     global _channel_edit_worker_task
+    dead_channel_ids.clear()
+    channel_last_desired_name.clear()
     if _channel_edit_worker_task is None or _channel_edit_worker_task.done():
         _channel_edit_worker_task = asyncio.create_task(channel_edit_worker())
     logging.info(
@@ -3538,3 +3584,4 @@ def main():
 if __name__ == "__main__":
     main()
 
+# v7.4 turbo patch applied
