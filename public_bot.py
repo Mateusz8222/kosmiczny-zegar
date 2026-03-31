@@ -2668,8 +2668,7 @@ async def setup_command(interaction: discord.Interaction):
     cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
     lang = get_lang_code(cfg)
 
-    await interaction.response.defer(ephemeral=True)
-    try:
+        try:
         await setup_categories_and_channels(guild)
         await schedule_background_refresh(guild, force_full=True)
         await interaction.followup.send(tr(lang, "setup_ok"), ephemeral=True)
@@ -2689,8 +2688,7 @@ async def refresh_command(interaction: discord.Interaction):
     cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
     lang = get_lang_code(cfg)
 
-    await interaction.response.defer(ephemeral=True)
-    try:
+        try:
         if not cfg.get("channels"):
             await interaction.followup.send(tr(lang, "refresh_no_config"), ephemeral=True)
             return
@@ -2969,8 +2967,7 @@ async def napraw_id_command(interaction: discord.Interaction):
         await send_interaction_message(interaction, "ℹ️ Brak konfiguracji kanałów. Najpierw użyj `/setup`.", ephemeral=True)
         return
 
-    await interaction.response.defer(ephemeral=True)
-    repaired = 0
+        repaired = 0
     checked = 0
 
     for key in CHANNEL_TEMPLATE_KEYS.keys():
@@ -3134,8 +3131,7 @@ async def delete_weather_category_command(interaction: discord.Interaction):
         return
 
     lang = get_lang_code(cfg)
-    await interaction.response.defer(ephemeral=True)
-    await delete_category_with_channels(guild, cfg.get("weather_category_id"))
+        await delete_category_with_channels(guild, cfg.get("weather_category_id"))
     cfg["weather_category_id"] = None
     cfg = remove_channel_keys_by_group(cfg, "weather")
     save_guild_config(guild.id, cfg)
@@ -3159,8 +3155,7 @@ async def delete_clock_category_command(interaction: discord.Interaction):
         return
 
     lang = get_lang_code(cfg)
-    await interaction.response.defer(ephemeral=True)
-    await delete_category_with_channels(guild, cfg.get("clock_category_id"))
+        await delete_category_with_channels(guild, cfg.get("clock_category_id"))
     cfg["clock_category_id"] = None
     cfg = remove_channel_keys_by_group(cfg, "clock")
     save_guild_config(guild.id, cfg)
@@ -3182,8 +3177,7 @@ async def delete_stats_category_command(interaction: discord.Interaction):
         return
 
     lang = get_lang_code(cfg)
-    await interaction.response.defer(ephemeral=True)
-    await delete_category_with_channels(guild, cfg.get("stats_category_id"))
+        await delete_category_with_channels(guild, cfg.get("stats_category_id"))
     cfg["stats_category_id"] = None
     cfg = remove_channel_keys_by_group(cfg, "stats")
     save_guild_config(guild.id, cfg)
@@ -3205,8 +3199,7 @@ async def delete_all_command(interaction: discord.Interaction):
         return
 
     lang = get_lang_code(cfg)
-    await interaction.response.defer(ephemeral=True)
-    await delete_category_with_channels(guild, cfg.get("weather_category_id"))
+        await delete_category_with_channels(guild, cfg.get("weather_category_id"))
     await delete_category_with_channels(guild, cfg.get("clock_category_id"))
     await delete_category_with_channels(guild, cfg.get("stats_category_id"))
     cfg["weather_category_id"] = None
