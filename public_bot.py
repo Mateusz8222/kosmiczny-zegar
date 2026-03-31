@@ -122,13 +122,13 @@ WEATHER_REFRESH_MINUTES = 5
 CLOCK_REFRESH_SECONDS = 60
 STATS_FALLBACK_REFRESH_SECONDS = 45
 STATUS_CLOCK_REFRESH_SECONDS = 120
-CHANNEL_EDIT_DELAY = 0.35
+CHANNEL_EDIT_DELAY = 0.1
 STATS_REFRESH_DEBOUNCE_SECONDS = 8
 WEATHER_API_MIN_INTERVAL_SECONDS = 600
 WEATHER_API_ERROR_BACKOFF_SECONDS = 900
-GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS = 0.25
-GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS = 0.4
-MAX_CHANNEL_EDITS_PER_MINUTE = 18
+GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS = 0.05
+GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS = 0.05
+MAX_CHANNEL_EDITS_PER_MINUTE = 40
 EDIT_SPAM_EXTRA_BACKOFF_SECONDS = 8
 DISCORD_RATE_LIMIT_SOFT_THRESHOLD_SECONDS = 10
 DISCORD_RATE_LIMIT_LONG_THRESHOLD_SECONDS = 45
@@ -163,6 +163,7 @@ last_clock_snapshot: dict[int, dict[str, str]] = {}
 last_valid_clock_snapshot: dict[int, dict[str, str]] = {}
 last_full_refresh_at: dict[int, datetime] = {}
 initial_boot_fill_done: dict[int, bool] = {}
+manual_fast_refresh_until: dict[int, datetime] = {}
 channel_edit_queue: asyncio.Queue[tuple[discord.abc.GuildChannel | None, str]] = asyncio.Queue()
 channel_edit_worker_task: asyncio.Task | None = None
 queued_channel_names: dict[int, str] = {}
@@ -1237,6 +1238,16 @@ def is_discord_backoff_active(guild_id: int | None = None) -> bool:
     return get_discord_backoff_remaining(guild_id) > 0
 
 
+
+def is_fast_refresh_active(guild_id: int | None) -> bool:
+    if guild_id is None:
+        return False
+    until = manual_fast_refresh_until.get(guild_id)
+    if until is None:
+        return False
+    return datetime.now(UTC) < until
+
+
 def get_weather_api_backoff_remaining(guild_id: int) -> int:
     until = weather_api_backoff_until.get(guild_id)
     if until is None:
@@ -1246,26 +1257,26 @@ def get_weather_api_backoff_remaining(guild_id: int) -> int:
 
 
 def get_effective_channel_edit_delay(guild_id: int | None) -> float:
-    if guild_id is not None and not initial_boot_fill_done.get(guild_id, False):
-        return 0.15
+    if guild_id is not None and (not initial_boot_fill_done.get(guild_id, False) or is_fast_refresh_active(guild_id)):
+        return 0.0
     return CHANNEL_EDIT_DELAY
 
 
 def get_effective_global_edit_cooldown(guild_id: int | None) -> float:
-    if guild_id is not None and not initial_boot_fill_done.get(guild_id, False):
-        return 0.08
+    if guild_id is not None and (not initial_boot_fill_done.get(guild_id, False) or is_fast_refresh_active(guild_id)):
+        return 0.0
     return GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS
 
 
 def get_effective_guild_edit_cooldown(guild_id: int | None) -> float:
-    if guild_id is not None and not initial_boot_fill_done.get(guild_id, False):
-        return 0.12
+    if guild_id is not None and (not initial_boot_fill_done.get(guild_id, False) or is_fast_refresh_active(guild_id)):
+        return 0.0
     return GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS
 
 
 def get_effective_max_edits_per_minute(guild_id: int | None) -> int:
-    if guild_id is not None and not initial_boot_fill_done.get(guild_id, False):
-        return 28
+    if guild_id is not None and (not initial_boot_fill_done.get(guild_id, False) or is_fast_refresh_active(guild_id)):
+        return 80
     return MAX_CHANNEL_EDITS_PER_MINUTE
 
 
@@ -1629,6 +1640,7 @@ async def schedule_background_refresh(
             except Exception as e:
                 logging.warning("Błąd częściowego refresh dla serwera %s: %s", guild.id, e)
             finally:
+                manual_fast_refresh_until.pop(guild.id, None)
                 background_refresh_tasks.pop(guild.id, None)
 
         background_refresh_tasks[guild.id] = asyncio.create_task(runner())
@@ -1644,6 +1656,7 @@ async def schedule_background_refresh(
     async def runner():
         try:
             logging.info("[REFRESH] Start pełnego odświeżenia dla serwera %s", guild.name)
+            manual_fast_refresh_until[guild.id] = datetime.now(UTC) + timedelta(seconds=20)
             last_full_refresh_at[guild.id] = datetime.now(UTC)
             await ensure_guild_members_cached(guild)
             await refresh_existing_panel(
