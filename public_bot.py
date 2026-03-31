@@ -1381,27 +1381,53 @@ async def _apply_channel_name_edit(channel: discord.abc.GuildChannel | None, new
             logging.warning("Nie udało się zmienić nazwy kanału %s: %s", channel.id, e)
 
 
+
 async def channel_edit_worker():
-    logging.info("[QUEUE] Uruchomiono worker kolejki edycji kanałów")
     while True:
-        channel, queued_name = await channel_edit_queue.get()
+        channel_id = await channel_edit_queue.get()
         try:
+            new_name = pending_channel_edits.pop(channel_id, None)
+            if not new_name:
+                continue
+
+            channel = bot.get_channel(channel_id)
             if channel is None:
+                logging.warning("[QUEUE] Kanał %s nie istnieje - pomijam kolejkę edycji", channel_id)
                 continue
-            latest_name = queued_channel_names.get(channel.id)
-            if latest_name is None:
-                continue
-            if latest_name != queued_name:
-                # starsze zlecenie - pomijam, bo jest już nowsza nazwa
-                continue
-            await _apply_channel_name_edit(channel, queued_name)
+
+            await queue_channel_edit(channel, new_name)
         except Exception as e:
-            logging.warning("[QUEUE] Błąd workera kolejki dla kanału %s: %s", getattr(channel, 'id', 'unknown'), e)
+            logging.warning("[QUEUE] Błąd workera edycji kanału: %s", e)
         finally:
-            if channel is not None and queued_channel_names.get(channel.id) == queued_name:
-                queued_channel_names.pop(channel.id, None)
             channel_edit_queue.task_done()
 
+
+
+pending_channel_edits: dict[int, str] = {}
+
+async def queue_channel_edit(channel, new_name: str):
+    if channel is None:
+        return
+
+    try:
+        new_name = trim_channel_name(new_name)
+    except Exception:
+        pass
+
+    if not new_name:
+        return
+
+    current_name = getattr(channel, "name", None)
+    if current_name == new_name:
+        return
+
+    channel_id = getattr(channel, "id", None)
+    if channel_id is None:
+        return
+
+    # Keep only the latest desired name per channel.
+    pending_channel_edits[channel_id] = new_name
+    await channel_edit_queue.put(channel_id)
 
 async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_name: str):
     if channel is None:
@@ -1418,7 +1444,7 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
 
     # deduplikacja - dla danego kanału trzymamy tylko ostatnią żądaną nazwę
     queued_channel_names[channel.id] = new_name
-    await channel_edit_queue.put((channel, new_name))
+    await queue_channel_edit(channel, new_name)
 
 
 async def ensure_channel_edit_worker_running():
@@ -2080,7 +2106,7 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict |
 
     keys_to_edit = edit_keys or list(clock_names.keys())
     for key in keys_to_edit:
-        await safe_edit_channel_name(get_channel_from_config(guild, cfg, key), clock_names[key])
+        await queue_channel_edit(get_channel_from_config(guild, cfg, key), clock_names[key])
 
 
 async def update_stats_channels(guild: discord.Guild, cfg: dict):
@@ -2144,7 +2170,7 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
     ]
 
     for key, new_name in updates:
-        await safe_edit_channel_name(get_channel_from_config(guild, cfg, key), new_name)
+        await queue_channel_edit(get_channel_from_config(guild, cfg, key), new_name)
 
 
 async def refresh_existing_panel(
@@ -3417,6 +3443,10 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
 
 @bot.event
 async def on_ready():
+
+    global _channel_edit_worker_task
+    if _channel_edit_worker_task is None or _channel_edit_worker_task.done():
+        _channel_edit_worker_task = asyncio.create_task(channel_edit_worker())
     logging.info(
         "Zalogowano jako %s (%s)",
         bot.user,
