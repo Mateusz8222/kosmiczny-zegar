@@ -323,16 +323,16 @@ CHANNEL_TEMPLATE_KEYS = {
 
 LANGUAGES = {
     "pl": {
-        "lang_name": "Polski",
-        "creator": "Mati",
-        "bot_version": "v25",
-        "cat_weather": "🌤️ Pogoda",
-        "cat_clock": "🛰️ Kosmiczny Zegar",
-        "cat_stats": "📊 Statystyki",
-        "ch_temperature": "🌡 Temperatura",
-        "ch_feels": "🥵 Odczuwalna",
-        "ch_clouds": "☁ Zachmurzenie",
-        "ch_air": "🌫 Powietrze",
+    "lang_name": "Polski",
+    "creator": "Mati",
+    "bot_version": "v25",
+    "cat_weather": "🌤️ Pogoda",
+    "cat_clock": "🛰️ Kosmiczny Zegar",
+    "cat_stats": "📊 Statystyki",
+    "ch_temperature": "🌡 Temperatura",
+    "ch_feels": "🥵 Odczuwalna",
+    "ch_clouds": "☁ Zachmurzenie",
+    "ch_air": "🌫 Powietrze",
         "ch_pollen": "🌿 Pylenie",
         "ch_rain": "🌧 Opady",
         "ch_wind": "💨 Wiatr",
@@ -553,16 +553,16 @@ LANGUAGES = {
         "private_panel_footer": "Kosmiczny Zegar 24 • Prywatny panel",
     },
     "en": {
-        "lang_name": "English",
-        "creator": "Mati",
-        "bot_version": "v25",
-        "cat_weather": "🌤️ Weather",
-        "cat_clock": "🛰️ Cosmic Clock",
-        "cat_stats": "📊 Statistics",
-        "ch_temperature": "🌡 Temperature",
-        "ch_feels": "🥵 Feels like",
-        "ch_clouds": "☁ Clouds",
-        "ch_air": "🌫 Air quality",
+    "lang_name": "English",
+    "creator": "Mati",
+    "bot_version": "v25",
+    "cat_weather": "🌤️ Weather",
+    "cat_clock": "🛰️ Cosmic Clock",
+    "cat_stats": "📊 Statistics",
+    "ch_temperature": "🌡 Temperature",
+    "ch_feels": "🥵 Feels like",
+    "ch_clouds": "☁ Clouds",
+    "ch_air": "🌫 Air quality",
         "ch_pollen": "🌿 Pollen",
         "ch_rain": "🌧 Precipitation",
         "ch_wind": "💨 Wind",
@@ -792,12 +792,12 @@ def init_db():
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute(
-        """
-        CREATE TABLE IF NOT EXISTS guild_config (
-            guild_id INTEGER PRIMARY KEY,
-            weather_category_id INTEGER,
-            clock_category_id INTEGER,
-            stats_category_id INTEGER,
+    """
+    CREATE TABLE IF NOT EXISTS guild_config (
+    guild_id INTEGER PRIMARY KEY,
+    weather_category_id INTEGER,
+    clock_category_id INTEGER,
+    stats_category_id INTEGER,
             channels_json TEXT,
             city_name TEXT,
             latitude REAL,
@@ -830,14 +830,14 @@ def get_guild_config(guild_id: int) -> dict | None:
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute(
-        """
-        SELECT guild_id, weather_category_id, clock_category_id, stats_category_id,
-               channels_json, city_name, latitude, longitude, country, timezone, language,
-               status_panel_message_id
-        FROM guild_config
-        WHERE guild_id=?
-        """,
-        (guild_id,),
+    """
+    SELECT guild_id, weather_category_id, clock_category_id, stats_category_id,
+       channels_json, city_name, latitude, longitude, country, timezone, language,
+       status_panel_message_id
+    FROM guild_config
+    WHERE guild_id=?
+    """,
+    (guild_id,),
     )
     row = c.fetchone()
     conn.close()
@@ -850,16 +850,16 @@ def get_guild_config(guild_id: int) -> dict | None:
         channels = {}
 
     return {
-        "guild_id": row[0],
-        "weather_category_id": row[1],
-        "clock_category_id": row[2],
-        "stats_category_id": row[3],
-        "channels": channels,
-        "city_name": row[5] or DEFAULT_CITY_NAME,
-        "latitude": row[6] if row[6] is not None else DEFAULT_LATITUDE,
-        "longitude": row[7] if row[7] is not None else DEFAULT_LONGITUDE,
-        "country": row[8] or DEFAULT_COUNTRY,
-        "timezone": row[9] or DEFAULT_TIMEZONE,
+    "guild_id": row[0],
+    "weather_category_id": row[1],
+    "clock_category_id": row[2],
+    "stats_category_id": row[3],
+    "channels": channels,
+    "city_name": row[5] or DEFAULT_CITY_NAME,
+    "latitude": row[6] if row[6] is not None else DEFAULT_LATITUDE,
+    "longitude": row[7] if row[7] is not None else DEFAULT_LONGITUDE,
+    "country": row[8] or DEFAULT_COUNTRY,
+    "timezone": row[9] or DEFAULT_TIMEZONE,
         "language": row[10] or DEFAULT_LANGUAGE,
         "status_panel_message_id": row[11],
     }
@@ -869,13 +869,13 @@ def save_guild_config(guild_id: int, cfg: dict):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute(
-        """
-        INSERT OR REPLACE INTO guild_config (
-            guild_id, weather_category_id, clock_category_id, stats_category_id,
-            channels_json, city_name, latitude, longitude, country, timezone, language,
-            status_panel_message_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
+    """
+    INSERT OR REPLACE INTO guild_config (
+    guild_id, weather_category_id, clock_category_id, stats_category_id,
+    channels_json, city_name, latitude, longitude, country, timezone, language,
+    status_panel_message_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """,
         (
             guild_id,
             cfg.get("weather_category_id"),
@@ -901,16 +901,16 @@ def save_guild_config(guild_id: int, cfg: dict):
 
 def build_default_guild_config(guild_id: int) -> dict:
     return {
-        "guild_id": guild_id,
-        "weather_category_id": None,
-        "clock_category_id": None,
-        "stats_category_id": None,
-        "channels": {},
-        "city_name": DEFAULT_CITY_NAME,
-        "latitude": DEFAULT_LATITUDE,
-        "longitude": DEFAULT_LONGITUDE,
-        "country": DEFAULT_COUNTRY,
-        "timezone": DEFAULT_TIMEZONE,
+    "guild_id": guild_id,
+    "weather_category_id": None,
+    "clock_category_id": None,
+    "stats_category_id": None,
+    "channels": {},
+    "city_name": DEFAULT_CITY_NAME,
+    "latitude": DEFAULT_LATITUDE,
+    "longitude": DEFAULT_LONGITUDE,
+    "country": DEFAULT_COUNTRY,
+    "timezone": DEFAULT_TIMEZONE,
         "language": DEFAULT_LANGUAGE,
         "status_panel_message_id": None,
     }
@@ -948,9 +948,9 @@ def trim_channel_name(text: str) -> str:
 
 def get_category_name(lang: str, group_name: str) -> str:
     mapping = {
-        "weather": tr(lang, "cat_weather"),
-        "clock": tr(lang, "cat_clock"),
-        "stats": tr(lang, "cat_stats"),
+    "weather": tr(lang, "cat_weather"),
+    "clock": tr(lang, "cat_clock"),
+    "stats": tr(lang, "cat_stats"),
     }
     return mapping[group_name]
 
@@ -1008,7 +1008,7 @@ def find_matching_channel_for_key(guild: discord.Guild, cfg: dict, key: str) -> 
     fallback_names = get_channel_base_names(key)
 
     search_space = category.voice_channels if isinstance(category, discord.CategoryChannel) else [
-        ch for ch in guild.voice_channels if isinstance(ch, discord.VoiceChannel)
+    ch for ch in guild.voice_channels if isinstance(ch, discord.VoiceChannel)
     ]
 
     matches = [ch for ch in search_space if channel_name_matches_base(ch.name, fallback_names)]
@@ -1114,16 +1114,16 @@ def get_weather_signature(weather: dict | None) -> dict[str, object] | None:
         return None
     alerts_list = weather.get('alerts_list') or []
     return {
-        'temperature_value': round(float(weather.get('temperature_value')), 1) if weather.get('temperature_value') is not None else None,
-        'feels_value': round(float(weather.get('feels_value')), 1) if weather.get('feels_value') is not None else None,
-        'clouds_value': round(float(weather.get('clouds_value')), 1) if weather.get('clouds_value') is not None else None,
-        'wind_value': round(float(weather.get('wind_value')), 1) if weather.get('wind_value') is not None else None,
-        'pressure_value': round(float(weather.get('pressure_value')), 1) if weather.get('pressure_value') is not None else None,
-        'precipitation_value': round(float(weather.get('precipitation_value')), 1) if weather.get('precipitation_value') is not None else None,
-        'rain_value': round(float(weather.get('rain_value')), 1) if weather.get('rain_value') is not None else None,
-        'snow_value': round(float(weather.get('snow_value')), 1) if weather.get('snow_value') is not None else None,
-        'alert_level': weather.get('alert_level'),
-        'alerts_list': tuple(alerts_list),
+    'temperature_value': round(float(weather.get('temperature_value')), 1) if weather.get('temperature_value') is not None else None,
+    'feels_value': round(float(weather.get('feels_value')), 1) if weather.get('feels_value') is not None else None,
+    'clouds_value': round(float(weather.get('clouds_value')), 1) if weather.get('clouds_value') is not None else None,
+    'wind_value': round(float(weather.get('wind_value')), 1) if weather.get('wind_value') is not None else None,
+    'pressure_value': round(float(weather.get('pressure_value')), 1) if weather.get('pressure_value') is not None else None,
+    'precipitation_value': round(float(weather.get('precipitation_value')), 1) if weather.get('precipitation_value') is not None else None,
+    'rain_value': round(float(weather.get('rain_value')), 1) if weather.get('rain_value') is not None else None,
+    'snow_value': round(float(weather.get('snow_value')), 1) if weather.get('snow_value') is not None else None,
+    'alert_level': weather.get('alert_level'),
+    'alerts_list': tuple(alerts_list),
         'sunrise_time': weather.get('sunrise_time'),
         'sunset_time': weather.get('sunset_time'),
         'day_length': weather.get('day_length'),
@@ -1146,16 +1146,16 @@ def weather_changed_significantly(old_signature: dict | None, new_signature: dic
         return abs(float(old_val) - float(new_val)) >= threshold
 
     return any([
-        changed_num('temperature_value', WEATHER_SIGNIFICANT_TEMP_DELTA),
-        changed_num('feels_value', WEATHER_SIGNIFICANT_TEMP_DELTA),
-        changed_num('wind_value', WEATHER_SIGNIFICANT_WIND_DELTA),
-        changed_num('clouds_value', WEATHER_SIGNIFICANT_CLOUDS_DELTA),
-        old_signature.get('pressure_value') != new_signature.get('pressure_value'),
-        old_signature.get('precipitation_value') != new_signature.get('precipitation_value'),
-        old_signature.get('rain_value') != new_signature.get('rain_value'),
-        old_signature.get('snow_value') != new_signature.get('snow_value'),
-        old_signature.get('alert_level') != new_signature.get('alert_level'),
-        old_signature.get('alerts_list') != new_signature.get('alerts_list'),
+    changed_num('temperature_value', WEATHER_SIGNIFICANT_TEMP_DELTA),
+    changed_num('feels_value', WEATHER_SIGNIFICANT_TEMP_DELTA),
+    changed_num('wind_value', WEATHER_SIGNIFICANT_WIND_DELTA),
+    changed_num('clouds_value', WEATHER_SIGNIFICANT_CLOUDS_DELTA),
+    old_signature.get('pressure_value') != new_signature.get('pressure_value'),
+    old_signature.get('precipitation_value') != new_signature.get('precipitation_value'),
+    old_signature.get('rain_value') != new_signature.get('rain_value'),
+    old_signature.get('snow_value') != new_signature.get('snow_value'),
+    old_signature.get('alert_level') != new_signature.get('alert_level'),
+    old_signature.get('alerts_list') != new_signature.get('alerts_list'),
         old_signature.get('sunrise_time') != new_signature.get('sunrise_time'),
         old_signature.get('sunset_time') != new_signature.get('sunset_time'),
         old_signature.get('day_length') != new_signature.get('day_length'),
@@ -1666,8 +1666,8 @@ async def fetch_json(url: str):
         bot.http_session = aiohttp.ClientSession(timeout=timeout)
 
     async with bot.http_session.get(
-        url,
-        headers={"User-Agent": "KosmicznyZegar/25"},
+    url,
+    headers={"User-Agent": "KosmicznyZegar/25"},
     ) as response:
         text = await response.text()
         lowered = text.lower()
@@ -1684,8 +1684,8 @@ async def geocode_city(city_query: str, count: int = 10):
     if not city_query:
         return []
     url = (
-        "https://geocoding-api.open-meteo.com/v1/search"
-        f"?name={quote(city_query)}&count={count}&language=pl&format=json"
+    "https://geocoding-api.open-meteo.com/v1/search"
+    f"?name={quote(city_query)}&count={count}&language=pl&format=json"
     )
     data = await fetch_json(url)
     results = data.get("results", []) or []
@@ -1735,11 +1735,11 @@ def pollen_level_name(value: float, lang: str) -> str:
 
 def build_pollen_channel_text(alder, birch, grass, mugwort, ragweed, lang: str) -> str:
     pollens = [
-        (tr(lang, "pollen_alder"), float(alder or 0)),
-        (tr(lang, "pollen_birch"), float(birch or 0)),
-        (tr(lang, "pollen_grass"), float(grass or 0)),
-        (tr(lang, "pollen_mugwort"), float(mugwort or 0)),
-        (tr(lang, "pollen_ragweed"), float(ragweed or 0)),
+    (tr(lang, "pollen_alder"), float(alder or 0)),
+    (tr(lang, "pollen_birch"), float(birch or 0)),
+    (tr(lang, "pollen_grass"), float(grass or 0)),
+    (tr(lang, "pollen_mugwort"), float(mugwort or 0)),
+    (tr(lang, "pollen_ragweed"), float(ragweed or 0)),
     ]
     active = [(name, value) for name, value in pollens if value > 0]
     if not active:
@@ -1922,14 +1922,14 @@ def moon_phase_name(now: datetime, lang: str) -> str:
     lunations = 0.20439731 + (days * 0.03386319269)
     phase_index = int((lunations % 1) * 8 + 0.5) & 7
     phases = {
-        0: tr(lang, "moon_new"),
-        1: tr(lang, "moon_waxing_crescent"),
-        2: tr(lang, "moon_first_quarter"),
-        3: tr(lang, "moon_waxing_gibbous"),
-        4: tr(lang, "moon_full"),
-        5: tr(lang, "moon_waning_gibbous"),
-        6: tr(lang, "moon_last_quarter"),
-        7: tr(lang, "moon_waning_crescent"),
+    0: tr(lang, "moon_new"),
+    1: tr(lang, "moon_waxing_crescent"),
+    2: tr(lang, "moon_first_quarter"),
+    3: tr(lang, "moon_waxing_gibbous"),
+    4: tr(lang, "moon_full"),
+    5: tr(lang, "moon_waning_gibbous"),
+    6: tr(lang, "moon_last_quarter"),
+    7: tr(lang, "moon_waning_crescent"),
     }
     return phases.get(phase_index, tr(lang, "moon_unknown"))
 
@@ -1944,27 +1944,27 @@ async def get_weather_data(
     encoded_timezone = quote(timezone_name)
 
     weather_url = (
-        "https://api.open-meteo.com/v1/forecast"
-        f"?latitude={latitude}&longitude={longitude}"
-        "&current=temperature_2m,apparent_temperature,cloud_cover,precipitation,rain,showers,snowfall,weather_code,wind_speed_10m,wind_gusts_10m,pressure_msl,visibility,is_day"
-        "&daily=sunrise,sunset"
-        f"&timezone={encoded_timezone}"
+    "https://api.open-meteo.com/v1/forecast"
+    f"?latitude={latitude}&longitude={longitude}"
+    "&current=temperature_2m,apparent_temperature,cloud_cover,precipitation,rain,showers,snowfall,weather_code,wind_speed_10m,wind_gusts_10m,pressure_msl,visibility,is_day"
+    "&daily=sunrise,sunset"
+    f"&timezone={encoded_timezone}"
     )
     air_url = (
-        "https://air-quality-api.open-meteo.com/v1/air-quality"
-        f"?latitude={latitude}&longitude={longitude}"
-        "&current=european_aqi"
-        f"&timezone={encoded_timezone}"
+    "https://air-quality-api.open-meteo.com/v1/air-quality"
+    f"?latitude={latitude}&longitude={longitude}"
+    "&current=european_aqi"
+    f"&timezone={encoded_timezone}"
     )
     pollen_url = (
-        "https://air-quality-api.open-meteo.com/v1/air-quality"
-        f"?latitude={latitude}&longitude={longitude}"
-        "&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen"
-        f"&timezone={encoded_timezone}"
+    "https://air-quality-api.open-meteo.com/v1/air-quality"
+    f"?latitude={latitude}&longitude={longitude}"
+    "&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen"
+    f"&timezone={encoded_timezone}"
     )
 
     weather_data, air_data, pollen_data = await asyncio.gather(
-        fetch_json(weather_url), fetch_json(air_url), fetch_json(pollen_url)
+    fetch_json(weather_url), fetch_json(air_url), fetch_json(pollen_url)
     )
 
     current = weather_data.get("current") or {}
@@ -2014,16 +2014,16 @@ async def get_weather_data(
         sunset_time = sunset_raw[11:16]
 
     return {
-        "temperature": f"🌡 {city_name.upper()} {round(float(temp))}°C"
-        if temp is not None else f"🌡 {city_name.upper()} --°C",
-        "temperature_value": float(temp) if temp is not None else None,
-        "feels": f"🥵 {tr(lang, 'field_feels')} {round(float(feels))}°C"
-        if feels is not None else f"🥵 {tr(lang, 'field_feels')} --°C",
-        "feels_value": float(feels) if feels is not None else None,
-        "clouds": f"☁ {tr(lang, 'field_clouds')} {round(float(clouds))}%"
-        if clouds is not None else f"☁ {tr(lang, 'field_clouds')} --%",
-        "clouds_value": float(clouds) if clouds is not None else None,
-        "air": air_quality_text(air_current.get("european_aqi"), lang),
+    "temperature": f"🌡 {city_name.upper()} {round(float(temp))}°C"
+    if temp is not None else f"🌡 {city_name.upper()} --°C",
+    "temperature_value": float(temp) if temp is not None else None,
+    "feels": f"🥵 {tr(lang, 'field_feels')} {round(float(feels))}°C"
+    if feels is not None else f"🥵 {tr(lang, 'field_feels')} --°C",
+    "feels_value": float(feels) if feels is not None else None,
+    "clouds": f"☁ {tr(lang, 'field_clouds')} {round(float(clouds))}%"
+    if clouds is not None else f"☁ {tr(lang, 'field_clouds')} --%",
+    "clouds_value": float(clouds) if clouds is not None else None,
+    "air": air_quality_text(air_current.get("european_aqi"), lang),
         "pollen": build_pollen_channel_text(alder, birch, grass, mugwort, ragweed, lang),
         "rain": format_precipitation_channel(current, lang),
         "precipitation_value": float(current.get("precipitation", 0) or 0),
@@ -2070,9 +2070,9 @@ async def setup_categories_and_channels(guild: discord.Guild):
         cfg["stats_category_id"] = stats_category.id
 
     category_map = {
-        "weather": weather_category,
-        "clock": clock_category,
-        "stats": stats_category,
+    "weather": weather_category,
+    "clock": clock_category,
+    "stats": stats_category,
     }
 
     channels = dict(cfg.get("channels", {}))
@@ -2098,15 +2098,15 @@ async def setup_categories_and_channels(guild: discord.Guild):
 
 async def update_weather_channels(guild: discord.Guild, cfg: dict, weather: dict):
     weather_names = build_channel_snapshot({
-        key: weather.get(key, get_channel_fallback_name(get_lang_code(cfg), key))
-        for key in ["temperature", "feels", "clouds", "air", "pollen", "rain", "wind", "pressure", "alerts"]
+    key: weather.get(key, get_channel_fallback_name(get_lang_code(cfg), key))
+    for key in ["temperature", "feels", "clouds", "air", "pollen", "rain", "wind", "pressure", "alerts"]
     })
 
     previous_signature = last_weather_snapshot.get(guild.id)
     current_signature = get_weather_signature(weather)
     if (
-        not weather_changed_significantly(previous_signature, current_signature)
-        and channel_snapshot_is_applied(guild, cfg, weather_names)
+    not weather_changed_significantly(previous_signature, current_signature)
+    and channel_snapshot_is_applied(guild, cfg, weather_names)
     ):
         logging.info("[POGODA] Brak istotnych zmian dla serwera %s - pomijam edycję kanałów", guild.name)
         return
@@ -2136,12 +2136,12 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict |
     day_length_label = cached_weather.get("day_length", f"{tr(lang, 'day_length_prefix')} --")
 
     proposed_clock_names = build_channel_snapshot({
-        "date": f"{tr(lang, 'ch_date')} {weekdays[now.weekday()]} {now.strftime('%d.%m.%Y')}",
-        "part_of_day": format_part_of_day(now, lang, sunrise_time, sunset_time),
-        "sunrise": sunrise_label,
-        "sunset": sunset_label,
-        "day_length": day_length_label,
-        "moon": moon_phase_name(now, lang),
+    "date": f"{tr(lang, 'ch_date')} {weekdays[now.weekday()]} {now.strftime('%d.%m.%Y')}",
+    "part_of_day": format_part_of_day(now, lang, sunrise_time, sunset_time),
+    "sunrise": sunrise_label,
+    "sunset": sunset_label,
+    "day_length": day_length_label,
+    "moon": moon_phase_name(now, lang),
     })
 
     edit_keys: list[str] | None = None
@@ -2193,8 +2193,8 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
     bots_count = len(bot_members)
 
     online_count = sum(
-        1 for m in members
-        if m.status in {discord.Status.online, discord.Status.idle, discord.Status.dnd}
+    1 for m in members
+    if m.status in {discord.Status.online, discord.Status.idle, discord.Status.dnd}
     )
 
     vc_count = sum(1 for m in members if m.voice and m.voice.channel)
@@ -2203,8 +2203,8 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
     today = datetime.now(timezone_obj).date()
 
     joined_today_count = sum(
-        1 for m in human_members
-        if m.joined_at and m.joined_at.astimezone(timezone_obj).date() == today
+    1 for m in human_members
+    if m.joined_at and m.joined_at.astimezone(timezone_obj).date() == today
     )
 
     try:
@@ -2219,25 +2219,25 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
         bans_count = 0
 
     logging.info(
-        "[STATYSTYKI] %s | wszyscy=%s ludzie=%s boty=%s online=%s vc=%s today=%s bany=%s",
-        guild.name,
-        members_count,
-        humans_count,
-        bots_count,
-        online_count,
-        vc_count,
-        joined_today_count,
-        bans_count,
+    "[STATYSTYKI] %s | wszyscy=%s ludzie=%s boty=%s online=%s vc=%s today=%s bany=%s",
+    guild.name,
+    members_count,
+    humans_count,
+    bots_count,
+    online_count,
+    vc_count,
+    joined_today_count,
+    bans_count,
     )
 
     updates = [
-        ("members", tr(lang, "stats_members", count=members_count)),
-        ("humans", tr(lang, "stats_humans", count=humans_count)),
-        ("online", tr(lang, "stats_online", count=online_count)),
-        ("bots", tr(lang, "stats_bots", count=bots_count)),
-        ("vc", tr(lang, "stats_vc", count=vc_count)),
-        ("joined_today", tr(lang, "stats_joined_today", count=joined_today_count)),
-        ("bans", tr(lang, "stats_bans", count=bans_count)),
+    ("members", tr(lang, "stats_members", count=members_count)),
+    ("humans", tr(lang, "stats_humans", count=humans_count)),
+    ("online", tr(lang, "stats_online", count=online_count)),
+    ("bots", tr(lang, "stats_bots", count=bots_count)),
+    ("vc", tr(lang, "stats_vc", count=vc_count)),
+    ("joined_today", tr(lang, "stats_joined_today", count=joined_today_count)),
+    ("bans", tr(lang, "stats_bans", count=bans_count)),
     ]
 
     for key, new_name in updates:
@@ -2471,25 +2471,25 @@ def build_panel_embed(guild: discord.Guild) -> discord.Embed:
     activity_lines, activity_count = build_group_lines(ACTIVITY_ROLES)
 
     embed = discord.Embed(
-        title=tr(lang, "role_panel_title"),
-        description=tr(lang, "role_panel_desc"),
-        color=discord.Color.blurple(),
+    title=tr(lang, "role_panel_title"),
+    description=tr(lang, "role_panel_desc"),
+    color=discord.Color.blurple(),
     )
 
     embed.add_field(
-        name=f"🟢 Status • dostępnych ról: {status_count}",
-        value=status_lines or "-",
-        inline=False,
+    name=f"🟢 Status • dostępnych ról: {status_count}",
+    value=status_lines or "-",
+    inline=False,
     )
     embed.add_field(
-        name=f"😎 Nastrój • dostępnych ról: {mood_count}",
-        value=mood_lines or "-",
-        inline=False,
+    name=f"😎 Nastrój • dostępnych ról: {mood_count}",
+    value=mood_lines or "-",
+    inline=False,
     )
     embed.add_field(
-        name=f"🎮 Aktywność • dostępnych ról: {activity_count}",
-        value=activity_lines or "-",
-        inline=False,
+    name=f"🎮 Aktywność • dostępnych ról: {activity_count}",
+    value=activity_lines or "-",
+    inline=False,
     )
 
     embed.set_footer(text=tr(lang, "role_panel_footer"))
@@ -2500,24 +2500,24 @@ def build_private_panel_embed(member: discord.Member) -> discord.Embed:
     lang = get_role_lang(member.guild.id)
 
     embed = discord.Embed(
-        title=tr(lang, "private_panel_title"),
-        description=tr(lang, "private_panel_desc"),
-        color=discord.Color.blurple(),
+    title=tr(lang, "private_panel_title"),
+    description=tr(lang, "private_panel_desc"),
+    color=discord.Color.blurple(),
     )
     embed.add_field(
-        name=tr(lang, "current_status"),
-        value=get_member_selected_role_label(member, "status"),
-        inline=False,
+    name=tr(lang, "current_status"),
+    value=get_member_selected_role_label(member, "status"),
+    inline=False,
     )
     embed.add_field(
-        name=tr(lang, "current_mood"),
-        value=get_member_selected_role_label(member, "mood"),
-        inline=False,
+    name=tr(lang, "current_mood"),
+    value=get_member_selected_role_label(member, "mood"),
+    inline=False,
     )
     embed.add_field(
-        name=tr(lang, "current_activity"),
-        value=get_member_selected_role_label(member, "activity"),
-        inline=False,
+    name=tr(lang, "current_activity"),
+    value=get_member_selected_role_label(member, "activity"),
+    inline=False,
     )
     embed.set_footer(text=tr(lang, "private_panel_footer"))
     return embed
@@ -2526,9 +2526,9 @@ def build_private_panel_embed(member: discord.Member) -> discord.Embed:
 def build_role_stats_embed(guild: discord.Guild) -> discord.Embed:
     lang = get_role_lang(guild.id)
     embed = discord.Embed(
-        title=tr(lang, "role_stats_title"),
-        description=tr(lang, "role_stats_desc"),
-        color=discord.Color.green(),
+    title=tr(lang, "role_stats_title"),
+    description=tr(lang, "role_stats_desc"),
+    color=discord.Color.green(),
     )
 
     for group_name, mapping in ROLE_GROUPS.items():
@@ -2595,14 +2595,14 @@ async def refresh_status_panel_message(guild: discord.Guild):
 
 async def city_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
     static_choices = [
-        app_commands.Choice(name="Warszawa, Polska", value="Warszawa"),
-        app_commands.Choice(name="Rzeszów, Polska", value="Rzeszów"),
-        app_commands.Choice(name="Kraków, Polska", value="Kraków"),
-        app_commands.Choice(name="Wrocław, Polska", value="Wrocław"),
-        app_commands.Choice(name="Poznań, Polska", value="Poznań"),
-        app_commands.Choice(name="Gdańsk, Polska", value="Gdańsk"),
-        app_commands.Choice(name="London, United Kingdom", value="London"),
-        app_commands.Choice(name="New York, USA", value="New York"),
+    app_commands.Choice(name="Warszawa, Polska", value="Warszawa"),
+    app_commands.Choice(name="Rzeszów, Polska", value="Rzeszów"),
+    app_commands.Choice(name="Kraków, Polska", value="Kraków"),
+    app_commands.Choice(name="Wrocław, Polska", value="Wrocław"),
+    app_commands.Choice(name="Poznań, Polska", value="Poznań"),
+    app_commands.Choice(name="Gdańsk, Polska", value="Gdańsk"),
+    app_commands.Choice(name="London, United Kingdom", value="London"),
+    app_commands.Choice(name="New York, USA", value="New York"),
     ]
 
     if not current.strip():
@@ -2644,9 +2644,9 @@ async def help_command(interaction: discord.Interaction):
     lang = get_lang_code(cfg)
 
     embed = discord.Embed(
-        title=tr(lang, "help_title"),
-        description=tr(lang, "help_desc"),
-        color=discord.Color.green(),
+    title=tr(lang, "help_title"),
+    description=tr(lang, "help_desc"),
+    color=discord.Color.green(),
     )
     embed.add_field(name=tr(lang, "help_general"), value=tr(lang, "help_general_value"), inline=False)
     embed.add_field(name=tr(lang, "help_admin"), value=tr(lang, "help_admin_value"), inline=False)
@@ -2668,7 +2668,7 @@ async def setup_command(interaction: discord.Interaction):
     cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
     lang = get_lang_code(cfg)
 
-        try:
+    try:
         await setup_categories_and_channels(guild)
         await schedule_background_refresh(guild, force_full=True)
         await interaction.followup.send(tr(lang, "setup_ok"), ephemeral=True)
@@ -2688,7 +2688,7 @@ async def refresh_command(interaction: discord.Interaction):
     cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
     lang = get_lang_code(cfg)
 
-        try:
+    try:
         if not cfg.get("channels"):
             await interaction.followup.send(tr(lang, "refresh_no_config"), ephemeral=True)
             return
@@ -2718,9 +2718,9 @@ async def status_command(interaction: discord.Interaction):
     embed.add_field(name=tr(lang, "status_stats_cat"), value=str(cfg.get("stats_category_id")), inline=False)
     embed.add_field(name=tr(lang, "status_saved_channels"), value=str(len(cfg.get("channels", {}))), inline=False)
     embed.add_field(
-        name=tr(lang, "status_city"),
-        value=f"{cfg.get('city_name', DEFAULT_CITY_NAME)}, {cfg.get('country', DEFAULT_COUNTRY)}",
-        inline=False,
+    name=tr(lang, "status_city"),
+    value=f"{cfg.get('city_name', DEFAULT_CITY_NAME)}, {cfg.get('country', DEFAULT_COUNTRY)}",
+    inline=False,
     )
     embed.add_field(name=tr(lang, "status_lat"), value=str(cfg.get("latitude", DEFAULT_LATITUDE)), inline=True)
     embed.add_field(name=tr(lang, "status_lon"), value=str(cfg.get("longitude", DEFAULT_LONGITUDE)), inline=True)
@@ -2741,18 +2741,18 @@ async def info_command(interaction: discord.Interaction):
     user_count = sum(g.member_count or 0 for g in bot.guilds)
 
     embed = discord.Embed(
-        title=tr(lang, "info_title"),
-        description=tr(lang, "info_desc"),
-        color=discord.Color.blurple(),
+    title=tr(lang, "info_title"),
+    description=tr(lang, "info_desc"),
+    color=discord.Color.blurple(),
     )
     if bot.user:
         embed.set_thumbnail(url=bot.user.display_avatar.url)
 
     embed.add_field(name=tr(lang, "info_features"), value=tr(lang, "info_features_value"), inline=False)
     embed.add_field(
-        name=tr(lang, "info_status"),
-        value=tr(lang, "info_status_value", uptime=uptime_str, guilds=guild_count, users=user_count),
-        inline=False,
+    name=tr(lang, "info_status"),
+    value=tr(lang, "info_status_value", uptime=uptime_str, guilds=guild_count, users=user_count),
+    inline=False,
     )
     embed.add_field(name=tr(lang, "info_modules"), value=tr(lang, "info_modules_value"), inline=False)
     embed.add_field(name=tr(lang, "info_author"), value=f"**{tr(lang, 'creator')}**", inline=True)
@@ -2847,9 +2847,9 @@ async def time_command(interaction: discord.Interaction):
     embed.add_field(name=tr(lang, "time_clock"), value=now.strftime("%H:%M:%S"), inline=False)
     embed.add_field(name=tr(lang, "time_date"), value=now.strftime("%d.%m.%Y"), inline=False)
     embed.add_field(
-        name=tr(lang, "time_part_of_day"),
-        value=format_part_of_day(now, lang, sunrise_time, sunset_time),
-        inline=False,
+    name=tr(lang, "time_part_of_day"),
+    value=format_part_of_day(now, lang, sunrise_time, sunset_time),
+    inline=False,
     )
     embed.add_field(name=tr(lang, "time_timezone"), value=timezone_name, inline=False)
     await interaction.followup.send(embed=embed, ephemeral=True)
@@ -2979,8 +2979,8 @@ async def napraw_id_command(interaction: discord.Interaction):
             repaired += 1
 
     await interaction.followup.send(
-        f"✅ Auto-naprawa zakończona. Sprawdzono {checked} wpisów, naprawiono {repaired} ID kanałów.",
-        ephemeral=True,
+    f"✅ Auto-naprawa zakończona. Sprawdzono {checked} wpisów, naprawiono {repaired} ID kanałów.",
+    ephemeral=True,
     )
 
 
@@ -3037,9 +3037,9 @@ async def pokaz_statusy(interaction: discord.Interaction):
 @app_commands.describe(grupa="Wybierz grupę roli", opcja="Wybierz konkretną opcję z tej grupy")
 @app_commands.choices(
     grupa=[
-        app_commands.Choice(name="Status", value="status"),
-        app_commands.Choice(name="Nastrój", value="mood"),
-        app_commands.Choice(name="Aktywność", value="activity"),
+    app_commands.Choice(name="Status", value="status"),
+    app_commands.Choice(name="Nastrój", value="mood"),
+    app_commands.Choice(name="Aktywność", value="activity"),
     ]
 )
 async def ustaw_status_swoj(interaction: discord.Interaction, grupa: app_commands.Choice[str], opcja: str):
@@ -3131,7 +3131,7 @@ async def delete_weather_category_command(interaction: discord.Interaction):
         return
 
     lang = get_lang_code(cfg)
-        await delete_category_with_channels(guild, cfg.get("weather_category_id"))
+    await delete_category_with_channels(guild, cfg.get("weather_category_id"))
     cfg["weather_category_id"] = None
     cfg = remove_channel_keys_by_group(cfg, "weather")
     save_guild_config(guild.id, cfg)
@@ -3155,7 +3155,7 @@ async def delete_clock_category_command(interaction: discord.Interaction):
         return
 
     lang = get_lang_code(cfg)
-        await delete_category_with_channels(guild, cfg.get("clock_category_id"))
+    await delete_category_with_channels(guild, cfg.get("clock_category_id"))
     cfg["clock_category_id"] = None
     cfg = remove_channel_keys_by_group(cfg, "clock")
     save_guild_config(guild.id, cfg)
@@ -3177,7 +3177,7 @@ async def delete_stats_category_command(interaction: discord.Interaction):
         return
 
     lang = get_lang_code(cfg)
-        await delete_category_with_channels(guild, cfg.get("stats_category_id"))
+    await delete_category_with_channels(guild, cfg.get("stats_category_id"))
     cfg["stats_category_id"] = None
     cfg = remove_channel_keys_by_group(cfg, "stats")
     save_guild_config(guild.id, cfg)
@@ -3199,7 +3199,7 @@ async def delete_all_command(interaction: discord.Interaction):
         return
 
     lang = get_lang_code(cfg)
-        await delete_category_with_channels(guild, cfg.get("weather_category_id"))
+    await delete_category_with_channels(guild, cfg.get("weather_category_id"))
     await delete_category_with_channels(guild, cfg.get("clock_category_id"))
     await delete_category_with_channels(guild, cfg.get("stats_category_id"))
     cfg["weather_category_id"] = None
@@ -3328,14 +3328,14 @@ async def panel_admina(interaction: discord.Interaction):
     edits_last_minute = len(recent_channel_edit_times)
     api_backoff_text = f"{get_weather_api_backoff_remaining(guild.id)}s" if get_weather_api_backoff_remaining(guild.id) else "brak"
     embed.description = (
-        "Tutaj możesz bezpiecznie sterować odświeżaniem bez spamowania Discord API.\n\n"
-        f"• pogoda: co najmniej co **{WEATHER_API_MIN_INTERVAL_SECONDS}s** do API\n"
-        f"• cooldown globalny edycji kanałów: **{GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS}s**\n"
-        f"• cooldown serwera: **{GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS}s**\n"
-        f"• limit zmian kanałów: **{MAX_CHANNEL_EDITS_PER_MINUTE}/min**\n"
-        f"• ostatnia pogoda w cache: **{weather_age_text}**\n"
-        f"• backoff API pogody: **{api_backoff_text}**\n"
-        f"• edycje kanałów w ostatniej minucie: **{edits_last_minute}**"
+    "Tutaj możesz bezpiecznie sterować odświeżaniem bez spamowania Discord API.\n\n"
+    f"• pogoda: co najmniej co **{WEATHER_API_MIN_INTERVAL_SECONDS}s** do API\n"
+    f"• cooldown globalny edycji kanałów: **{GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS}s**\n"
+    f"• cooldown serwera: **{GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS}s**\n"
+    f"• limit zmian kanałów: **{MAX_CHANNEL_EDITS_PER_MINUTE}/min**\n"
+    f"• ostatnia pogoda w cache: **{weather_age_text}**\n"
+    f"• backoff API pogody: **{api_backoff_text}**\n"
+    f"• edycje kanałów w ostatniej minucie: **{edits_last_minute}**"
     )
     await send_interaction_message(interaction, embed=embed, view=AdminPanelView(), ephemeral=True)
 
@@ -3529,9 +3529,9 @@ async def on_ready():
     if _channel_edit_worker_task is None or _channel_edit_worker_task.done():
         _channel_edit_worker_task = asyncio.create_task(channel_edit_worker())
     logging.info(
-        "Zalogowano jako %s (%s)",
-        bot.user,
-        bot.user.id if bot.user else "brak ID",
+    "Zalogowano jako %s (%s)",
+    bot.user,
+    bot.user.id if bot.user else "brak ID",
     )
 
     try:
