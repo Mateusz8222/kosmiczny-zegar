@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import sqlite3
+from collections import deque
 from datetime import UTC, date, datetime, timedelta
 from urllib.parse import quote
 
@@ -52,8 +53,14 @@ STATUS_CLOCK_REFRESH_SECONDS = 120
 CHANNEL_EDIT_DELAY = 1.2
 STATS_REFRESH_DEBOUNCE_SECONDS = 8
 WEATHER_API_MIN_INTERVAL_SECONDS = 600
+WEATHER_API_ERROR_BACKOFF_SECONDS = 900
 GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS = 1.2
 GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS = 1.8
+MAX_CHANNEL_EDITS_PER_MINUTE = 12
+EDIT_SPAM_EXTRA_BACKOFF_SECONDS = 15
+WEATHER_SIGNIFICANT_TEMP_DELTA = 1.0
+WEATHER_SIGNIFICANT_WIND_DELTA = 2.0
+WEATHER_SIGNIFICANT_CLOUDS_DELTA = 10.0
 FULL_REFRESH_MIN_INTERVAL_SECONDS = 30
 MAX_CHANNEL_NAME_LENGTH = 100
 
@@ -65,12 +72,16 @@ channel_edit_locks: dict[int, asyncio.Lock] = {}
 channel_edit_serial_lock = asyncio.Lock()
 last_global_channel_edit_at: datetime | None = None
 last_guild_channel_edit_at: dict[int, datetime] = {}
+recent_channel_edit_times: deque[datetime] = deque(maxlen=240)
+guild_recent_channel_edit_times: dict[int, deque[datetime]] = {}
+guild_edit_backoff_until: dict[int, datetime] = {}
 last_midnight_reset_dates: dict[int, date] = {}
 weather_cache: dict[int, dict] = {}
 weather_cache_fetched_at: dict[int, datetime] = {}
+weather_api_backoff_until: dict[int, datetime] = {}
 background_refresh_tasks: dict[int, asyncio.Task] = {}
 last_presence_text: str | None = None
-last_weather_snapshot: dict[int, dict[str, str]] = {}
+last_weather_snapshot: dict[int, dict[str, object]] = {}
 last_clock_snapshot: dict[int, dict[str, str]] = {}
 last_full_refresh_at: dict[int, datetime] = {}
 
@@ -927,11 +938,112 @@ def weather_cache_is_fresh(guild_id: int, max_age_seconds: int = WEATHER_API_MIN
     return age < max_age_seconds
 
 
+def prune_old_edit_timestamps(now: datetime, queue: deque[datetime], window_seconds: int = 60):
+    while queue and (now - queue[0]).total_seconds() >= window_seconds:
+        queue.popleft()
+
+
+def get_guild_edit_queue(guild_id: int) -> deque[datetime]:
+    if guild_id not in guild_recent_channel_edit_times:
+        guild_recent_channel_edit_times[guild_id] = deque(maxlen=120)
+    return guild_recent_channel_edit_times[guild_id]
+
+
+def get_weather_signature(weather: dict | None) -> dict[str, object] | None:
+    if not weather:
+        return None
+    alerts_list = weather.get('alerts_list') or []
+    return {
+        'temperature_value': round(float(weather.get('temperature_value')), 1) if weather.get('temperature_value') is not None else None,
+        'feels_value': round(float(weather.get('feels_value')), 1) if weather.get('feels_value') is not None else None,
+        'clouds_value': round(float(weather.get('clouds_value')), 1) if weather.get('clouds_value') is not None else None,
+        'wind_value': round(float(weather.get('wind_value')), 1) if weather.get('wind_value') is not None else None,
+        'pressure_value': round(float(weather.get('pressure_value')), 1) if weather.get('pressure_value') is not None else None,
+        'precipitation_value': round(float(weather.get('precipitation_value')), 1) if weather.get('precipitation_value') is not None else None,
+        'rain_value': round(float(weather.get('rain_value')), 1) if weather.get('rain_value') is not None else None,
+        'snow_value': round(float(weather.get('snow_value')), 1) if weather.get('snow_value') is not None else None,
+        'alert_level': weather.get('alert_level'),
+        'alerts_list': tuple(alerts_list),
+        'sunrise_time': weather.get('sunrise_time'),
+        'sunset_time': weather.get('sunset_time'),
+        'day_length': weather.get('day_length'),
+        'rain_label': weather.get('rain'),
+        'air_label': weather.get('air'),
+        'pollen_label': weather.get('pollen'),
+        'alerts_label': weather.get('alerts'),
+    }
+
+
+def weather_changed_significantly(old_signature: dict | None, new_signature: dict | None) -> bool:
+    if old_signature is None or new_signature is None:
+        return True
+
+    def changed_num(key: str, threshold: float) -> bool:
+        old_val = old_signature.get(key)
+        new_val = new_signature.get(key)
+        if old_val is None or new_val is None:
+            return old_val != new_val
+        return abs(float(old_val) - float(new_val)) >= threshold
+
+    return any([
+        changed_num('temperature_value', WEATHER_SIGNIFICANT_TEMP_DELTA),
+        changed_num('feels_value', WEATHER_SIGNIFICANT_TEMP_DELTA),
+        changed_num('wind_value', WEATHER_SIGNIFICANT_WIND_DELTA),
+        changed_num('clouds_value', WEATHER_SIGNIFICANT_CLOUDS_DELTA),
+        old_signature.get('pressure_value') != new_signature.get('pressure_value'),
+        old_signature.get('precipitation_value') != new_signature.get('precipitation_value'),
+        old_signature.get('rain_value') != new_signature.get('rain_value'),
+        old_signature.get('snow_value') != new_signature.get('snow_value'),
+        old_signature.get('alert_level') != new_signature.get('alert_level'),
+        old_signature.get('alerts_list') != new_signature.get('alerts_list'),
+        old_signature.get('sunrise_time') != new_signature.get('sunrise_time'),
+        old_signature.get('sunset_time') != new_signature.get('sunset_time'),
+        old_signature.get('day_length') != new_signature.get('day_length'),
+        old_signature.get('rain_label') != new_signature.get('rain_label'),
+        old_signature.get('air_label') != new_signature.get('air_label'),
+        old_signature.get('pollen_label') != new_signature.get('pollen_label'),
+        old_signature.get('alerts_label') != new_signature.get('alerts_label'),
+    ])
+
+
+def get_weather_api_backoff_remaining(guild_id: int) -> int:
+    until = weather_api_backoff_until.get(guild_id)
+    if until is None:
+        return 0
+    remaining = int((until - datetime.now(UTC)).total_seconds())
+    return max(0, remaining)
+
+
 async def wait_for_channel_edit_slot(guild_id: int | None):
     global last_global_channel_edit_at
 
     async with channel_edit_serial_lock:
         now = datetime.now(UTC)
+        prune_old_edit_timestamps(now, recent_channel_edit_times)
+
+        if guild_id is not None:
+            guild_queue = get_guild_edit_queue(guild_id)
+            prune_old_edit_timestamps(now, guild_queue)
+            backoff_until = guild_edit_backoff_until.get(guild_id)
+            if backoff_until is not None and now < backoff_until:
+                wait_time = (backoff_until - now).total_seconds()
+                logging.warning('[RATE-LIMIT] Serwer %s wstrzymany jeszcze %.1fs', guild_id, wait_time)
+                await asyncio.sleep(wait_time)
+                now = datetime.now(UTC)
+                prune_old_edit_timestamps(now, recent_channel_edit_times)
+                prune_old_edit_timestamps(now, guild_queue)
+
+        if len(recent_channel_edit_times) >= MAX_CHANNEL_EDITS_PER_MINUTE:
+            oldest = recent_channel_edit_times[0]
+            wait_time = max(1.0, 60.0 - (now - oldest).total_seconds()) + EDIT_SPAM_EXTRA_BACKOFF_SECONDS
+            if guild_id is not None:
+                guild_edit_backoff_until[guild_id] = now + timedelta(seconds=wait_time)
+            logging.warning('[RATE-LIMIT] Zbyt dużo edycji kanałów (%s/min). Czekam %.1fs', len(recent_channel_edit_times), wait_time)
+            await asyncio.sleep(wait_time)
+            now = datetime.now(UTC)
+            prune_old_edit_timestamps(now, recent_channel_edit_times)
+            if guild_id is not None:
+                prune_old_edit_timestamps(now, get_guild_edit_queue(guild_id))
 
         if last_global_channel_edit_at is not None:
             global_diff = (now - last_global_channel_edit_at).total_seconds()
@@ -948,12 +1060,21 @@ async def wait_for_channel_edit_slot(guild_id: int | None):
                     now = datetime.now(UTC)
 
         last_global_channel_edit_at = now
+        recent_channel_edit_times.append(now)
         if guild_id is not None:
             last_guild_channel_edit_at[guild_id] = now
+            get_guild_edit_queue(guild_id).append(now)
 
 
 async def get_weather_data_for_guild(guild: discord.Guild, cfg: dict, *, force: bool = False) -> dict:
+    now = datetime.now(UTC)
+
     if not force and guild.id in weather_cache and weather_cache_is_fresh(guild.id):
+        return weather_cache[guild.id]
+
+    backoff_until = weather_api_backoff_until.get(guild.id)
+    if not force and backoff_until is not None and now < backoff_until and guild.id in weather_cache:
+        logging.info('[POGODA] API backoff aktywny dla %s - używam cache jeszcze %ss', guild.name, get_weather_api_backoff_remaining(guild.id))
         return weather_cache[guild.id]
 
     lang = get_lang_code(cfg)
@@ -967,12 +1088,16 @@ async def get_weather_data_for_guild(guild: discord.Guild, cfg: dict, *, force: 
         )
         weather_cache[guild.id] = weather
         weather_cache_fetched_at[guild.id] = datetime.now(UTC)
+        weather_api_backoff_until.pop(guild.id, None)
         return weather
-    except Exception:
+    except Exception as e:
+        weather_api_backoff_until[guild.id] = datetime.now(UTC) + timedelta(seconds=WEATHER_API_ERROR_BACKOFF_SECONDS)
         if guild.id in weather_cache:
             logging.warning(
-                "[POGODA] API niedostępne dla %s - używam ostatnich zapisanych danych",
+                '[POGODA] API niedostępne dla %s - używam ostatnich zapisanych danych (%s). Backoff %ss',
                 guild.name,
+                e,
+                WEATHER_API_ERROR_BACKOFF_SECONDS,
             )
             return weather_cache[guild.id]
         raise
@@ -1497,17 +1622,25 @@ async def get_weather_data(
     return {
         "temperature": f"🌡 {city_name.upper()} {round(float(temp))}°C"
         if temp is not None else f"🌡 {city_name.upper()} --°C",
+        "temperature_value": float(temp) if temp is not None else None,
         "feels": f"🥵 {tr(lang, 'field_feels')} {round(float(feels))}°C"
         if feels is not None else f"🥵 {tr(lang, 'field_feels')} --°C",
+        "feels_value": float(feels) if feels is not None else None,
         "clouds": f"☁ {tr(lang, 'field_clouds')} {round(float(clouds))}%"
         if clouds is not None else f"☁ {tr(lang, 'field_clouds')} --%",
+        "clouds_value": float(clouds) if clouds is not None else None,
         "air": air_quality_text(air_current.get("european_aqi"), lang),
         "pollen": build_pollen_channel_text(alder, birch, grass, mugwort, ragweed, lang),
         "rain": format_precipitation_channel(current, lang),
+        "precipitation_value": float(current.get("precipitation", 0) or 0),
+        "rain_value": float((current.get("rain", 0) or 0)) + float((current.get("showers", 0) or 0)),
+        "snow_value": float(current.get("snowfall", 0) or 0),
         "wind": f"💨 {tr(lang, 'field_wind')} {round(float(wind))} km/h"
         if wind is not None else f"💨 {tr(lang, 'field_wind')} -- km/h",
+        "wind_value": float(wind) if wind is not None else None,
         "pressure": f"⏱ {tr(lang, 'field_pressure')} {round(float(pressure))} hPa"
         if pressure is not None else f"⏱ {tr(lang, 'field_pressure')} -- hPa",
+        "pressure_value": float(pressure) if pressure is not None else None,
         "alerts": format_alerts_channel(alerts, alert_level, lang),
         "alerts_list": [localized_alert_name(a, lang) for a in alerts],
         "alert_level": alert_level,
@@ -1575,13 +1708,17 @@ async def update_weather_channels(guild: discord.Guild, cfg: dict, weather: dict
         for key in ["temperature", "feels", "clouds", "air", "pollen", "rain", "wind", "pressure", "alerts"]
     })
 
-    previous_snapshot = last_weather_snapshot.get(guild.id)
-    if previous_snapshot == weather_names and channel_snapshot_is_applied(guild, cfg, weather_names):
-        logging.info("[POGODA] Brak zmian dla serwera %s - pomijam edycję kanałów", guild.name)
+    previous_signature = last_weather_snapshot.get(guild.id)
+    current_signature = get_weather_signature(weather)
+    if (
+        not weather_changed_significantly(previous_signature, current_signature)
+        and channel_snapshot_is_applied(guild, cfg, weather_names)
+    ):
+        logging.info("[POGODA] Brak istotnych zmian dla serwera %s - pomijam edycję kanałów", guild.name)
         return
 
     logging.info("[POGODA] Odświeżanie kanałów pogody dla serwera %s", guild.name)
-    last_weather_snapshot[guild.id] = weather_names
+    last_weather_snapshot[guild.id] = current_signature or {}
 
     for key, new_name in weather_names.items():
         channel = get_channel_from_config(guild, cfg, key)
@@ -2343,6 +2480,7 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
 
         weather_cache.pop(guild.id, None)
         weather_cache_fetched_at.pop(guild.id, None)
+        weather_api_backoff_until.pop(guild.id, None)
         await schedule_background_refresh(guild, force_full=True, force_weather=True)
 
         extra = f", {city['admin1']}" if city.get("admin1") else ""
@@ -2377,6 +2515,7 @@ async def language_command(interaction: discord.Interaction, code: str):
     try:
         weather_cache.pop(guild.id, None)
         weather_cache_fetched_at.pop(guild.id, None)
+        weather_api_backoff_until.pop(guild.id, None)
         await schedule_background_refresh(guild, force_full=True, force_weather=True)
     except Exception as e:
         logging.error("Błąd odświeżania po zmianie języka: %s", e)
@@ -2606,6 +2745,7 @@ async def delete_all_command(interaction: discord.Interaction):
     save_guild_config(guild.id, cfg)
     weather_cache.pop(guild.id, None)
     weather_cache_fetched_at.pop(guild.id, None)
+    weather_api_backoff_until.pop(guild.id, None)
     await interaction.followup.send(tr(lang, "delete_all_ok"), ephemeral=True)
 
 
@@ -2678,10 +2818,31 @@ class AdminPanelView(discord.ui.View):
         async def action():
             weather_cache.pop(guild.id, None)
             weather_cache_fetched_at.pop(guild.id, None)
+            weather_api_backoff_until.pop(guild.id, None)
             last_weather_snapshot.pop(guild.id, None)
             last_clock_snapshot.pop(guild.id, None)
 
-        await self._run_action(interaction, "Wyczyściłem cache pogody i snapshoty.", action())
+        await self._run_action(interaction, "Wyczyściłem cache pogody, backoff API i snapshoty.", action())
+
+    @discord.ui.button(label="Status systemu", style=discord.ButtonStyle.success, emoji="🛡️")
+    async def system_status(self, interaction: discord.Interaction, button: discord.ui.Button):
+        guild = interaction.guild
+
+        cache_age = 'brak'
+        if guild.id in weather_cache_fetched_at:
+            cache_age = f"{int((datetime.now(UTC) - weather_cache_fetched_at[guild.id]).total_seconds())}s"
+        guild_queue = get_guild_edit_queue(guild.id)
+        prune_old_edit_timestamps(datetime.now(UTC), guild_queue)
+        prune_old_edit_timestamps(datetime.now(UTC), recent_channel_edit_times)
+
+        embed = discord.Embed(title='🛡️ Status systemu • Kosmiczny Zegar', color=discord.Color.green())
+        embed.add_field(name='Pogoda w cache', value=cache_age, inline=True)
+        embed.add_field(name='Backoff API', value=f"{get_weather_api_backoff_remaining(guild.id)}s" if get_weather_api_backoff_remaining(guild.id) else 'brak', inline=True)
+        embed.add_field(name='Edycje globalne / 1 min', value=str(len(recent_channel_edit_times)), inline=True)
+        embed.add_field(name='Edycje tego serwera / 1 min', value=str(len(guild_queue)), inline=True)
+        embed.add_field(name='Pełny refresh cooldown', value=f"{FULL_REFRESH_MIN_INTERVAL_SECONDS}s", inline=True)
+        embed.add_field(name='Próg istotnej zmiany temperatury', value=f"{WEATHER_SIGNIFICANT_TEMP_DELTA}°C", inline=True)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 @bot.tree.command(name="panel_admina", description="Otwiera panel administracyjny odświeżania bota")
@@ -2699,12 +2860,17 @@ async def panel_admina(interaction: discord.Interaction):
         weather_age_text = f"{age}s temu"
 
     embed = discord.Embed(title="🛠️ Panel admina • Kosmiczny Zegar", color=discord.Color.blurple())
+    edits_last_minute = len(recent_channel_edit_times)
+    api_backoff_text = f"{get_weather_api_backoff_remaining(guild.id)}s" if get_weather_api_backoff_remaining(guild.id) else "brak"
     embed.description = (
         "Tutaj możesz bezpiecznie sterować odświeżaniem bez spamowania Discord API.\n\n"
         f"• pogoda: co najmniej co **{WEATHER_API_MIN_INTERVAL_SECONDS}s** do API\n"
         f"• cooldown globalny edycji kanałów: **{GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS}s**\n"
         f"• cooldown serwera: **{GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS}s**\n"
-        f"• ostatnia pogoda w cache: **{weather_age_text}**"
+        f"• limit zmian kanałów: **{MAX_CHANNEL_EDITS_PER_MINUTE}/min**\n"
+        f"• ostatnia pogoda w cache: **{weather_age_text}**\n"
+        f"• backoff API pogody: **{api_backoff_text}**\n"
+        f"• edycje kanałów w ostatniej minucie: **{edits_last_minute}**"
     )
     await interaction.response.send_message(embed=embed, view=AdminPanelView(), ephemeral=True)
 
