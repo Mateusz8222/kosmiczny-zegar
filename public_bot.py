@@ -59,6 +59,9 @@ GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS = 1.2
 GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS = 1.8
 MAX_CHANNEL_EDITS_PER_MINUTE = 12
 EDIT_SPAM_EXTRA_BACKOFF_SECONDS = 15
+DISCORD_RATE_LIMIT_SOFT_THRESHOLD_SECONDS = 15
+DISCORD_RATE_LIMIT_LONG_THRESHOLD_SECONDS = 60
+DISCORD_RATE_LIMIT_EXTRA_SAFETY_SECONDS = 5
 WEATHER_SIGNIFICANT_TEMP_DELTA = 1.0
 WEATHER_SIGNIFICANT_WIND_DELTA = 2.0
 WEATHER_SIGNIFICANT_CLOUDS_DELTA = 10.0
@@ -76,6 +79,8 @@ last_guild_channel_edit_at: dict[int, datetime] = {}
 recent_channel_edit_times: deque[datetime] = deque(maxlen=240)
 guild_recent_channel_edit_times: dict[int, deque[datetime]] = {}
 guild_edit_backoff_until: dict[int, datetime] = {}
+discord_global_backoff_until: datetime | None = None
+discord_guild_backoff_until: dict[int, datetime] = {}
 last_midnight_reset_dates: dict[int, date] = {}
 weather_cache: dict[int, dict] = {}
 weather_cache_fetched_at: dict[int, datetime] = {}
@@ -1120,6 +1125,43 @@ def should_block_channel_name(new_name: str) -> bool:
     return any(normalized.endswith(suffix) for suffix in placeholder_suffixes)
 
 
+def set_discord_backoff(guild_id: int | None, retry_after_seconds: float):
+    global discord_global_backoff_until
+
+    now = datetime.now(UTC)
+    wait_seconds = max(0.0, float(retry_after_seconds)) + DISCORD_RATE_LIMIT_EXTRA_SAFETY_SECONDS
+    until = now + timedelta(seconds=wait_seconds)
+
+    if discord_global_backoff_until is None or until > discord_global_backoff_until:
+        discord_global_backoff_until = until
+
+    if guild_id is not None:
+        current = discord_guild_backoff_until.get(guild_id)
+        if current is None or until > current:
+            discord_guild_backoff_until[guild_id] = until
+        guild_edit_backoff_until[guild_id] = until
+
+
+def get_discord_backoff_remaining(guild_id: int | None = None) -> int:
+    now = datetime.now(UTC)
+    remaining_values: list[float] = []
+
+    if discord_global_backoff_until is not None:
+        remaining_values.append((discord_global_backoff_until - now).total_seconds())
+
+    if guild_id is not None:
+        guild_until = discord_guild_backoff_until.get(guild_id)
+        if guild_until is not None:
+            remaining_values.append((guild_until - now).total_seconds())
+
+    remaining = max([0.0, *remaining_values])
+    return max(0, int(remaining))
+
+
+def is_discord_backoff_active(guild_id: int | None = None) -> bool:
+    return get_discord_backoff_remaining(guild_id) > 0
+
+
 def get_weather_api_backoff_remaining(guild_id: int) -> int:
     until = weather_api_backoff_until.get(guild_id)
     if until is None:
@@ -1134,6 +1176,20 @@ async def wait_for_channel_edit_slot(guild_id: int | None):
     async with channel_edit_serial_lock:
         now = datetime.now(UTC)
         prune_old_edit_timestamps(now, recent_channel_edit_times)
+
+        global_backoff_remaining = get_discord_backoff_remaining(None)
+        if global_backoff_remaining > 0:
+            logging.warning('[ANTI-429] Globalny backoff Discord aktywny jeszcze %ss', global_backoff_remaining)
+            await asyncio.sleep(global_backoff_remaining)
+            now = datetime.now(UTC)
+            prune_old_edit_timestamps(now, recent_channel_edit_times)
+
+        guild_backoff_remaining = get_discord_backoff_remaining(guild_id) if guild_id is not None else 0
+        if guild_backoff_remaining > 0:
+            logging.warning('[ANTI-429] Backoff Discord dla serwera %s aktywny jeszcze %ss', guild_id, guild_backoff_remaining)
+            await asyncio.sleep(guild_backoff_remaining)
+            now = datetime.now(UTC)
+            prune_old_edit_timestamps(now, recent_channel_edit_times)
 
         if guild_id is not None:
             guild_queue = get_guild_edit_queue(guild_id)
@@ -1254,6 +1310,16 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
 
             if retry_after:
                 wait_time = float(retry_after) + 1.0
+                set_discord_backoff(guild_id, wait_time)
+
+                if wait_time >= DISCORD_RATE_LIMIT_LONG_THRESHOLD_SECONDS:
+                    logging.warning(
+                        "[ANTI-429] Długi rate limit dla kanału %s (%.2fs). Wstrzymuję odświeżanie bez retry.",
+                        channel.id,
+                        wait_time,
+                    )
+                    return
+
                 logging.warning(
                     "Rate limit dla kanału %s. Czekam %.2fs i próbuję ponownie.",
                     channel.id,
@@ -1273,8 +1339,10 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
 
             message = str(e).lower()
             if "429" in message or "rate limit" in message:
-                logging.warning("Discord rate limit przy zmianie kanału %s: %s", channel.id, e)
-                await asyncio.sleep(max(CHANNEL_EDIT_DELAY, 5.0))
+                fallback_wait = max(CHANNEL_EDIT_DELAY, 5.0)
+                set_discord_backoff(guild_id, fallback_wait)
+                logging.warning("[ANTI-429] Discord rate limit przy zmianie kanału %s: %s", channel.id, e)
+                await asyncio.sleep(fallback_wait)
                 return
 
             logging.warning("Nie udało się zmienić nazwy kanału %s: %s", channel.id, e)
@@ -1349,6 +1417,11 @@ async def schedule_background_refresh(
     existing = background_refresh_tasks.get(guild.id)
     if existing and not existing.done():
         logging.info("[REFRESH] Odświeżenie już trwa dla serwera %s", guild.name)
+        return
+
+    if is_discord_backoff_active(guild.id):
+        remaining = get_discord_backoff_remaining(guild.id)
+        logging.warning("[ANTI-429] Pomijam refresh dla %s - Discord backoff jeszcze %ss", guild.name, remaining)
         return
 
     now = datetime.now(UTC)
@@ -1870,6 +1943,8 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict |
         "moon": moon_phase_name(now, lang),
     })
 
+    edit_keys: list[str] | None = None
+
     if has_invalid_clock_markers(proposed_clock_names):
         fallback_snapshot = last_valid_clock_snapshot.get(guild.id)
         if fallback_snapshot:
@@ -1879,22 +1954,29 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict |
             clock_names["part_of_day"] = proposed_clock_names["part_of_day"]
             clock_names["moon"] = proposed_clock_names["moon"]
         else:
-            logging.warning("[ZEGAR] Otrzymano niepełne dane dla serwera %s i brak fallbacku - pomijam edycję kanałów", guild.name)
-            return
+            logging.warning("[ZEGAR] Pierwsza inicjalizacja dla serwera %s - ustawiam tylko bezpieczne pola zegara", guild.name)
+            clock_names = dict(proposed_clock_names)
+            edit_keys = [
+                key for key, value in clock_names.items()
+                if not should_block_channel_name(value)
+            ]
+            if not edit_keys:
+                return
     else:
         clock_names = proposed_clock_names
         last_valid_clock_snapshot[guild.id] = dict(clock_names)
 
     previous_snapshot = last_clock_snapshot.get(guild.id)
-    if previous_snapshot == clock_names and channel_snapshot_is_applied(guild, cfg, clock_names):
+    if edit_keys is None and previous_snapshot == clock_names and channel_snapshot_is_applied(guild, cfg, clock_names):
         logging.info("[ZEGAR] Brak zmian dla serwera %s - pomijam edycję kanałów", guild.name)
         return
 
     logging.info("[ZEGAR] Odświeżanie kanałów zegara dla serwera %s", guild.name)
     last_clock_snapshot[guild.id] = dict(clock_names)
 
-    for key, new_name in clock_names.items():
-        await safe_edit_channel_name(get_channel_from_config(guild, cfg, key), new_name)
+    keys_to_edit = edit_keys or list(clock_names.keys())
+    for key in keys_to_edit:
+        await safe_edit_channel_name(get_channel_from_config(guild, cfg, key), clock_names[key])
 
 
 async def update_stats_channels(guild: discord.Guild, cfg: dict):
