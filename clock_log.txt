@@ -1,0 +1,3382 @@
+[2026-02-20 20:54:13] [INFO    ] discord.client: logging in using static token
+[2026-02-20 20:54:15] [INFO    ] discord.gateway: Shard ID None has connected to Gateway (Session ID: 528049fef5903a8b721d1752e68c1d45).
+[2026-02-20 21:07:06] [INFO    ] discord.client: logging in using static token
+[2026-02-20 21:07:07] [INFO    ] discord.gateway: Shard ID None has connected to Gateway (Session ID: c2b8d50d1ccf87081fe2b0b1b9d35890).
+
+============================
+🚀 START NOWEJ SESJI BOTA
+============================
+✅ on_ready: zalogowano jako Pogaduchy#6449
+⏱ Tick - sprawdzam godzinę
+✏ Próba zmiany nazwy na: 🕒 21:14
+✅ Zmieniono nazwę kanału na: 🕒 21:14
+⏱ Tick - sprawdzam godzinę
+⏳ Bez zmian - minuta ta sama
+⏱ Tick - sprawdzam godzinę
+✏ Próba zmiany nazwy na: 🕒 21:15
+✅ Zmieniono nazwę kanału na: 🕒 21:15
+⏱ Tick - sprawdzam godzinę
+✏ Próba zmiany nazwy na: 🕒 21:16
+✅ Zmieniono nazwę kanału na: 🕒 21:16
+⏱ Tick - sprawdzam godzinę
+✏ Próba zmiany nazwy na: 🕒 21:24
+✅ Zmieniono nazwę kanału na: 🕒 21:24
+⏱ Tick - sprawdzam godzinę
+⏳ Bez zmian - minuta ta sama
+⏱ Tick - sprawdzam godzinę
+⏳ Bez zmian - minuta ta sama
+⏱ Tick - sprawdzam godzinę
+⏳ Bez zmian - minuta ta sama
+⏱ Tick - sprawdzam godzinę
+⏳ Bez zmian - minuta ta sama
+⏱ Tick - sprawdzam godzinę
+⏳ Bez zmian - minuta ta sama
+⏱ Tick - sprawdzam godzinę
+⏳ Bez zmian - minuta ta sama
+⏱ Tick - sprawdzam godzinę
+⏳ Bez zmian - minuta ta sama
+⏱ Tick - sprawdzam godzinę
+✏ Próba zmiany nazwy na: 🕒 21:25
+
+============================
+🚀 START NOWEJ SESJI BOTA
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✏ Zmiana nazwy na: 📅 Pią • 20.02.2026 │ 🕒 21:29
+
+============================
+🚀 START NOWEJ SESJI BOTA
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✏ Zmiana nazwy na: 📅 Pią • 20.02.2026 │ 🕒 21:31
+✅ Zmieniono nazwę kanału
+✏ Zmiana nazwy na: 📅 Pią • 20.02.2026 │ 🕒 21:34
+✅ Zmieniono nazwę kanału
+✏ Zmiana nazwy na: 📅 Pią • 20.02.2026 │ 🕒 21:35
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 21:41
+⏳ Synchronizacja do pełnej minuty: czekam 14.42s
+🪖 TICK 21:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 21:45
+🪖 TICK 21:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 21:46
+🪖 TICK 21:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 21:55
+🪖 TICK 21:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 21:56
+🪖 TICK 22:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 22:05
+🪖 TICK 22:06:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 22:06
+🪖 TICK 22:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 22:15
+🪖 TICK 22:16:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 22:16
+🪖 TICK 22:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 22:25
+🪖 TICK 22:26:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 22:26
+🪖 TICK 22:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 22:35
+🪖 TICK 22:36:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 22:36
+🪖 TICK 22:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 22:45
+🪖 TICK 22:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 22:46
+🪖 TICK 22:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 22:55
+🪖 TICK 22:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 22:56
+🪖 TICK 23:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 23:05
+🪖 TICK 23:06:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 23:06
+🪖 TICK 23:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 23:15
+🪖 TICK 23:16:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 23:16
+🪖 TICK 23:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 23:25
+🪖 TICK 23:26:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 23:26
+🪖 TICK 23:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 23:35
+🪖 TICK 23:36:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 23:36
+🪖 TICK 23:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 23:45
+🪖 TICK 23:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 23:46
+🪖 TICK 23:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 23:55
+🪖 TICK 23:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 20.02.2026 │ 🕒 23:56
+🪖 TICK 00:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 00:05
+🪖 TICK 00:06:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 00:06
+🪖 TICK 00:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 00:15
+🪖 TICK 00:16:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 00:16
+🪖 TICK 00:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 00:25
+🪖 TICK 00:26:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 00:26
+🪖 TICK 00:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 00:35
+🪖 TICK 00:36:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 00:36
+🪖 TICK 00:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 00:45
+🪖 TICK 00:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 00:46
+🪖 TICK 00:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 00:55
+🪖 TICK 00:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 00:56
+🪖 TICK 01:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 01:05
+🪖 TICK 01:06:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 01:06
+🪖 TICK 01:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 01:15
+🪖 TICK 01:16:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 01:16
+🪖 TICK 01:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 01:25
+🪖 TICK 01:26:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 01:26
+🪖 TICK 01:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 01:35
+🪖 TICK 01:35:00 -> próba ustawienia nazwy
+🪖 TICK 01:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 01:37
+🪖 TICK 01:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 01:45
+🪖 TICK 01:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 01:46
+🪖 TICK 01:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 01:55
+🪖 TICK 01:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 01:56
+🪖 TICK 02:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 02:05
+🪖 TICK 02:06:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 02:06
+🪖 TICK 02:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 02:15
+🪖 TICK 02:16:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 02:16
+🪖 TICK 02:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 02:25
+🪖 TICK 02:26:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 02:26
+🪖 TICK 02:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 02:35
+🪖 TICK 02:36:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 02:36
+🪖 TICK 02:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 02:45
+🪖 TICK 02:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 02:46
+🪖 TICK 02:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 02:55
+🪖 TICK 02:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 02:56
+🪖 TICK 03:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 03:05
+🪖 TICK 03:06:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 03:06
+🪖 TICK 09:01:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 09:01
+✅ Zalogowano jako Pogaduchy#6449
+🪖 TICK 09:02:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 09:03
+⏳ Synchronizacja do pełnej minuty: czekam 2.27s
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 09:02
+🪖 TICK 09:11:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 09:11
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 09:11
+🪖 TICK 09:21:00 -> próba ustawienia nazwy
+🪖 TICK 09:21:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 09:21
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 09:21
+🪖 TICK 09:31:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 09:31
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 09:31
+🪖 TICK 09:41:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 09:41
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 09:41
+🪖 TICK 09:51:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 09:51
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 09:51
+🪖 TICK 09:51:00 -> próba ustawienia nazwy
+🪖 TICK 09:52:00 -> próba ustawienia nazwy
+🪖 TICK 09:52:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 09:52
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 09:52
+🪖 TICK 10:01:00 -> próba ustawienia nazwy
+🪖 TICK 10:01:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 10:01
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 10:01
+🪖 TICK 10:02:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 10:02
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 10:02
+🪖 TICK 10:11:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 10:11
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 10:11
+🪖 TICK 10:21:00 -> próba ustawienia nazwy
+🪖 TICK 10:21:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 10:21
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 10:21
+🪖 TICK 10:31:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 10:31
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 10:39
+⏳ Synchronizacja do pełnej minuty: czekam 0.06s
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 10:31
+🪖 TICK 10:41:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 10:41
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 10:41
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 10:41
+🪖 TICK 10:52:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 10:52
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 10:52
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 10:52
+🪖 TICK 11:01:00 -> próba ustawienia nazwy
+🪖 TICK 11:02:00 -> próba ustawienia nazwy
+🪖 TICK 11:02:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 11:02
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 11:01
+🪖 TICK 11:12:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 11:12
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 11:12
+🪖 TICK 11:22:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 11:22
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 11:22
+🪖 TICK 11:31:00 -> próba ustawienia nazwy
+🪖 TICK 11:32:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 11:32
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 11:31
+🪖 TICK 11:42:00 -> próba ustawienia nazwy
+🪖 TICK 11:42:00 -> próba ustawienia nazwy
+⚠ HTTP / rate limit: HTTPException('429 Too Many Requests (error code: 0): The resource is being rate limited.')
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 11:42
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 11:42
+🪖 TICK 11:52:00 -> próba ustawienia nazwy
+🪖 TICK 11:52:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 11:52
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 11:52
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 11:52
+🪖 TICK 12:02:00 -> próba ustawienia nazwy
+🪖 TICK 12:02:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:02
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:02
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:02
+🪖 TICK 12:03:00 -> próba ustawienia nazwy
+🪖 TICK 12:03:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:03
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:03
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:03
+🪖 TICK 12:12:00 -> próba ustawienia nazwy
+🪖 TICK 12:12:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:12
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:12
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:12
+🪖 TICK 12:12:00 -> próba ustawienia nazwy
+🪖 TICK 12:13:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:13
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:13
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:13
+🪖 TICK 12:21:00 -> próba ustawienia nazwy
+🪖 TICK 12:22:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:21
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:22
+🪖 TICK 12:32:00 -> próba ustawienia nazwy
+🪖 TICK 12:32:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:32
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:32
+🪖 TICK 12:41:00 -> próba ustawienia nazwy
+🪖 TICK 12:42:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:41
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:21
+🪖 TICK 12:51:00 -> próba ustawienia nazwy
+🪖 TICK 12:52:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:51
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:42
+🪖 TICK 13:02:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:02
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 12:52
+🪖 TICK 13:11:00 -> próba ustawienia nazwy
+🪖 TICK 13:12:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:11
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:02
+🪖 TICK 13:22:00 -> próba ustawienia nazwy
+🪖 TICK 13:22:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:22
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:22
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:12
+🪖 TICK 13:31:00 -> próba ustawienia nazwy
+🪖 TICK 13:32:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:31
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:32
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:32
+🪖 TICK 13:42:00 -> próba ustawienia nazwy
+🪖 TICK 13:42:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:42
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:42
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:42
+🪖 TICK 13:52:00 -> próba ustawienia nazwy
+🪖 TICK 13:52:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:52
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:52
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:52
+🪖 TICK 13:53:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:53
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:53
+🪖 TICK 14:02:00 -> próba ustawienia nazwy
+🪖 TICK 14:02:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 13:53
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 14:02
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 14:02
+🪖 TICK 14:11:00 -> próba ustawienia nazwy
+🪖 TICK 14:12:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 14:11
+🪖 TICK 14:13:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 14:12
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 14:13
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 14:12
+🪖 TICK 14:22:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 14:22
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 14:22
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 14:22
+🪖 TICK 14:31:00 -> próba ustawienia nazwy
+🪖 TICK 14:32:00 -> próba ustawienia nazwy
+🪖 TICK 14:32:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 14:31
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 14:32
+🪖 TICK 14:42:00 -> próba ustawienia nazwy
+🪖 TICK 14:42:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 14:42
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 14:42
+🪖 TICK 14:52:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 14:52
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 14:52
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 14:32
+🪖 TICK 15:02:00 -> próba ustawienia nazwy
+🪖 TICK 15:02:00 -> próba ustawienia nazwy
+🪖 TICK 15:02:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 15:02
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 15:02
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 15:02
+🪖 TICK 15:11:00 -> próba ustawienia nazwy
+🪖 TICK 15:12:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 15:12
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 15:12
+🪖 TICK 15:13:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 15:13
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 15:13
+🪖 TICK 15:22:00 -> próba ustawienia nazwy
+🪖 TICK 15:22:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 15:11
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 20:34
+🪖 TICK 20:35:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 20:37
+⏳ Synchronizacja do pełnej minuty: czekam 51.99s
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 20:35
+🪖 TICK 20:45:00 -> próba ustawienia nazwy
+🪖 TICK 20:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 20:45
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 20:45
+🪖 TICK 20:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 20:55
+🪖 TICK 20:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 20:56
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 20:55
+🪖 TICK 21:05:00 -> próba ustawienia nazwy
+🪖 TICK 21:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 21:05
+🪖 TICK 21:06:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 21:06
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 21:05
+🪖 TICK 21:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 21:15
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 21:15
+🪖 TICK 21:16:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 21:16
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 21:16
+🪖 TICK 21:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 21:25
+🪖 TICK 21:26:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 21:25
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 21:26
+🪖 TICK 21:35:00 -> próba ustawienia nazwy
+🪖 TICK 21:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 21:34
+🪖 TICK 21:36:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 21:36
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 21:35
+🪖 TICK 21:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 21:45
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 21:45
+🪖 TICK 21:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 21:55
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 21:55
+🪖 TICK 22:05:00 -> próba ustawienia nazwy
+🪖 TICK 22:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 22:05
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 22:05
+🪖 TICK 22:05:00 -> próba ustawienia nazwy
+🪖 TICK 22:06:00 -> próba ustawienia nazwy
+🪖 TICK 22:05:00 -> próba ustawienia nazwy
+🪖 TICK 22:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 22:07
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 22:06
+🪖 TICK 22:15:00 -> próba ustawienia nazwy
+🪖 TICK 22:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 22:15
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 22:15
+🪖 TICK 22:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 22:25
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 22:25
+🪖 TICK 22:35:00 -> próba ustawienia nazwy
+🪖 TICK 22:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 22:35
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 22:35
+🪖 TICK 22:45:00 -> próba ustawienia nazwy
+🪖 TICK 22:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 22:45
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 22:45
+🪖 TICK 22:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 22:55
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 22:55
+🪖 TICK 22:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 22:56
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 22:56
+🪖 TICK 23:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 23:05
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 23:05
+🪖 TICK 23:15:00 -> próba ustawienia nazwy
+🪖 TICK 23:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 23:15
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 23:15
+🪖 TICK 23:25:00 -> próba ustawienia nazwy
+🪖 TICK 23:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 23:25
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 23:25
+🪖 TICK 23:35:00 -> próba ustawienia nazwy
+🪖 TICK 23:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 23:35
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 23:35
+🪖 TICK 23:36:00 -> próba ustawienia nazwy
+🪖 TICK 23:36:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 23:36
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 23:36
+🪖 TICK 23:45:00 -> próba ustawienia nazwy
+🪖 TICK 23:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 23:45
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 23:45
+🪖 TICK 23:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 23:46
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 23:46
+🪖 TICK 23:54:00 -> próba ustawienia nazwy
+🪖 TICK 23:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 23:55
+🪖 TICK 23:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 23:54
+✅ Ustawiono: 📅 Sob • 21.02.2026 │ 🕒 23:56
+🪖 TICK 00:05:00 -> próba ustawienia nazwy
+🪖 TICK 00:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 00:05
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 19:50
+🪖 TICK 19:51:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 19:59
+⏳ Synchronizacja do pełnej minuty: czekam 23.82s
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 19:51
+🪖 TICK 20:01:00 -> próba ustawienia nazwy
+🪖 TICK 20:01:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 20:01
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 20:01
+🪖 TICK 20:10:00 -> próba ustawienia nazwy
+🪖 TICK 20:11:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 19:58
+⏳ Synchronizacja do pełnej minuty: czekam 23.25s
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 20:10
+🪖 TICK 20:21:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 20:21
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 20:21
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 20:11
+🪖 TICK 20:30:00 -> próba ustawienia nazwy
+🪖 TICK 20:31:00 -> próba ustawienia nazwy
+🪖 TICK 20:31:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 20:31
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 20:31
+🪖 TICK 20:41:00 -> próba ustawienia nazwy
+🪖 TICK 20:41:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 20:41
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 20:41
+🪖 TICK 20:51:00 -> próba ustawienia nazwy
+🪖 TICK 20:51:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 20:51
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 20:51
+🪖 TICK 21:01:00 -> próba ustawienia nazwy
+🪖 TICK 21:00:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 21:01
+🪖 TICK 21:02:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 21:02
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 21:00
+🪖 TICK 21:11:00 -> próba ustawienia nazwy
+🪖 TICK 21:11:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 21:11
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 21:11
+🪖 TICK 21:20:00 -> próba ustawienia nazwy
+🪖 TICK 21:21:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 21:20
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 21:21
+🪖 TICK 21:31:00 -> próba ustawienia nazwy
+🪖 TICK 21:31:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 21:31
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 21:31
+🪖 TICK 21:41:00 -> próba ustawienia nazwy
+🪖 TICK 21:41:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 21:41
+🪖 TICK 21:42:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 21:41
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 21:42
+🪖 TICK 21:51:00 -> próba ustawienia nazwy
+🪖 TICK 21:51:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 21:51
+🪖 TICK 21:52:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 21:51
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 21:52
+🪖 TICK 22:01:00 -> próba ustawienia nazwy
+🪖 TICK 22:00:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 22:01
+🪖 TICK 22:02:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 22:00
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 22:02
+🪖 TICK 22:10:00 -> próba ustawienia nazwy
+🪖 TICK 22:11:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 22:10
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 22:11
+🪖 TICK 22:21:00 -> próba ustawienia nazwy
+🪖 TICK 22:21:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 22:21
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 22:21
+🪖 TICK 22:31:00 -> próba ustawienia nazwy
+🪖 TICK 22:31:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 22:31
+🪖 TICK 22:32:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 22:32
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 22:31
+🪖 TICK 22:41:00 -> próba ustawienia nazwy
+🪖 TICK 22:41:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 22:41
+🪖 TICK 22:42:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 22:41
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 22:42
+🪖 TICK 22:51:00 -> próba ustawienia nazwy
+🪖 TICK 22:51:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 22:51
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 22:51
+🪖 TICK 22:52:00 -> próba ustawienia nazwy
+🪖 TICK 22:52:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 22:52
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 22:52
+🪖 TICK 23:00:00 -> próba ustawienia nazwy
+🪖 TICK 23:01:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 23:01
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 23:00
+🪖 TICK 23:11:00 -> próba ustawienia nazwy
+🪖 TICK 23:11:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 23:11
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 23:11
+🪖 TICK 23:21:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 23:21
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 23:21
+🪖 TICK 23:21:00 -> próba ustawienia nazwy
+🪖 TICK 23:22:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 23:22
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 23:22
+🪖 TICK 23:30:00 -> próba ustawienia nazwy
+🪖 TICK 23:31:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 23:30
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 23:31
+🪖 TICK 23:41:00 -> próba ustawienia nazwy
+🪖 TICK 23:41:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 23:41
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 23:41
+🪖 TICK 23:51:00 -> próba ustawienia nazwy
+🪖 TICK 23:51:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 23:51
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 23:51
+🪖 TICK 23:52:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 23:52
+✅ Ustawiono: 📅 Nie • 22.02.2026 │ 🕒 23:52
+🪖 TICK 00:01:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 00:01
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 00:01
+🪖 TICK 00:11:00 -> próba ustawienia nazwy
+🪖 TICK 00:11:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 00:11
+🪖 TICK 00:12:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 00:12
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 00:11
+🪖 TICK 00:21:00 -> próba ustawienia nazwy
+🪖 TICK 00:21:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 00:21
+🪖 TICK 00:22:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 00:21
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 00:22
+🪖 TICK 00:31:00 -> próba ustawienia nazwy
+🪖 TICK 00:31:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 00:31
+🪖 TICK 00:32:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 00:31
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 00:32
+🪖 TICK 00:41:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 00:41
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 00:41
+🪖 TICK 00:42:00 -> próba ustawienia nazwy
+🪖 TICK 00:42:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 00:42
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 00:42
+🪖 TICK 00:50:00 -> próba ustawienia nazwy
+🪖 TICK 00:51:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 00:51
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 00:50
+🪖 TICK 01:01:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 01:01
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 01:01
+🪖 TICK 01:11:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 01:11
+🪖 TICK 01:12:00 -> próba ustawienia nazwy
+❌ Inny błąd: ClientConnectorDNSError(ConnectionKey(host='discord.com', port=443, is_ssl=True, ssl=True, proxy=None, proxy_auth=None, proxy_headers_hash=None), gaierror(11004, 'getaddrinfo failed'))
+🪖 TICK 08:22:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 08:22
+✅ Zalogowano jako Pogaduchy#6449
+🪖 TICK 08:23:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 08:23
+🪖 TICK 08:24:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 08:25
+⏳ Synchronizacja do pełnej minuty: czekam 48.07s
+🪖 TICK 08:32:00 -> próba ustawienia nazwy
+🪖 TICK 08:33:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 08:33
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 08:32
+🪖 TICK 08:43:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 08:43
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 08:43
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 08:24
+🪖 TICK 08:52:00 -> próba ustawienia nazwy
+🪖 TICK 08:53:00 -> próba ustawienia nazwy
+🪖 TICK 08:53:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 08:53
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 08:52
+🪖 TICK 09:03:00 -> próba ustawienia nazwy
+🪖 TICK 09:03:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 09:03
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 09:03
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 08:53
+🪖 TICK 09:13:00 -> próba ustawienia nazwy
+🪖 TICK 09:13:00 -> próba ustawienia nazwy
+🪖 TICK 09:12:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 09:13
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 09:13
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 09:12
+🪖 TICK 09:23:00 -> próba ustawienia nazwy
+🪖 TICK 09:23:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 09:23
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 09:23
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 09:23
+🪖 TICK 09:33:00 -> próba ustawienia nazwy
+🪖 TICK 09:33:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 09:33
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 09:33
+🪖 TICK 09:43:00 -> próba ustawienia nazwy
+🪖 TICK 09:43:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 09:43
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 09:43
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 09:33
+🪖 TICK 09:52:00 -> próba ustawienia nazwy
+🪖 TICK 09:53:00 -> próba ustawienia nazwy
+🪖 TICK 09:53:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 09:53
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 09:52
+🪖 TICK 10:03:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 09:53
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 13:13
+🪖 TICK 13:14:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 13:14
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 13:16
+⏳ Synchronizacja do pełnej minuty: czekam 37.36s
+🪖 TICK 13:24:00 -> próba ustawienia nazwy
+🪖 TICK 13:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 13:24
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 13:16
+⏳ Synchronizacja do pełnej minuty: czekam 37.08s
+🪖 TICK 13:34:00 -> próba ustawienia nazwy
+🪖 TICK 13:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 13:34
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 13:34
+🪖 TICK 13:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 13:44
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 13:24
+🪖 TICK 13:54:00 -> próba ustawienia nazwy
+🪖 TICK 13:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 13:44
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 13:54
+🪖 TICK 14:04:00 -> próba ustawienia nazwy
+🪖 TICK 14:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 13:54
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 14:04
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 14:04
+🪖 TICK 14:13:00 -> próba ustawienia nazwy
+🪖 TICK 14:14:00 -> próba ustawienia nazwy
+🪖 TICK 14:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 14:13
+🪖 TICK 14:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 14:14
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 14:15
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 14:14
+🪖 TICK 14:24:00 -> próba ustawienia nazwy
+🪖 TICK 14:24:00 -> próba ustawienia nazwy
+🪖 TICK 14:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 14:24
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 14:24
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 14:24
+🪖 TICK 14:34:00 -> próba ustawienia nazwy
+🪖 TICK 14:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 14:34
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 14:34
+🪖 TICK 14:44:00 -> próba ustawienia nazwy
+🪖 TICK 14:43:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 14:34
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 14:44
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 14:43
+🪖 TICK 14:54:00 -> próba ustawienia nazwy
+🪖 TICK 14:54:00 -> próba ustawienia nazwy
+🪖 TICK 14:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 14:54
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 14:54
+🪖 TICK 15:04:00 -> próba ustawienia nazwy
+🪖 TICK 15:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 15:04
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 15:04
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 14:54
+🪖 TICK 15:14:00 -> próba ustawienia nazwy
+🪖 TICK 15:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 15:14
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 15:14
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 15:14
+🪖 TICK 15:24:00 -> próba ustawienia nazwy
+🪖 TICK 15:24:00 -> próba ustawienia nazwy
+🪖 TICK 15:23:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 15:24
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 15:24
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 15:23
+🪖 TICK 15:34:00 -> próba ustawienia nazwy
+🪖 TICK 15:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 15:34
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 15:34
+🪖 TICK 15:44:00 -> próba ustawienia nazwy
+🪖 TICK 15:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 15:34
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 15:44
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 15:44
+🪖 TICK 15:54:00 -> próba ustawienia nazwy
+🪖 TICK 15:54:00 -> próba ustawienia nazwy
+🪖 TICK 15:53:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 15:53
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 15:54
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 15:54
+🪖 TICK 16:04:00 -> próba ustawienia nazwy
+🪖 TICK 16:04:00 -> próba ustawienia nazwy
+🪖 TICK 16:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 16:04
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 16:04
+🪖 TICK 16:14:00 -> próba ustawienia nazwy
+🪖 TICK 16:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 16:04
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 16:14
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 16:14
+🪖 TICK 16:24:00 -> próba ustawienia nazwy
+🪖 TICK 16:24:00 -> próba ustawienia nazwy
+🪖 TICK 16:24:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 18:08
+⏳ Synchronizacja do pełnej minuty: czekam 32.55s
+🪖 TICK 18:09:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 18:09
+🪖 TICK 18:10:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 18:10
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 18:11
+⏳ Synchronizacja do pełnej minuty: czekam 32.35s
+🪖 TICK 18:19:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 18:19
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 18:19
+🪖 TICK 18:29:00 -> próba ustawienia nazwy
+🪖 TICK 18:29:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 18:29
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 18:29
+🪖 TICK 18:39:00 -> próba ustawienia nazwy
+🪖 TICK 18:39:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 18:39
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 18:39
+🪖 TICK 18:49:00 -> próba ustawienia nazwy
+🪖 TICK 18:49:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 18:49
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 18:49
+🪖 TICK 18:59:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 18:59
+🪖 TICK 19:00:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 19:00
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 18:59
+🪖 TICK 19:09:00 -> próba ustawienia nazwy
+🪖 TICK 19:09:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 19:09
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 19:09
+🪖 TICK 19:10:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 19:10
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 19:10
+🪖 TICK 19:19:00 -> próba ustawienia nazwy
+🪖 TICK 19:19:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 19:19
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 19:19
+🪖 TICK 19:29:00 -> próba ustawienia nazwy
+🪖 TICK 19:29:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 19:29
+🪖 TICK 19:29:00 -> próba ustawienia nazwy
+🪖 TICK 19:30:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 19:29
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 19:30
+🪖 TICK 19:38:00 -> próba ustawienia nazwy
+🪖 TICK 19:39:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 19:38
+🪖 TICK 19:40:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 19:40
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 19:39
+🪖 TICK 19:49:00 -> próba ustawienia nazwy
+🪖 TICK 19:49:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 19:49
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 19:49
+🪖 TICK 19:59:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 19:59
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 19:59
+🪖 TICK 20:00:00 -> próba ustawienia nazwy
+🪖 TICK 20:00:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 20:00
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 20:00
+🪖 TICK 20:08:00 -> próba ustawienia nazwy
+🪖 TICK 20:09:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 20:08
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 20:09
+🪖 TICK 20:19:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 20:19
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 20:19
+🪖 TICK 20:29:00 -> próba ustawienia nazwy
+🪖 TICK 20:29:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 20:29
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 20:29
+🪖 TICK 20:38:00 -> próba ustawienia nazwy
+🪖 TICK 20:38:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 20:38
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 20:38
+🪖 TICK 20:49:00 -> próba ustawienia nazwy
+🪖 TICK 20:49:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 20:49
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 20:49
+🪖 TICK 20:59:00 -> próba ustawienia nazwy
+🪖 TICK 20:59:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 20:59
+🪖 TICK 21:00:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:00
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 20:59
+🪖 TICK 21:09:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:09
+🪖 TICK 21:10:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:09
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:10
+🪖 TICK 21:18:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:18
+🪖 TICK 21:20:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:18
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:20
+🪖 TICK 21:28:00 -> próba ustawienia nazwy
+🪖 TICK 21:29:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:29
+🪖 TICK 21:29:00 -> próba ustawienia nazwy
+🪖 TICK 21:31:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:28
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:31
+🪖 TICK 21:39:00 -> próba ustawienia nazwy
+🪖 TICK 21:39:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:39
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:39
+🪖 TICK 21:49:00 -> próba ustawienia nazwy
+🪖 TICK 21:49:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:49
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:49
+🪖 TICK 21:50:00 -> próba ustawienia nazwy
+🪖 TICK 21:50:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:50
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:50
+🪖 TICK 21:59:00 -> próba ustawienia nazwy
+🪖 TICK 21:59:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:59
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 21:59
+🪖 TICK 22:08:00 -> próba ustawienia nazwy
+🪖 TICK 22:09:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 22:09
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 22:08
+🪖 TICK 22:19:00 -> próba ustawienia nazwy
+🪖 TICK 22:19:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 22:19
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 22:19
+🪖 TICK 22:29:00 -> próba ustawienia nazwy
+🪖 TICK 22:29:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 22:29
+🪖 TICK 22:30:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 22:29
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 22:30
+🪖 TICK 22:39:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 22:39
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 22:39
+🪖 TICK 22:40:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 22:40
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 22:40
+🪖 TICK 22:49:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 22:49
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 22:49
+🪖 TICK 22:58:00 -> próba ustawienia nazwy
+🪖 TICK 22:59:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 22:58
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 22:59
+🪖 TICK 23:09:00 -> próba ustawienia nazwy
+🪖 TICK 23:09:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 23:09
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 23:09
+🪖 TICK 23:19:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 23:19
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 23:19
+🪖 TICK 23:29:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 23:29
+🪖 TICK 23:30:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 23:30
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 23:29
+🪖 TICK 23:38:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 23:38
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 23:39
+🪖 TICK 23:49:00 -> próba ustawienia nazwy
+🪖 TICK 23:49:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 23:49
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 23:49
+🪖 TICK 23:59:00 -> próba ustawienia nazwy
+🪖 TICK 23:59:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 23:59
+🪖 TICK 00:00:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 00:00
+✅ Ustawiono: 📅 Pon • 23.02.2026 │ 🕒 23:59
+🪖 TICK 00:08:00 -> próba ustawienia nazwy
+🪖 TICK 00:09:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 00:09
+🪖 TICK 00:10:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 00:10
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 00:08
+🪖 TICK 00:19:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 00:19
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 00:19
+🪖 TICK 00:29:00 -> próba ustawienia nazwy
+🪖 TICK 00:29:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 00:29
+🪖 TICK 00:30:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 00:29
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 00:30
+🪖 TICK 00:39:00 -> próba ustawienia nazwy
+🪖 TICK 00:39:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 00:39
+🪖 TICK 00:40:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 00:40
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 00:39
+🪖 TICK 00:49:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 00:49
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 00:49
+🪖 TICK 00:59:00 -> próba ustawienia nazwy
+🪖 TICK 00:59:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 00:59
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 00:59
+🪖 TICK 01:09:00 -> próba ustawienia nazwy
+🪖 TICK 01:09:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 01:09
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 01:09
+🪖 TICK 01:19:00 -> próba ustawienia nazwy
+🪖 TICK 01:19:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 01:19
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 01:19
+🪖 TICK 01:29:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 01:29
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 01:29
+🪖 TICK 01:30:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 01:30
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 01:30
+🪖 TICK 01:39:00 -> próba ustawienia nazwy
+🪖 TICK 01:39:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 01:39
+🪖 TICK 01:40:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 01:39
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 01:40
+🪖 TICK 01:49:00 -> próba ustawienia nazwy
+🪖 TICK 01:49:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 01:49
+🪖 TICK 01:50:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 01:49
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 01:50
+🪖 TICK 01:59:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 01:59
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 01:59
+🪖 TICK 02:00:00 -> próba ustawienia nazwy
+🪖 TICK 02:00:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 02:00
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 02:00
+🪖 TICK 02:09:00 -> próba ustawienia nazwy
+🪖 TICK 02:09:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 02:09
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 02:09
+🪖 TICK 02:19:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 02:19
+🪖 TICK 02:20:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 02:19
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 02:20
+🪖 TICK 02:29:00 -> próba ustawienia nazwy
+🪖 TICK 02:29:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 02:29
+🪖 TICK 02:30:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 02:30
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 09:13
+🪖 TICK 09:14:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 09:21
+⏳ Synchronizacja do pełnej minuty: czekam 15.93s
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 09:14
+🪖 TICK 09:24:00 -> próba ustawienia nazwy
+🪖 TICK 09:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 09:24
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 09:21
+⏳ Synchronizacja do pełnej minuty: czekam 15.70s
+🪖 TICK 09:34:00 -> próba ustawienia nazwy
+🪖 TICK 09:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 09:34
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 09:34
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 09:24
+🪖 TICK 09:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 09:44
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 09:44
+🪖 TICK 09:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 09:44
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 09:54
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 09:54
+🪖 TICK 10:04:00 -> próba ustawienia nazwy
+🪖 TICK 10:04:00 -> próba ustawienia nazwy
+🪖 TICK 10:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 10:04
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 10:04
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 10:04
+🪖 TICK 10:13:00 -> próba ustawienia nazwy
+🪖 TICK 10:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 10:13
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 10:13
+🪖 TICK 10:14:00 -> próba ustawienia nazwy
+🪖 TICK 10:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 10:15
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 10:14
+🪖 TICK 10:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 10:24
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 10:24
+🪖 TICK 10:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 10:34
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 10:34
+🪖 TICK 10:44:00 -> próba ustawienia nazwy
+🪖 TICK 10:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 10:44
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 10:44
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 10:14
+🪖 TICK 10:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 10:54
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 10:54
+🪖 TICK 11:04:00 -> próba ustawienia nazwy
+🪖 TICK 11:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 10:54
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 11:04
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 11:04
+🪖 TICK 11:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 11:14
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 11:14
+🪖 TICK 11:15:00 -> próba ustawienia nazwy
+🪖 TICK 11:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 11:15
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 11:15
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 11:14
+🪖 TICK 11:23:00 -> próba ustawienia nazwy
+🪖 TICK 11:24:00 -> próba ustawienia nazwy
+🪖 TICK 11:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 11:24
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 11:23
+🪖 TICK 11:33:00 -> próba ustawienia nazwy
+🪖 TICK 11:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 11:33
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 11:24
+🪖 TICK 11:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 11:44
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 11:34
+🪖 TICK 11:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 11:54
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 11:44
+🪖 TICK 12:04:00 -> próba ustawienia nazwy
+🪖 TICK 12:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 11:54
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 12:04
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 12:04
+🪖 TICK 12:14:00 -> próba ustawienia nazwy
+🪖 TICK 12:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 12:14
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 12:14
+🪖 TICK 12:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 12:24
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 12:24
+🪖 TICK 12:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 12:14
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 12:34
+🪖 TICK 12:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 12:34
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 12:44
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 12:44
+🪖 TICK 12:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 12:54
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 12:54
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 12:54
+🪖 TICK 13:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 13:04
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 13:04
+🪖 TICK 13:14:00 -> próba ustawienia nazwy
+🪖 TICK 13:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 13:14
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 13:14
+🪖 TICK 13:24:00 -> próba ustawienia nazwy
+🪖 TICK 13:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 13:24
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 13:24
+🪖 TICK 13:24:00 -> próba ustawienia nazwy
+🪖 TICK 13:25:00 -> próba ustawienia nazwy
+🪖 TICK 13:26:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 13:26
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 13:25
+🪖 TICK 13:34:00 -> próba ustawienia nazwy
+🪖 TICK 13:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 13:24
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 13:34
+🪖 TICK 13:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 13:44
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 13:44
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 13:34
+🪖 TICK 13:54:00 -> próba ustawienia nazwy
+🪖 TICK 13:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 13:54
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 13:54
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 13:54
+🪖 TICK 14:04:00 -> próba ustawienia nazwy
+🪖 TICK 14:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:04
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:04
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:04
+🪖 TICK 14:14:00 -> próba ustawienia nazwy
+🪖 TICK 14:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:14
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:14
+🪖 TICK 14:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:14
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:24
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:24
+🪖 TICK 14:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:34
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:34
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:34
+🪖 TICK 14:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:44
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:44
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:44
+🪖 TICK 14:45:00 -> próba ustawienia nazwy
+🪖 TICK 14:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:45
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:45
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:45
+🪖 TICK 14:53:00 -> próba ustawienia nazwy
+🪖 TICK 14:54:00 -> próba ustawienia nazwy
+🪖 TICK 14:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:53
+🪖 TICK 14:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:55
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:54
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 14:54
+🪖 TICK 15:04:00 -> próba ustawienia nazwy
+🪖 TICK 15:04:00 -> próba ustawienia nazwy
+🪖 TICK 15:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 15:04
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 15:04
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 15:04
+🪖 TICK 15:14:00 -> próba ustawienia nazwy
+🪖 TICK 15:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 15:14
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 15:14
+🪖 TICK 15:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 15:14
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 15:24
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 15:24
+🪖 TICK 15:33:00 -> próba ustawienia nazwy
+🪖 TICK 15:34:00 -> próba ustawienia nazwy
+🪖 TICK 15:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 15:34
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 15:33
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 15:34
+🪖 TICK 15:44:00 -> próba ustawienia nazwy
+🪖 TICK 15:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 15:44
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 17:32
+🪖 TICK 17:33:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 17:35
+⏳ Synchronizacja do pełnej minuty: czekam 40.48s
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 17:33
+🪖 TICK 17:43:00 -> próba ustawienia nazwy
+🪖 TICK 17:43:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 17:43
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 17:43
+🪖 TICK 17:53:00 -> próba ustawienia nazwy
+🪖 TICK 17:53:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 17:53
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 17:53
+🪖 TICK 17:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 17:54
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 17:54
+🪖 TICK 18:03:00 -> próba ustawienia nazwy
+🪖 TICK 18:03:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 18:03
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 18:03
+🪖 TICK 18:13:00 -> próba ustawienia nazwy
+🪖 TICK 18:13:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 18:13
+🪖 TICK 18:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 18:13
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 18:14
+🪖 TICK 18:23:00 -> próba ustawienia nazwy
+🪖 TICK 18:23:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 18:23
+🪖 TICK 18:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 18:24
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 18:23
+🪖 TICK 18:32:00 -> próba ustawienia nazwy
+🪖 TICK 18:32:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 18:32
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 18:32
+🪖 TICK 18:42:00 -> próba ustawienia nazwy
+🪖 TICK 18:43:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 18:43
+🪖 TICK 18:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 18:42
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 18:44
+🪖 TICK 18:53:00 -> próba ustawienia nazwy
+🪖 TICK 18:53:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 18:53
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 18:53
+🪖 TICK 19:03:00 -> próba ustawienia nazwy
+🪖 TICK 19:03:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 19:03
+🪖 TICK 19:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 19:03
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 19:04
+🪖 TICK 19:12:00 -> próba ustawienia nazwy
+🪖 TICK 19:13:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 19:12
+🪖 TICK 19:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 19:14
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 19:13
+🪖 TICK 19:23:00 -> próba ustawienia nazwy
+🪖 TICK 19:23:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 19:23
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 19:23
+🪖 TICK 19:33:00 -> próba ustawienia nazwy
+🪖 TICK 19:33:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 19:33
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 19:33
+🪖 TICK 19:43:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 19:43
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 19:43
+🪖 TICK 19:53:00 -> próba ustawienia nazwy
+🪖 TICK 19:53:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 19:53
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 19:53
+🪖 TICK 20:03:00 -> próba ustawienia nazwy
+🪖 TICK 20:03:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 20:03
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 20:03
+🪖 TICK 20:12:00 -> próba ustawienia nazwy
+🪖 TICK 20:13:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 20:12
+🪖 TICK 20:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 20:14
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 20:13
+🪖 TICK 20:23:00 -> próba ustawienia nazwy
+🪖 TICK 20:23:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 20:23
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 20:23
+🪖 TICK 20:33:00 -> próba ustawienia nazwy
+🪖 TICK 20:33:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 20:33
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 20:33
+🪖 TICK 20:34:00 -> próba ustawienia nazwy
+🪖 TICK 20:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 20:34
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 20:34
+🪖 TICK 20:43:00 -> próba ustawienia nazwy
+🪖 TICK 20:43:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 20:43
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 20:43
+🪖 TICK 20:53:00 -> próba ustawienia nazwy
+🪖 TICK 20:53:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 20:53
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 20:53
+🪖 TICK 20:54:00 -> próba ustawienia nazwy
+🪖 TICK 20:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 20:54
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 20:54
+🪖 TICK 21:03:00 -> próba ustawienia nazwy
+🪖 TICK 21:03:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 21:03
+🪖 TICK 21:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 21:03
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 21:04
+🪖 TICK 21:12:00 -> próba ustawienia nazwy
+🪖 TICK 21:13:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 21:12
+🪖 TICK 21:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 21:13
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 21:14
+🪖 TICK 21:23:00 -> próba ustawienia nazwy
+🪖 TICK 21:23:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 21:23
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 21:23
+🪖 TICK 21:32:00 -> próba ustawienia nazwy
+🪖 TICK 21:32:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 21:32
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 21:32
+🪖 TICK 21:43:00 -> próba ustawienia nazwy
+🪖 TICK 21:43:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 21:43
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 21:43
+🪖 TICK 21:53:00 -> próba ustawienia nazwy
+🪖 TICK 21:53:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 21:53
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 21:53
+🪖 TICK 22:03:00 -> próba ustawienia nazwy
+🪖 TICK 22:03:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 22:03
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 22:03
+🪖 TICK 22:13:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 22:13
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 22:13
+🪖 TICK 22:23:00 -> próba ustawienia nazwy
+🪖 TICK 22:23:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 22:23
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 22:23
+🪖 TICK 22:33:00 -> próba ustawienia nazwy
+🪖 TICK 22:33:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 22:33
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 22:33
+🪖 TICK 22:43:00 -> próba ustawienia nazwy
+🪖 TICK 22:43:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 22:43
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 22:43
+🪖 TICK 22:53:00 -> próba ustawienia nazwy
+🪖 TICK 22:53:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 22:53
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 22:53
+🪖 TICK 22:54:00 -> próba ustawienia nazwy
+🪖 TICK 22:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 22:54
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 22:54
+🪖 TICK 23:02:00 -> próba ustawienia nazwy
+🪖 TICK 23:03:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 23:02
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 23:03
+🪖 TICK 23:13:00 -> próba ustawienia nazwy
+🪖 TICK 23:13:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 23:13
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 23:13
+🪖 TICK 23:23:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 23:23
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 23:23
+🪖 TICK 23:33:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 24.02.2026 │ 🕒 23:33
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 12:26
+🪖 TICK 12:26:00 -> próba ustawienia nazwy
+🪖 TICK 12:27:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 12:34
+⏳ Synchronizacja do pełnej minuty: czekam 34.14s
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 12:27
+🪖 TICK 12:37:00 -> próba ustawienia nazwy
+🪖 TICK 12:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 12:37
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 12:37
+🪖 TICK 12:47:00 -> próba ustawienia nazwy
+🪖 TICK 12:47:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 12:47
+🪖 TICK 12:47:00 -> próba ustawienia nazwy
+🪖 TICK 12:48:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 12:47
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 12:48
+🪖 TICK 12:57:00 -> próba ustawienia nazwy
+🪖 TICK 12:57:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 12:57
+🪖 TICK 12:58:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 12:57
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 12:58
+🪖 TICK 13:07:00 -> próba ustawienia nazwy
+🪖 TICK 13:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 13:07
+🪖 TICK 13:07:00 -> próba ustawienia nazwy
+🪖 TICK 13:08:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 13:07
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 13:08
+🪖 TICK 13:17:00 -> próba ustawienia nazwy
+🪖 TICK 13:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 13:17
+🪖 TICK 13:18:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 13:17
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 13:18
+🪖 TICK 13:27:00 -> próba ustawienia nazwy
+🪖 TICK 13:27:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 13:27
+🪖 TICK 13:28:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 13:27
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 13:28
+🪖 TICK 13:36:00 -> próba ustawienia nazwy
+🪖 TICK 13:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 13:36
+🪖 TICK 13:38:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 13:37
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 13:38
+🪖 TICK 13:47:00 -> próba ustawienia nazwy
+🪖 TICK 13:47:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 13:47
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 13:47
+🪖 TICK 13:57:00 -> próba ustawienia nazwy
+🪖 TICK 13:57:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 13:57
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 13:57
+🪖 TICK 14:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 14:07
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 14:07
+🪖 TICK 14:17:00 -> próba ustawienia nazwy
+🪖 TICK 14:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 14:17
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 14:17
+🪖 TICK 14:27:00 -> próba ustawienia nazwy
+🪖 TICK 14:27:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 14:27
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 14:27
+🪖 TICK 14:28:00 -> próba ustawienia nazwy
+🪖 TICK 14:27:00 -> próba ustawienia nazwy
+🪖 TICK 14:29:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 14:28
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 14:29
+🪖 TICK 14:37:00 -> próba ustawienia nazwy
+🪖 TICK 14:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 14:37
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 14:37
+🪖 TICK 14:46:00 -> próba ustawienia nazwy
+🪖 TICK 14:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 14:46
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 14:46
+🪖 TICK 14:57:00 -> próba ustawienia nazwy
+🪖 TICK 14:57:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 14:57
+🪖 TICK 14:58:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 14:58
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 14:57
+🪖 TICK 15:07:00 -> próba ustawienia nazwy
+🪖 TICK 15:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 15:07
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 15:07
+🪖 TICK 15:07:00 -> próba ustawienia nazwy
+🪖 TICK 15:07:00 -> próba ustawienia nazwy
+🪖 TICK 15:08:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 15:08
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 15:08
+🪖 TICK 15:17:00 -> próba ustawienia nazwy
+🪖 TICK 15:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 15:17
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 15:17
+🪖 TICK 15:27:00 -> próba ustawienia nazwy
+🪖 TICK 15:27:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 15:27
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 15:27
+🪖 TICK 15:36:00 -> próba ustawienia nazwy
+🪖 TICK 15:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 15:37
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 15:36
+🪖 TICK 15:47:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 15:47
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 15:47
+🪖 TICK 15:57:00 -> próba ustawienia nazwy
+🪖 TICK 15:57:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 15:57
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 15:57
+🪖 TICK 15:58:00 -> próba ustawienia nazwy
+🪖 TICK 15:58:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 15:58
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 15:58
+🪖 TICK 16:07:00 -> próba ustawienia nazwy
+🪖 TICK 16:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 16:07
+🪖 TICK 16:07:00 -> próba ustawienia nazwy
+🪖 TICK 16:08:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 16:07
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 16:08
+🪖 TICK 16:17:00 -> próba ustawienia nazwy
+🪖 TICK 16:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 16:17
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 16:17
+🪖 TICK 16:18:00 -> próba ustawienia nazwy
+🪖 TICK 16:18:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 16:18
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 16:18
+🪖 TICK 16:27:00 -> próba ustawienia nazwy
+🪖 TICK 16:27:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 16:27
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 16:27
+🪖 TICK 16:36:00 -> próba ustawienia nazwy
+🪖 TICK 16:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 16:36
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 16:37
+🪖 TICK 16:47:00 -> próba ustawienia nazwy
+🪖 TICK 16:47:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 16:47
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 16:47
+🪖 TICK 16:57:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 16:57
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 16:57
+🪖 TICK 17:06:00 -> próba ustawienia nazwy
+🪖 TICK 17:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 17:07
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 17:06
+🪖 TICK 17:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 17:17
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 17:17
+🪖 TICK 17:27:00 -> próba ustawienia nazwy
+🪖 TICK 17:27:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 17:27
+🪖 TICK 17:28:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 17:27
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 17:28
+🪖 TICK 17:37:00 -> próba ustawienia nazwy
+🪖 TICK 17:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 17:37
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 17:37
+🪖 TICK 17:38:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 17:38
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 17:38
+🪖 TICK 17:47:00 -> próba ustawienia nazwy
+🪖 TICK 17:47:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 17:47
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 17:47
+🪖 TICK 17:56:00 -> próba ustawienia nazwy
+🪖 TICK 17:57:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 17:56
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 17:57
+🪖 TICK 18:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 18:07
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 18:07
+🪖 TICK 18:17:00 -> próba ustawienia nazwy
+🪖 TICK 18:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 18:17
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 18:17
+🪖 TICK 18:27:00 -> próba ustawienia nazwy
+🪖 TICK 18:27:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 18:27
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 18:27
+🪖 TICK 18:27:00 -> próba ustawienia nazwy
+🪖 TICK 18:28:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 18:28
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 18:28
+🪖 TICK 18:37:00 -> próba ustawienia nazwy
+🪖 TICK 18:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 18:37
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 18:37
+🪖 TICK 18:37:00 -> próba ustawienia nazwy
+🪖 TICK 18:38:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 18:38
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 18:38
+🪖 TICK 18:47:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 18:47
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 18:47
+🪖 TICK 18:57:00 -> próba ustawienia nazwy
+🪖 TICK 18:57:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 18:57
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 18:57
+🪖 TICK 19:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:07
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:07
+🪖 TICK 19:08:00 -> próba ustawienia nazwy
+🪖 TICK 19:08:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:08
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:08
+🪖 TICK 19:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:17
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:17
+🪖 TICK 19:17:00 -> próba ustawienia nazwy
+🪖 TICK 19:18:00 -> próba ustawienia nazwy
+🪖 TICK 19:18:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:18
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:18
+🪖 TICK 19:27:00 -> próba ustawienia nazwy
+🪖 TICK 19:27:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:27
+🪖 TICK 19:28:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:27
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:28
+🪖 TICK 19:36:00 -> próba ustawienia nazwy
+🪖 TICK 19:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:36
+🪖 TICK 19:38:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:37
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:38
+🪖 TICK 19:47:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:47
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:47
+🪖 TICK 19:57:00 -> próba ustawienia nazwy
+🪖 TICK 19:57:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:57
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 19:57
+🪖 TICK 20:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 20:07
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 20:07
+🪖 TICK 20:17:00 -> próba ustawienia nazwy
+🪖 TICK 20:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 20:17
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 20:17
+🪖 TICK 20:27:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 20:27
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 20:27
+🪖 TICK 20:36:00 -> próba ustawienia nazwy
+🪖 TICK 20:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 20:37
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 20:36
+🪖 TICK 20:46:00 -> próba ustawienia nazwy
+🪖 TICK 20:47:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 20:46
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 20:47
+🪖 TICK 20:57:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 20:57
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 20:57
+🪖 TICK 21:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 21:07
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 21:07
+🪖 TICK 21:08:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 21:08
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 21:08
+🪖 TICK 21:16:00 -> próba ustawienia nazwy
+🪖 TICK 21:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 21:16
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 21:17
+🪖 TICK 21:27:00 -> próba ustawienia nazwy
+🪖 TICK 21:27:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 21:27
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 21:27
+🪖 TICK 21:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 21:37
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 21:37
+🪖 TICK 21:46:00 -> próba ustawienia nazwy
+🪖 TICK 21:47:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 21:46
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 21:47
+🪖 TICK 21:57:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 21:57
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 21:57
+🪖 TICK 22:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 22:07
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 22:07
+🪖 TICK 22:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 22:17
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 22:17
+🪖 TICK 22:27:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 22:27
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 22:27
+🪖 TICK 22:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 22:37
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 22:37
+🪖 TICK 22:47:00 -> próba ustawienia nazwy
+🪖 TICK 22:47:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 22:47
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 22:47
+🪖 TICK 22:56:00 -> próba ustawienia nazwy
+🪖 TICK 22:57:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 22:56
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 22:57
+🪖 TICK 23:06:00 -> próba ustawienia nazwy
+🪖 TICK 23:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 23:06
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 23:07
+🪖 TICK 23:16:00 -> próba ustawienia nazwy
+🪖 TICK 23:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 23:17
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 23:16
+🪖 TICK 23:27:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 23:27
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 23:27
+🪖 TICK 23:36:00 -> próba ustawienia nazwy
+🪖 TICK 23:36:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 23:36
+🪖 TICK 23:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 23:36
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 23:37
+🪖 TICK 23:47:00 -> próba ustawienia nazwy
+🪖 TICK 23:47:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 23:47
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 23:47
+🪖 TICK 23:47:00 -> próba ustawienia nazwy
+🪖 TICK 23:48:00 -> próba ustawienia nazwy
+🪖 TICK 23:48:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 23:48
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 23:48
+🪖 TICK 23:56:00 -> próba ustawienia nazwy
+🪖 TICK 23:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 23:56
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 23:56
+🪖 TICK 23:58:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 23:58
+✅ Ustawiono: 📅 Śr • 25.02.2026 │ 🕒 23:58
+🪖 TICK 00:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 00:07
+🪖 TICK 00:08:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 00:07
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 00:08
+🪖 TICK 00:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 00:17
+🪖 TICK 00:18:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 00:17
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 00:18
+🪖 TICK 00:27:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 00:27
+🪖 TICK 00:28:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 00:28
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 00:27
+🪖 TICK 00:36:00 -> próba ustawienia nazwy
+🪖 TICK 00:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 00:37
+🪖 TICK 00:37:00 -> próba ustawienia nazwy
+🪖 TICK 00:38:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 00:36
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 00:38
+🪖 TICK 00:47:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 00:47
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 00:47
+🪖 TICK 00:57:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 00:57
+🪖 TICK 07:29:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 07:29
+✅ Zalogowano jako Pogaduchy#6449
+🪖 TICK 07:30:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 07:32
+⏳ Synchronizacja do pełnej minuty: czekam 6.36s
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 07:30
+🪖 TICK 07:39:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 07:32
+⏳ Synchronizacja do pełnej minuty: czekam 6.11s
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 07:39
+🪖 TICK 07:49:00 -> próba ustawienia nazwy
+🪖 TICK 07:49:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 07:49
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 07:39
+🪖 TICK 07:59:00 -> próba ustawienia nazwy
+🪖 TICK 07:59:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 07:59
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 07:49
+🪖 TICK 08:08:00 -> próba ustawienia nazwy
+🪖 TICK 08:09:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 08:08
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 08:09
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 07:59
+🪖 TICK 08:18:00 -> próba ustawienia nazwy
+🪖 TICK 08:19:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 08:19
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 08:18
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 08:19
+🪖 TICK 08:29:00 -> próba ustawienia nazwy
+🪖 TICK 08:29:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 08:29
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 08:29
+🪖 TICK 08:38:00 -> próba ustawienia nazwy
+🪖 TICK 08:39:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 08:29
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 08:39
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 08:38
+🪖 TICK 08:49:00 -> próba ustawienia nazwy
+🪖 TICK 08:49:00 -> próba ustawienia nazwy
+🪖 TICK 08:49:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 08:49
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 08:49
+🪖 TICK 08:59:00 -> próba ustawienia nazwy
+🪖 TICK 08:59:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 08:49
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 08:59
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 08:59
+🪖 TICK 09:08:00 -> próba ustawienia nazwy
+🪖 TICK 09:09:00 -> próba ustawienia nazwy
+🪖 TICK 09:09:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 09:09
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 12:23
+🪖 TICK 12:24:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 12:28
+⏳ Synchronizacja do pełnej minuty: czekam 9.80s
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 12:24
+🪖 TICK 12:34:00 -> próba ustawienia nazwy
+🪖 TICK 12:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 12:34
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 12:34
+🪖 TICK 12:44:00 -> próba ustawienia nazwy
+🪖 TICK 12:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 12:28
+⏳ Synchronizacja do pełnej minuty: czekam 9.34s
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 12:44
+🪖 TICK 12:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 12:44
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 12:54
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 12:54
+🪖 TICK 13:04:00 -> próba ustawienia nazwy
+🪖 TICK 13:04:00 -> próba ustawienia nazwy
+🪖 TICK 13:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 13:04
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 13:04
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 13:04
+🪖 TICK 13:13:00 -> próba ustawienia nazwy
+🪖 TICK 13:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 13:13
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 13:14
+🪖 TICK 13:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 13:24
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 13:13
+🪖 TICK 13:34:00 -> próba ustawienia nazwy
+🪖 TICK 13:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 13:34
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 13:24
+🪖 TICK 13:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 13:44
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 13:44
+🪖 TICK 13:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 13:34
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 13:54
+🪖 TICK 14:04:00 -> próba ustawienia nazwy
+🪖 TICK 14:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:04
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 13:54
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:04
+🪖 TICK 14:14:00 -> próba ustawienia nazwy
+🪖 TICK 14:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:14
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:14
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:14
+🪖 TICK 14:15:00 -> próba ustawienia nazwy
+🪖 TICK 14:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:15
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:15
+🪖 TICK 14:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:15
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:24
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:24
+🪖 TICK 14:33:00 -> próba ustawienia nazwy
+🪖 TICK 14:34:00 -> próba ustawienia nazwy
+🪖 TICK 14:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:33
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:34
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:34
+🪖 TICK 14:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:44
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:44
+🪖 TICK 14:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:54
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:44
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 14:54
+🪖 TICK 15:04:00 -> próba ustawienia nazwy
+🪖 TICK 15:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 15:04
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 15:04
+🪖 TICK 15:13:00 -> próba ustawienia nazwy
+🪖 TICK 15:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 15:13
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 15:04
+🪖 TICK 15:23:00 -> próba ustawienia nazwy
+🪖 TICK 15:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 15:24
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 15:23
+🪖 TICK 15:34:00 -> próba ustawienia nazwy
+🪖 TICK 15:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 15:34
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 15:14
+🪖 TICK 15:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 15:44
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 15:44
+🪖 TICK 15:54:00 -> próba ustawienia nazwy
+🪖 TICK 15:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 15:54
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 15:34
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 15:54
+🪖 TICK 16:04:00 -> próba ustawienia nazwy
+🪖 TICK 16:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 16:04
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 20:37
+🪖 TICK 20:38:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 20:41
+⏳ Synchronizacja do pełnej minuty: czekam 56.12s
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 20:38
+🪖 TICK 20:48:00 -> próba ustawienia nazwy
+🪖 TICK 20:48:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 20:48
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 20:48
+🪖 TICK 20:57:00 -> próba ustawienia nazwy
+🪖 TICK 20:58:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 20:57
+🪖 TICK 20:59:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 20:59
+🪖 TICK 21:08:00 -> próba ustawienia nazwy
+🪖 TICK 21:08:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 21:08
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 21:08
+🪖 TICK 21:18:00 -> próba ustawienia nazwy
+🪖 TICK 21:18:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 21:18
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 21:18
+🪖 TICK 21:28:00 -> próba ustawienia nazwy
+🪖 TICK 21:28:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 21:28
+🪖 TICK 21:28:00 -> próba ustawienia nazwy
+🪖 TICK 21:29:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 21:28
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 21:29
+🪖 TICK 21:37:00 -> próba ustawienia nazwy
+🪖 TICK 21:38:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 21:38
+🪖 TICK 21:39:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 21:37
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 21:39
+🪖 TICK 21:48:00 -> próba ustawienia nazwy
+🪖 TICK 21:48:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 21:48
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 21:48
+🪖 TICK 21:57:00 -> próba ustawienia nazwy
+🪖 TICK 21:58:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 21:57
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 21:58
+🪖 TICK 22:08:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 22:08
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 22:08
+🪖 TICK 22:18:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 22:18
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 22:18
+🪖 TICK 22:18:00 -> próba ustawienia nazwy
+🪖 TICK 22:19:00 -> próba ustawienia nazwy
+🪖 TICK 22:19:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 22:19
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 22:19
+🪖 TICK 22:28:00 -> próba ustawienia nazwy
+🪖 TICK 22:28:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 22:28
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 22:28
+🪖 TICK 22:38:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 22:38
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 22:38
+🪖 TICK 22:48:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 22:48
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 22:48
+🪖 TICK 22:48:00 -> próba ustawienia nazwy
+🪖 TICK 22:49:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 22:49
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 22:49
+🪖 TICK 22:57:00 -> próba ustawienia nazwy
+🪖 TICK 22:58:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 22:57
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 22:58
+🪖 TICK 23:08:00 -> próba ustawienia nazwy
+🪖 TICK 23:08:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Czw • 26.02.2026 │ 🕒 23:08
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Pią • 27.02.2026 │ 🕒 05:30
+🪖 TICK 05:31:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Pią • 27.02.2026 │ 🕒 05:33
+⏳ Synchronizacja do pełnej minuty: czekam 41.34s
+✅ Ustawiono: 📅 Pią • 27.02.2026 │ 🕒 05:33
+⏳ Synchronizacja do pełnej minuty: czekam 41.28s
+🪖 TICK 05:41:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pią • 27.02.2026 │ 🕒 05:31
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 08:40
+🪖 TICK 08:41:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 08:41
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 08:45
+⏳ Synchronizacja do pełnej minuty: czekam 33.06s
+🪖 TICK 08:51:00 -> próba ustawienia nazwy
+🪖 TICK 08:51:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 08:45
+⏳ Synchronizacja do pełnej minuty: czekam 32.81s
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 08:51
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 08:51
+🪖 TICK 09:01:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 09:01
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 09:01
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 09:01
+🪖 TICK 09:11:00 -> próba ustawienia nazwy
+🪖 TICK 09:11:00 -> próba ustawienia nazwy
+🪖 TICK 09:11:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 09:11
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 09:11
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 09:11
+🪖 TICK 09:21:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 09:21
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 09:21
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 09:21
+🪖 TICK 09:30:00 -> próba ustawienia nazwy
+🪖 TICK 09:31:00 -> próba ustawienia nazwy
+❌ Inny błąd: ClientConnectorDNSError(ConnectionKey(host='discord.com', port=443, is_ssl=True, ssl=True, proxy=None, proxy_auth=None, proxy_headers_hash=None), gaierror(11004, 'getaddrinfo failed'))
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 13:42
+🪖 TICK 13:43:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 13:43
+🪖 TICK 13:44:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 13:44
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 13:45
+⏳ Synchronizacja do pełnej minuty: czekam 16.79s
+🪖 TICK 13:53:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 13:45
+⏳ Synchronizacja do pełnej minuty: czekam 16.51s
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 13:53
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 13:53
+🪖 TICK 14:03:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 14:03
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 14:03
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 14:03
+🪖 TICK 14:13:00 -> próba ustawienia nazwy
+🪖 TICK 14:13:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 14:13
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 21:49
+🪖 TICK 21:50:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 21:52
+⏳ Synchronizacja do pełnej minuty: czekam 55.47s
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 21:50
+🪖 TICK 22:00:00 -> próba ustawienia nazwy
+🪖 TICK 22:00:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 22:00
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 21:52
+⏳ Synchronizacja do pełnej minuty: czekam 55.23s
+🪖 TICK 22:09:00 -> próba ustawienia nazwy
+🪖 TICK 22:10:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 22:09
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 22:00
+🪖 TICK 22:19:00 -> próba ustawienia nazwy
+🪖 TICK 22:20:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 22:19
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 22:20
+🪖 TICK 22:30:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 22:30
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 22:30
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 22:10
+🪖 TICK 22:40:00 -> próba ustawienia nazwy
+🪖 TICK 22:40:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 22:40
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 22:40
+🪖 TICK 22:49:00 -> próba ustawienia nazwy
+🪖 TICK 22:50:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 22:49
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 22:50
+🪖 TICK 23:00:00 -> próba ustawienia nazwy
+🪖 TICK 23:00:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 22:40
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 23:00
+🪖 TICK 23:10:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 23:00
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 23:10
+🪖 TICK 23:20:00 -> próba ustawienia nazwy
+🪖 TICK 23:20:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 23:20
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 23:20
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 23:10
+🪖 TICK 23:30:00 -> próba ustawienia nazwy
+🪖 TICK 23:30:00 -> próba ustawienia nazwy
+🪖 TICK 23:30:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 23:30
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 23:30
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 23:30
+🪖 TICK 23:40:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 23:40
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 23:40
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 23:40
+🪖 TICK 23:49:00 -> próba ustawienia nazwy
+🪖 TICK 23:49:00 -> próba ustawienia nazwy
+🪖 TICK 23:50:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 23:49
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 23:50
+🪖 TICK 23:59:00 -> próba ustawienia nazwy
+🪖 TICK 00:00:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 00:00
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 23:49
+🪖 TICK 00:10:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Sob • 28.02.2026 │ 🕒 23:59
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 00:10
+🪖 TICK 00:20:00 -> próba ustawienia nazwy
+🪖 TICK 00:20:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 00:20
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 00:20
+🪖 TICK 00:29:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 00:20
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 00:29
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 00:29
+🪖 TICK 00:39:00 -> próba ustawienia nazwy
+🪖 TICK 00:40:00 -> próba ustawienia nazwy
+🪖 TICK 00:40:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 00:39
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 00:40
+🪖 TICK 00:50:00 -> próba ustawienia nazwy
+🪖 TICK 00:50:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 00:40
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 00:50
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 00:50
+🪖 TICK 01:00:00 -> próba ustawienia nazwy
+🪖 TICK 01:00:00 -> próba ustawienia nazwy
+🪖 TICK 01:00:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 01:00
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 01:00
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 01:00
+🪖 TICK 01:09:00 -> próba ustawienia nazwy
+🪖 TICK 01:09:00 -> próba ustawienia nazwy
+🪖 TICK 01:10:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 01:09
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 01:09
+🪖 TICK 01:10:00 -> próba ustawienia nazwy
+🪖 TICK 01:11:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 01:11
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 01:10
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 01:10
+🪖 TICK 01:20:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 01:20
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 01:20
+🪖 TICK 01:30:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 01:20
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 01:30
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 01:30
+🪖 TICK 01:40:00 -> próba ustawienia nazwy
+🪖 TICK 01:40:00 -> próba ustawienia nazwy
+🪖 TICK 01:40:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 01:40
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 01:40
+🪖 TICK 01:50:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 08:13
+⏳ Synchronizacja do pełnej minuty: czekam 12.50s
+🪖 TICK 08:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 08:14
+🪖 TICK 08:15:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 08:16
+⏳ Synchronizacja do pełnej minuty: czekam 12.24s
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 08:16
+⏳ Synchronizacja do pełnej minuty: czekam 12.24s
+🪖 TICK 08:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 08:24
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 08:24
+🪖 TICK 08:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 08:34
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 08:34
+🪖 TICK 08:43:00 -> próba ustawienia nazwy
+🪖 TICK 08:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 08:44
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 08:15
+🪖 TICK 08:54:00 -> próba ustawienia nazwy
+🪖 TICK 08:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 08:54
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 08:43
+🪖 TICK 09:04:00 -> próba ustawienia nazwy
+🪖 TICK 09:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 09:04
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 08:54
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 09:04
+🪖 TICK 09:13:00 -> próba ustawienia nazwy
+🪖 TICK 09:14:00 -> próba ustawienia nazwy
+🪖 TICK 09:13:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 09:14
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 09:13
+🪖 TICK 09:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 09:13
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 09:24
+🪖 TICK 09:34:00 -> próba ustawienia nazwy
+🪖 TICK 09:34:00 -> próba ustawienia nazwy
+🪖 TICK 09:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 09:34
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 09:34
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 09:34
+🪖 TICK 09:43:00 -> próba ustawienia nazwy
+🪖 TICK 09:44:00 -> próba ustawienia nazwy
+🪖 TICK 09:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 09:43
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 09:44
+🪖 TICK 09:54:00 -> próba ustawienia nazwy
+🪖 TICK 09:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 09:54
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 09:54
+🪖 TICK 10:03:00 -> próba ustawienia nazwy
+🪖 TICK 10:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 10:04
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 10:03
+🪖 TICK 10:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 10:14
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 10:14
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 09:44
+🪖 TICK 10:24:00 -> próba ustawienia nazwy
+🪖 TICK 10:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 10:24
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 10:24
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 10:24
+🪖 TICK 10:34:00 -> próba ustawienia nazwy
+🪖 TICK 10:33:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 10:34
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 10:34
+🪖 TICK 10:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 10:44
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 10:44
+🪖 TICK 10:53:00 -> próba ustawienia nazwy
+🪖 TICK 10:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 10:53
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 10:33
+🪖 TICK 11:03:00 -> próba ustawienia nazwy
+🪖 TICK 11:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 11:03
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 10:54
+🪖 TICK 11:14:00 -> próba ustawienia nazwy
+🪖 TICK 11:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 11:14
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 11:04
+🪖 TICK 11:24:00 -> próba ustawienia nazwy
+🪖 TICK 11:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 11:24
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 11:24
+🪖 TICK 11:34:00 -> próba ustawienia nazwy
+🪖 TICK 11:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 11:14
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 11:34
+🪖 TICK 11:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 11:44
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 11:34
+🪖 TICK 11:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 11:54
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 11:54
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 11:54
+🪖 TICK 12:04:00 -> próba ustawienia nazwy
+🪖 TICK 12:04:00 -> próba ustawienia nazwy
+🪖 TICK 12:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 12:04
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 12:04
+🪖 TICK 12:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 12:14
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 12:04
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 12:14
+🪖 TICK 12:24:00 -> próba ustawienia nazwy
+🪖 TICK 12:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 12:24
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 12:24
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 12:24
+🪖 TICK 12:33:00 -> próba ustawienia nazwy
+🪖 TICK 12:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 12:34
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 12:34
+🪖 TICK 12:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 12:44
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 12:44
+🪖 TICK 12:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 12:54
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 12:54
+🪖 TICK 13:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 13:04
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 12:33
+🪖 TICK 13:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 13:04
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 13:14
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 13:14
+🪖 TICK 13:24:00 -> próba ustawienia nazwy
+🪖 TICK 13:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 13:24
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 13:24
+🪖 TICK 13:34:00 -> próba ustawienia nazwy
+🪖 TICK 13:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 13:24
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 13:34
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 13:34
+🪖 TICK 13:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 13:44
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 13:44
+🪖 TICK 13:54:00 -> próba ustawienia nazwy
+🪖 TICK 13:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 13:44
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 13:54
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 13:54
+🪖 TICK 14:04:00 -> próba ustawienia nazwy
+🪖 TICK 14:04:00 -> próba ustawienia nazwy
+🪖 TICK 14:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 14:04
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 14:04
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 14:04
+🪖 TICK 14:14:00 -> próba ustawienia nazwy
+🪖 TICK 14:14:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 14:14
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 14:14
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 14:14
+🪖 TICK 14:24:00 -> próba ustawienia nazwy
+🪖 TICK 14:24:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 14:24
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 14:24
+🪖 TICK 14:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 14:34
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 14:24
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 14:34
+🪖 TICK 14:44:00 -> próba ustawienia nazwy
+🪖 TICK 14:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 14:44
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 14:44
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 14:44
+🪖 TICK 14:54:00 -> próba ustawienia nazwy
+🪖 TICK 14:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 14:54
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 21:56
+🪖 TICK 21:57:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 22:01
+⏳ Synchronizacja do pełnej minuty: czekam 52.98s
+🪖 TICK 22:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 22:07
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 22:07
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 21:57
+🪖 TICK 22:16:00 -> próba ustawienia nazwy
+🪖 TICK 22:17:00 -> próba ustawienia nazwy
+🪖 TICK 22:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 22:16
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 22:17
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 22:17
+🪖 TICK 22:27:00 -> próba ustawienia nazwy
+🪖 TICK 22:27:00 -> próba ustawienia nazwy
+🪖 TICK 22:27:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 22:27
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 22:27
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 22:27
+🪖 TICK 22:37:00 -> próba ustawienia nazwy
+🪖 TICK 22:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 22:37
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 22:37
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 22:37
+🪖 TICK 22:47:00 -> próba ustawienia nazwy
+🪖 TICK 22:47:00 -> próba ustawienia nazwy
+🪖 TICK 22:47:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 22:47
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 22:47
+🪖 TICK 22:57:00 -> próba ustawienia nazwy
+🪖 TICK 22:57:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 22:47
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 22:57
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 22:57
+🪖 TICK 23:07:00 -> próba ustawienia nazwy
+🪖 TICK 23:07:00 -> próba ustawienia nazwy
+🪖 TICK 23:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:07
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:07
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:07
+🪖 TICK 23:17:00 -> próba ustawienia nazwy
+🪖 TICK 23:17:00 -> próba ustawienia nazwy
+🪖 TICK 23:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:17
+🪖 TICK 23:18:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:18
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:17
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:17
+🪖 TICK 23:26:00 -> próba ustawienia nazwy
+🪖 TICK 23:27:00 -> próba ustawienia nazwy
+🪖 TICK 23:27:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:27
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:26
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:27
+🪖 TICK 23:37:00 -> próba ustawienia nazwy
+🪖 TICK 23:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:37
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:37
+🪖 TICK 23:47:00 -> próba ustawienia nazwy
+🪖 TICK 23:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:37
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:47
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:46
+🪖 TICK 23:57:00 -> próba ustawienia nazwy
+🪖 TICK 23:57:00 -> próba ustawienia nazwy
+🪖 TICK 23:57:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:57
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:57
+✅ Ustawiono: 📅 Nie • 01.03.2026 │ 🕒 23:57
+🪖 TICK 00:07:00 -> próba ustawienia nazwy
+🪖 TICK 00:07:00 -> próba ustawienia nazwy
+🪖 TICK 00:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 00:07
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 00:07
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 00:07
+🪖 TICK 00:17:00 -> próba ustawienia nazwy
+🪖 TICK 00:17:00 -> próba ustawienia nazwy
+🪖 TICK 00:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 00:17
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 00:17
+🪖 TICK 00:27:00 -> próba ustawienia nazwy
+🪖 TICK 00:27:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 00:27
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 00:27
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 00:17
+🪖 TICK 00:37:00 -> próba ustawienia nazwy
+🪖 TICK 00:37:00 -> próba ustawienia nazwy
+🪖 TICK 00:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 00:37
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 00:37
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 00:37
+🪖 TICK 00:46:00 -> próba ustawienia nazwy
+🪖 TICK 00:47:00 -> próba ustawienia nazwy
+🪖 TICK 00:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 00:47
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 00:46
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 00:46
+🪖 TICK 00:57:00 -> próba ustawienia nazwy
+🪖 TICK 00:57:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 00:57
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 00:57
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 00:57
+🪖 TICK 01:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:07
+🪖 TICK 01:08:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:07
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:08
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:07
+🪖 TICK 01:17:00 -> próba ustawienia nazwy
+🪖 TICK 01:17:00 -> próba ustawienia nazwy
+🪖 TICK 01:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:17
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:17
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:17
+🪖 TICK 01:27:00 -> próba ustawienia nazwy
+🪖 TICK 01:27:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:27
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:27
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:27
+🪖 TICK 01:28:00 -> próba ustawienia nazwy
+🪖 TICK 01:27:00 -> próba ustawienia nazwy
+🪖 TICK 01:27:00 -> próba ustawienia nazwy
+🪖 TICK 01:28:00 -> próba ustawienia nazwy
+🪖 TICK 01:28:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:28
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:28
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:28
+🪖 TICK 01:36:00 -> próba ustawienia nazwy
+🪖 TICK 01:37:00 -> próba ustawienia nazwy
+🪖 TICK 01:37:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:37
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:36
+🪖 TICK 01:47:00 -> próba ustawienia nazwy
+🪖 TICK 01:47:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:47
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:47
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:37
+🪖 TICK 01:56:00 -> próba ustawienia nazwy
+🪖 TICK 01:57:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:56
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:56
+🪖 TICK 02:07:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 02:07
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 01:57
+🪖 TICK 02:17:00 -> próba ustawienia nazwy
+🪖 TICK 02:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 02:17
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 08:04
+🪖 TICK 08:05:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 08:05
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 08:07
+⏳ Synchronizacja do pełnej minuty: czekam 56.85s
+🪖 TICK 08:15:00 -> próba ustawienia nazwy
+🪖 TICK 08:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 08:15
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 08:15
+🪖 TICK 08:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 08:25
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 08:25
+🪖 TICK 08:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 08:35
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 08:35
+🪖 TICK 08:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 08:45
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 08:45
+🪖 TICK 08:46:00 -> próba ustawienia nazwy
+🪖 TICK 08:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 08:46
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 08:46
+🪖 TICK 08:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 08:55
+🪖 TICK 09:05:00 -> próba ustawienia nazwy
+🪖 TICK 09:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 09:05
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 09:05
+🪖 TICK 09:06:00 -> próba ustawienia nazwy
+🪖 TICK 09:06:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 09:06
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 09:06
+🪖 TICK 09:15:00 -> próba ustawienia nazwy
+🪖 TICK 09:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 09:15
+🪖 TICK 09:16:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 09:15
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 09:16
+🪖 TICK 09:25:00 -> próba ustawienia nazwy
+🪖 TICK 09:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 09:25
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 09:25
+🪖 TICK 09:26:00 -> próba ustawienia nazwy
+🪖 TICK 09:26:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 09:26
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 09:26
+🪖 TICK 09:34:00 -> próba ustawienia nazwy
+🪖 TICK 09:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 09:34
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 09:35
+🪖 TICK 09:45:00 -> próba ustawienia nazwy
+🪖 TICK 09:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 09:45
+🪖 TICK 09:55:00 -> próba ustawienia nazwy
+🪖 TICK 09:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 09:55
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 09:55
+🪖 TICK 10:05:00 -> próba ustawienia nazwy
+🪖 TICK 10:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 10:05
+🪖 TICK 10:06:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 10:06
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 10:05
+🪖 TICK 10:14:00 -> próba ustawienia nazwy
+🪖 TICK 10:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 10:14
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 10:15
+🪖 TICK 10:25:00 -> próba ustawienia nazwy
+🪖 TICK 10:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 10:25
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 10:25
+🪖 TICK 10:35:00 -> próba ustawienia nazwy
+🪖 TICK 10:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 10:35
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 10:35
+🪖 TICK 10:36:00 -> próba ustawienia nazwy
+🪖 TICK 10:36:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 10:36
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 10:36
+🪖 TICK 10:45:00 -> próba ustawienia nazwy
+🪖 TICK 10:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 10:45
+🪖 TICK 10:45:00 -> próba ustawienia nazwy
+🪖 TICK 10:47:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 10:47
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 10:45
+🪖 TICK 10:54:00 -> próba ustawienia nazwy
+🪖 TICK 10:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 10:54
+🪖 TICK 10:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 10:55
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 10:56
+🪖 TICK 11:05:00 -> próba ustawienia nazwy
+🪖 TICK 11:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 11:05
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 11:05
+🪖 TICK 11:15:00 -> próba ustawienia nazwy
+🪖 TICK 11:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 11:15
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 11:15
+🪖 TICK 11:24:00 -> próba ustawienia nazwy
+🪖 TICK 11:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 11:24
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 11:25
+🪖 TICK 11:35:00 -> próba ustawienia nazwy
+🪖 TICK 11:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 11:35
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 11:35
+🪖 TICK 11:45:00 -> próba ustawienia nazwy
+🪖 TICK 11:44:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 11:45
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 11:44
+🪖 TICK 11:54:00 -> próba ustawienia nazwy
+🪖 TICK 11:54:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 11:54
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 11:54
+🪖 TICK 12:04:00 -> próba ustawienia nazwy
+🪖 TICK 12:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 12:04
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 12:04
+🪖 TICK 12:15:00 -> próba ustawienia nazwy
+🪖 TICK 12:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 12:15
+🪖 TICK 12:16:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 12:15
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 12:16
+🪖 TICK 12:24:00 -> próba ustawienia nazwy
+🪖 TICK 12:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 12:24
+🪖 TICK 12:26:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 12:25
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 12:26
+🪖 TICK 12:35:00 -> próba ustawienia nazwy
+🪖 TICK 12:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 12:35
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 12:35
+🪖 TICK 12:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 12:45
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 12:45
+🪖 TICK 12:55:00 -> próba ustawienia nazwy
+🪖 TICK 12:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 12:55
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 12:55
+🪖 TICK 12:56:00 -> próba ustawienia nazwy
+🪖 TICK 12:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 12:56
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 12:56
+🪖 TICK 13:04:00 -> próba ustawienia nazwy
+🪖 TICK 13:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 13:05
+🪖 TICK 13:06:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 13:06
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 13:04
+🪖 TICK 13:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 13:15
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 13:15
+🪖 TICK 13:25:00 -> próba ustawienia nazwy
+🪖 TICK 13:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 13:25
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 13:25
+🪖 TICK 13:35:00 -> próba ustawienia nazwy
+🪖 TICK 13:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 13:35
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 13:35
+🪖 TICK 13:45:00 -> próba ustawienia nazwy
+🪖 TICK 13:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 13:45
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 13:45
+🪖 TICK 13:45:00 -> próba ustawienia nazwy
+🪖 TICK 13:46:00 -> próba ustawienia nazwy
+🪖 TICK 13:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 13:46
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 13:46
+🪖 TICK 13:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 13:55
+🪖 TICK 13:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 13:56
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 13:55
+🪖 TICK 14:05:00 -> próba ustawienia nazwy
+🪖 TICK 14:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 14:05
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 14:05
+🪖 TICK 14:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 14:15
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 14:15
+🪖 TICK 14:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 14:25
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 14:25
+🪖 TICK 14:26:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 14:26
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 14:26
+🪖 TICK 14:35:00 -> próba ustawienia nazwy
+🪖 TICK 14:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 14:35
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 14:35
+🪖 TICK 14:45:00 -> próba ustawienia nazwy
+🪖 TICK 14:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 14:45
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 14:45
+🪖 TICK 14:45:00 -> próba ustawienia nazwy
+🪖 TICK 14:46:00 -> próba ustawienia nazwy
+🪖 TICK 14:45:00 -> próba ustawienia nazwy
+🪖 TICK 14:47:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 14:46
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 14:47
+🪖 TICK 14:54:00 -> próba ustawienia nazwy
+🪖 TICK 14:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 14:54
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 14:55
+🪖 TICK 15:05:00 -> próba ustawienia nazwy
+🪖 TICK 15:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 15:05
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 15:05
+🪖 TICK 15:14:00 -> próba ustawienia nazwy
+🪖 TICK 15:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 15:15
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 15:14
+🪖 TICK 15:25:00 -> próba ustawienia nazwy
+🪖 TICK 15:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 15:25
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 20:54
+🪖 TICK 20:55:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 20:56
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 20:56
+⏳ Synchronizacja do pełnej minuty: czekam 43.20s
+⏳ Synchronizacja do pełnej minuty: czekam 43.20s
+🪖 TICK 21:04:00 -> próba ustawienia nazwy
+🪖 TICK 21:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 21:04
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 21:05
+🪖 TICK 21:15:00 -> próba ustawienia nazwy
+🪖 TICK 21:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 21:15
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 21:15
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 20:55
+🪖 TICK 21:25:00 -> próba ustawienia nazwy
+🪖 TICK 21:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 21:25
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 21:25
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 21:25
+🪖 TICK 21:35:00 -> próba ustawienia nazwy
+🪖 TICK 21:35:00 -> próba ustawienia nazwy
+🪖 TICK 21:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 21:35
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 21:35
+🪖 TICK 21:45:00 -> próba ustawienia nazwy
+🪖 TICK 21:45:00 -> próba ustawienia nazwy
+🪖 TICK 21:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 21:45
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 21:45
+🪖 TICK 21:55:00 -> próba ustawienia nazwy
+🪖 TICK 21:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 21:45
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 21:55
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 21:55
+🪖 TICK 22:05:00 -> próba ustawienia nazwy
+🪖 TICK 22:05:00 -> próba ustawienia nazwy
+🪖 TICK 22:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 22:05
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 22:05
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 22:05
+🪖 TICK 22:06:00 -> próba ustawienia nazwy
+🪖 TICK 22:06:00 -> próba ustawienia nazwy
+🪖 TICK 22:06:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 22:06
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 22:06
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 22:06
+🪖 TICK 22:15:00 -> próba ustawienia nazwy
+🪖 TICK 22:15:00 -> próba ustawienia nazwy
+🪖 TICK 22:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 22:15
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 22:15
+🪖 TICK 22:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 22:25
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 22:15
+🪖 TICK 22:34:00 -> próba ustawienia nazwy
+🪖 TICK 22:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 22:35
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 22:25
+🪖 TICK 22:45:00 -> próba ustawienia nazwy
+🪖 TICK 22:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 22:34
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 22:45
+🪖 TICK 22:55:00 -> próba ustawienia nazwy
+🪖 TICK 22:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 22:55
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 22:45
+🪖 TICK 23:04:00 -> próba ustawienia nazwy
+🪖 TICK 23:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 22:55
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 23:05
+🪖 TICK 23:15:00 -> próba ustawienia nazwy
+🪖 TICK 23:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 23:04
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 23:15
+🪖 TICK 23:25:00 -> próba ustawienia nazwy
+🪖 TICK 23:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 23:25
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 23:25
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 23:15
+🪖 TICK 23:35:00 -> próba ustawienia nazwy
+🪖 TICK 23:34:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 23:34
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 23:35
+🪖 TICK 23:45:00 -> próba ustawienia nazwy
+🪖 TICK 23:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 23:45
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 23:45
+🪖 TICK 23:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 23:55
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 23:55
+🪖 TICK 00:05:00 -> próba ustawienia nazwy
+🪖 TICK 00:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Pon • 02.03.2026 │ 🕒 23:35
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 00:05
+🪖 TICK 00:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 00:15
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 00:05
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 00:15
+🪖 TICK 00:25:00 -> próba ustawienia nazwy
+🪖 TICK 00:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 00:25
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 00:25
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 00:25
+🪖 TICK 00:34:00 -> próba ustawienia nazwy
+🪖 TICK 00:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 00:35
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 00:34
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 00:35
+🪖 TICK 00:44:00 -> próba ustawienia nazwy
+🪖 TICK 00:45:00 -> próba ustawienia nazwy
+🪖 TICK 00:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 00:45
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 00:44
+🪖 TICK 00:54:00 -> próba ustawienia nazwy
+🪖 TICK 00:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 00:54
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 00:55
+🪖 TICK 01:04:00 -> próba ustawienia nazwy
+🪖 TICK 01:05:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 00:45
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 01:04
+🪖 TICK 01:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 01:15
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 01:05
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 01:15
+🪖 TICK 01:25:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 01:25
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 01:25
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 01:25
+🪖 TICK 01:35:00 -> próba ustawienia nazwy
+🪖 TICK 01:35:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 01:35
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 01:35
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 01:35
+🪖 TICK 01:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 01:45
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 01:45
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 09:25
+⏳ Synchronizacja do pełnej minuty: czekam 24.15s
+🪖 TICK 09:26:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 09:26
+🪖 TICK 09:27:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 09:27
+⏳ Synchronizacja do pełnej minuty: czekam 23.92s
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 09:27
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 09:27
+⏳ Synchronizacja do pełnej minuty: czekam 23.86s
+🪖 TICK 09:35:00 -> próba ustawienia nazwy
+🪖 TICK 09:36:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 09:36
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 09:36
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 09:35
+🪖 TICK 09:45:00 -> próba ustawienia nazwy
+🪖 TICK 09:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 09:46
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 09:45
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 09:46
+🪖 TICK 09:56:00 -> próba ustawienia nazwy
+🪖 TICK 09:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 09:56
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 09:56
+🪖 TICK 10:06:00 -> próba ustawienia nazwy
+🪖 TICK 10:06:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 09:56
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 10:06
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 10:06
+🪖 TICK 10:15:00 -> próba ustawienia nazwy
+🪖 TICK 10:16:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 10:15
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 10:15
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 10:16
+🪖 TICK 10:26:00 -> próba ustawienia nazwy
+🪖 TICK 10:26:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 10:26
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 10:26
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 10:26
+🪖 TICK 10:36:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 10:36
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 10:36
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 10:36
+🪖 TICK 10:46:00 -> próba ustawienia nazwy
+🪖 TICK 10:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 10:46
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 10:46
+🪖 TICK 10:56:00 -> próba ustawienia nazwy
+🪖 TICK 10:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 10:46
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 10:56
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 10:56
+🪖 TICK 11:06:00 -> próba ustawienia nazwy
+🪖 TICK 11:06:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:06
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:06
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:06
+🪖 TICK 11:16:00 -> próba ustawienia nazwy
+🪖 TICK 11:16:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:16
+🪖 TICK 11:16:00 -> próba ustawienia nazwy
+🪖 TICK 11:17:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:16
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:17
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:16
+🪖 TICK 11:26:00 -> próba ustawienia nazwy
+🪖 TICK 11:26:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:26
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:26
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:26
+🪖 TICK 11:26:00 -> próba ustawienia nazwy
+🪖 TICK 11:27:00 -> próba ustawienia nazwy
+🪖 TICK 11:28:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:27
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:27
+🪖 TICK 11:36:00 -> próba ustawienia nazwy
+🪖 TICK 11:36:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:36
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:36
+🪖 TICK 11:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:46
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:46
+🪖 TICK 11:55:00 -> próba ustawienia nazwy
+🪖 TICK 11:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:28
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:55
+🪖 TICK 12:06:00 -> próba ustawienia nazwy
+🪖 TICK 12:06:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 11:56
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 12:06
+🪖 TICK 12:16:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 12:16
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 12:16
+🪖 TICK 12:26:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 12:26
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 12:06
+🪖 TICK 12:36:00 -> próba ustawienia nazwy
+🪖 TICK 12:36:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 12:36
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 12:36
+🪖 TICK 12:46:00 -> próba ustawienia nazwy
+🪖 TICK 12:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 12:46
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 12:46
+🪖 TICK 12:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 12:55
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 12:26
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 12:55
+🪖 TICK 13:06:00 -> próba ustawienia nazwy
+🪖 TICK 13:06:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 13:06
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 13:06
+🪖 TICK 13:16:00 -> próba ustawienia nazwy
+🪖 TICK 13:15:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 13:16
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 13:15
+🪖 TICK 13:26:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 13:06
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 13:26
+🪖 TICK 13:36:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 13:36
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 13:26
+🪖 TICK 13:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 13:46
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 13:46
+🪖 TICK 13:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 13:56
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 13:56
+🪖 TICK 14:06:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 14:06
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 13:36
+🪖 TICK 14:16:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 14:16
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 14:06
+🪖 TICK 14:26:00 -> próba ustawienia nazwy
+🪖 TICK 14:26:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 14:16
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 14:26
+🪖 TICK 14:36:00 -> próba ustawienia nazwy
+🪖 TICK 14:36:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 14:36
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 14:26
+🪖 TICK 14:45:00 -> próba ustawienia nazwy
+🪖 TICK 14:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 14:45
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 14:36
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 14:45
+🪖 TICK 14:56:00 -> próba ustawienia nazwy
+🪖 TICK 14:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 14:56
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 14:55
+🪖 TICK 15:06:00 -> próba ustawienia nazwy
+🪖 TICK 15:06:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 15:06
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 15:06
+🪖 TICK 15:16:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 15:16
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 14:56
+🪖 TICK 15:26:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 20:31
+⏳ Synchronizacja do pełnej minuty: czekam 27.61s
+🪖 TICK 20:32:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 20:32
+🪖 TICK 20:33:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 20:33
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 20:34
+⏳ Synchronizacja do pełnej minuty: czekam 27.28s
+🪖 TICK 20:42:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 20:42
+🪖 TICK 20:52:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 20:52
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 21:15
+⏳ Synchronizacja do pełnej minuty: czekam 7.18s
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 21:15
+⏳ Synchronizacja do pełnej minuty: czekam 3.63s
+🪖 TICK 21:16:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 21:16
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 21:16
+🪖 TICK 21:17:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 21:17
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 21:18
+⏳ Synchronizacja do pełnej minuty: czekam 6.91s
+🪖 TICK 21:25:00 -> próba ustawienia nazwy
+🪖 TICK 21:26:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 21:57
+⏳ Synchronizacja do pełnej minuty: czekam 24.40s
+🪖 TICK 21:58:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 21:58
+🪖 TICK 21:59:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 22:07
+⏳ Synchronizacja do pełnej minuty: czekam 24.99s
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 22:04
+⏳ Synchronizacja do pełnej minuty: czekam 24.94s
+✅ Zalogowano jako Pogaduchy#6449
+🪖 TICK 22:08:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 22:17
+⏳ Synchronizacja do pełnej minuty: czekam 24.79s
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 22:08
+🪖 TICK 22:18:00 -> próba ustawienia nazwy
+🪖 TICK 22:18:00 -> próba ustawienia nazwy
+
+============================
+🪖 START SESJI (TRYB MILITARNY)
+============================
+✅ Zalogowano jako Pogaduchy#6449
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 22:44
+⏳ Synchronizacja do pełnej minuty: czekam 22.25s
+🪖 TICK 22:45:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 22:45
+🪖 TICK 22:46:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 22:46
+🪖 TICK 22:55:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 22:55
+🪖 TICK 22:56:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 22:56
+🪖 TICK 23:04:00 -> próba ustawienia nazwy
+✅ Ustawiono: 📅 Wt • 03.03.2026 │ 🕒 23:04
+🪖 TICK 23:06:00 -> próba ustawienia nazwy
