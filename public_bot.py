@@ -45,12 +45,16 @@ DEFAULT_TIMEZONE = "Europe/Warsaw"
 DEFAULT_LANGUAGE = "pl"
 
 # Uspokojone odświeżanie pod Discord API / 429
-WEATHER_REFRESH_MINUTES = 10
-CLOCK_REFRESH_SECONDS = 300
-STATS_FALLBACK_REFRESH_SECONDS = 600
+WEATHER_REFRESH_MINUTES = 5
+CLOCK_REFRESH_SECONDS = 60
+STATS_FALLBACK_REFRESH_SECONDS = 180
 STATUS_CLOCK_REFRESH_SECONDS = 120
-CHANNEL_EDIT_DELAY = 2.0
-STATS_REFRESH_DEBOUNCE_SECONDS = 10
+CHANNEL_EDIT_DELAY = 1.2
+STATS_REFRESH_DEBOUNCE_SECONDS = 8
+WEATHER_API_MIN_INTERVAL_SECONDS = 600
+GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS = 1.2
+GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS = 1.8
+FULL_REFRESH_MIN_INTERVAL_SECONDS = 30
 MAX_CHANNEL_NAME_LENGTH = 100
 
 DEFAULT_BANS_CHANNEL_ID = int(os.getenv("DEFAULT_BANS_CHANNEL_ID", "1487577447540195444"))
@@ -58,12 +62,17 @@ DEFAULT_BANS_CHANNEL_ID = int(os.getenv("DEFAULT_BANS_CHANNEL_ID", "148757744754
 bot_start_time = datetime.now(UTC)
 stats_update_tasks: dict[int, asyncio.Task] = {}
 channel_edit_locks: dict[int, asyncio.Lock] = {}
+channel_edit_serial_lock = asyncio.Lock()
+last_global_channel_edit_at: datetime | None = None
+last_guild_channel_edit_at: dict[int, datetime] = {}
 last_midnight_reset_dates: dict[int, date] = {}
 weather_cache: dict[int, dict] = {}
+weather_cache_fetched_at: dict[int, datetime] = {}
 background_refresh_tasks: dict[int, asyncio.Task] = {}
 last_presence_text: str | None = None
 last_weather_snapshot: dict[int, dict[str, str]] = {}
 last_clock_snapshot: dict[int, dict[str, str]] = {}
+last_full_refresh_at: dict[int, datetime] = {}
 
 
 class KosmicznyBot(commands.Bot):
@@ -910,6 +919,65 @@ def channel_snapshot_is_applied(guild: discord.Guild, cfg: dict, snapshot: dict[
     return True
 
 
+def weather_cache_is_fresh(guild_id: int, max_age_seconds: int = WEATHER_API_MIN_INTERVAL_SECONDS) -> bool:
+    fetched_at = weather_cache_fetched_at.get(guild_id)
+    if fetched_at is None:
+        return False
+    age = (datetime.now(UTC) - fetched_at).total_seconds()
+    return age < max_age_seconds
+
+
+async def wait_for_channel_edit_slot(guild_id: int | None):
+    global last_global_channel_edit_at
+
+    async with channel_edit_serial_lock:
+        now = datetime.now(UTC)
+
+        if last_global_channel_edit_at is not None:
+            global_diff = (now - last_global_channel_edit_at).total_seconds()
+            if global_diff < GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS:
+                await asyncio.sleep(GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS - global_diff)
+                now = datetime.now(UTC)
+
+        if guild_id is not None:
+            last_guild_edit = last_guild_channel_edit_at.get(guild_id)
+            if last_guild_edit is not None:
+                guild_diff = (now - last_guild_edit).total_seconds()
+                if guild_diff < GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS:
+                    await asyncio.sleep(GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS - guild_diff)
+                    now = datetime.now(UTC)
+
+        last_global_channel_edit_at = now
+        if guild_id is not None:
+            last_guild_channel_edit_at[guild_id] = now
+
+
+async def get_weather_data_for_guild(guild: discord.Guild, cfg: dict, *, force: bool = False) -> dict:
+    if not force and guild.id in weather_cache and weather_cache_is_fresh(guild.id):
+        return weather_cache[guild.id]
+
+    lang = get_lang_code(cfg)
+    try:
+        weather = await get_weather_data(
+            cfg["city_name"],
+            cfg["latitude"],
+            cfg["longitude"],
+            cfg.get("timezone", DEFAULT_TIMEZONE),
+            lang,
+        )
+        weather_cache[guild.id] = weather
+        weather_cache_fetched_at[guild.id] = datetime.now(UTC)
+        return weather
+    except Exception:
+        if guild.id in weather_cache:
+            logging.warning(
+                "[POGODA] API niedostępne dla %s - używam ostatnich zapisanych danych",
+                guild.name,
+            )
+            return weather_cache[guild.id]
+        raise
+
+
 async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_name: str):
     if channel is None:
         return
@@ -924,7 +992,9 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
             return
 
         old_name = channel.name
+        guild_id = getattr(getattr(channel, "guild", None), "id", None)
         try:
+            await wait_for_channel_edit_slot(guild_id)
             await channel.edit(name=new_name)
             logging.info("[KANAŁ] %s -> %s (id=%s)", old_name, new_name, channel.id)
             if CHANNEL_EDIT_DELAY > 0:
@@ -943,6 +1013,7 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
                 )
                 await asyncio.sleep(wait_time)
                 try:
+                    await wait_for_channel_edit_slot(guild_id)
                     await channel.edit(name=new_name)
                     logging.info("[KANAŁ-RETRY] %s -> %s (id=%s)", old_name, new_name, channel.id)
                     if CHANNEL_EDIT_DELAY > 0:
@@ -1018,18 +1089,45 @@ async def ensure_guild_members_cached(guild: discord.Guild):
         logging.warning("Nie udało się dochunkować członków dla serwera %s: %s", guild.id, e)
 
 
-async def schedule_background_refresh(guild: discord.Guild):
+async def schedule_background_refresh(
+    guild: discord.Guild,
+    *,
+    force_full: bool = False,
+    force_weather: bool = False,
+    refresh_clock: bool = True,
+    refresh_stats: bool = True,
+    refresh_status_panel: bool = True,
+):
     existing = background_refresh_tasks.get(guild.id)
     if existing and not existing.done():
         logging.info("[REFRESH] Odświeżenie już trwa dla serwera %s", guild.name)
         return
 
+    now = datetime.now(UTC)
+    if not force_full:
+        last_run = last_full_refresh_at.get(guild.id)
+        if last_run is not None:
+            diff = (now - last_run).total_seconds()
+            if diff < FULL_REFRESH_MIN_INTERVAL_SECONDS:
+                logging.info("[REFRESH] Pomijam pełny refresh dla %s (%ss od ostatniego)", guild.name, int(diff))
+                cfg = get_guild_config(guild.id)
+                if cfg and cfg.get("channels") and refresh_stats:
+                    await update_stats_channels(guild, cfg)
+                return
+
     async def runner():
         try:
             logging.info("[REFRESH] Start pełnego odświeżenia dla serwera %s", guild.name)
+            last_full_refresh_at[guild.id] = datetime.now(UTC)
             await ensure_guild_members_cached(guild)
-            await refresh_existing_panel(guild)
-            await refresh_status_panel_message(guild)
+            await refresh_existing_panel(
+                guild,
+                force_weather=force_weather or force_full,
+                refresh_clock=refresh_clock,
+                refresh_stats=refresh_stats,
+            )
+            if refresh_status_panel:
+                await refresh_status_panel_message(guild)
             logging.info("[REFRESH] Koniec pełnego odświeżenia dla serwera %s", guild.name)
         except Exception as e:
             logging.warning("Błąd background refresh dla serwera %s: %s", guild.id, e)
@@ -1588,25 +1686,23 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
         await safe_edit_channel_name(get_channel_from_config(guild, cfg, key), new_name)
 
 
-async def refresh_existing_panel(guild: discord.Guild) -> bool:
+async def refresh_existing_panel(
+    guild: discord.Guild,
+    *,
+    force_weather: bool = False,
+    refresh_clock: bool = True,
+    refresh_stats: bool = True,
+) -> bool:
     cfg = get_guild_config(guild.id)
     if not cfg or not cfg.get("channels"):
         return False
 
-    lang = get_lang_code(cfg)
-    weather = await get_weather_data(
-        cfg["city_name"],
-        cfg["latitude"],
-        cfg["longitude"],
-        cfg.get("timezone", DEFAULT_TIMEZONE),
-        lang,
-    )
-
-    weather_cache[guild.id] = weather
-
+    weather = await get_weather_data_for_guild(guild, cfg, force=force_weather)
     await update_weather_channels(guild, cfg, weather)
-    await update_clock_channels(guild, cfg, weather)
-    await update_stats_channels(guild, cfg)
+    if refresh_clock:
+        await update_clock_channels(guild, cfg, weather)
+    if refresh_stats:
+        await update_stats_channels(guild, cfg)
     return True
 
 
@@ -2010,7 +2106,7 @@ async def setup_command(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     try:
         await setup_categories_and_channels(guild)
-        await schedule_background_refresh(guild)
+        await schedule_background_refresh(guild, force_full=True)
         await interaction.followup.send(tr(lang, "setup_ok"), ephemeral=True)
     except Exception as e:
         await interaction.followup.send(tr(lang, "setup_error", error=e), ephemeral=True)
@@ -2032,7 +2128,7 @@ async def refresh_command(interaction: discord.Interaction):
         if not cfg.get("channels"):
             await interaction.followup.send(tr(lang, "refresh_no_config"), ephemeral=True)
             return
-        await schedule_background_refresh(guild)
+        await schedule_background_refresh(guild, force_full=True)
         await interaction.followup.send(tr(lang, "refresh_ok"), ephemeral=True)
     except Exception as e:
         await interaction.followup.send(tr(lang, "refresh_error", error=e), ephemeral=True)
@@ -2116,6 +2212,7 @@ async def weather_command(interaction: discord.Interaction):
         weather = await get_weather_data(city_name, latitude, longitude, timezone_name, lang)
         if guild:
             weather_cache[guild.id] = weather
+            weather_cache_fetched_at[guild.id] = datetime.now(UTC)
 
         embed = discord.Embed(
             title=tr(lang, "weather_title", city=city_name, country=country),
@@ -2173,6 +2270,7 @@ async def time_command(interaction: discord.Interaction):
         )
         if guild:
             weather_cache[guild.id] = weather
+            weather_cache_fetched_at[guild.id] = datetime.now(UTC)
         sunrise_time = weather.get("sunrise_time")
         sunset_time = weather.get("sunset_time")
     except Exception:
@@ -2244,7 +2342,8 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
         save_guild_config(guild.id, cfg)
 
         weather_cache.pop(guild.id, None)
-        await schedule_background_refresh(guild)
+        weather_cache_fetched_at.pop(guild.id, None)
+        await schedule_background_refresh(guild, force_full=True, force_weather=True)
 
         extra = f", {city['admin1']}" if city.get("admin1") else ""
         await interaction.followup.send(
@@ -2276,7 +2375,9 @@ async def language_command(interaction: discord.Interaction, code: str):
 
     await interaction.response.defer(ephemeral=True)
     try:
-        await schedule_background_refresh(guild)
+        weather_cache.pop(guild.id, None)
+        weather_cache_fetched_at.pop(guild.id, None)
+        await schedule_background_refresh(guild, force_full=True, force_weather=True)
     except Exception as e:
         logging.error("Błąd odświeżania po zmianie języka: %s", e)
 
@@ -2432,6 +2533,7 @@ async def delete_weather_category_command(interaction: discord.Interaction):
     cfg = remove_channel_keys_by_group(cfg, "weather")
     save_guild_config(guild.id, cfg)
     weather_cache.pop(guild.id, None)
+    weather_cache_fetched_at.pop(guild.id, None)
     await interaction.followup.send(tr(lang, "delete_weather_ok"), ephemeral=True)
 
 
@@ -2503,7 +2605,108 @@ async def delete_all_command(interaction: discord.Interaction):
     cfg["channels"] = {}
     save_guild_config(guild.id, cfg)
     weather_cache.pop(guild.id, None)
+    weather_cache_fetched_at.pop(guild.id, None)
     await interaction.followup.send(tr(lang, "delete_all_ok"), ephemeral=True)
+
+
+class AdminPanelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=300)
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if not interaction.guild or not interaction.user.guild_permissions.manage_guild:
+            await interaction.response.send_message("Tylko administrator z uprawnieniem Zarządzaj serwerem może używać tego panelu.", ephemeral=True)
+            return False
+        return True
+
+    async def _run_action(self, interaction: discord.Interaction, message: str, coro):
+        await interaction.response.defer(ephemeral=True)
+        try:
+            await coro
+            await interaction.followup.send(message, ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"Błąd: {e}", ephemeral=True)
+
+    @discord.ui.button(label="Pełny refresh", style=discord.ButtonStyle.primary, emoji="🔄")
+    async def full_refresh(self, interaction: discord.Interaction, button: discord.ui.Button):
+        guild = interaction.guild
+        await self._run_action(
+            interaction,
+            "Uruchomiłem pełny refresh panelu.",
+            schedule_background_refresh(guild, force_full=True, force_weather=True),
+        )
+
+    @discord.ui.button(label="Statystyki", style=discord.ButtonStyle.secondary, emoji="📊")
+    async def refresh_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+        guild = interaction.guild
+
+        async def action():
+            cfg = get_guild_config(guild.id)
+            if cfg and cfg.get("channels"):
+                await update_stats_channels(guild, cfg)
+
+        await self._run_action(interaction, "Odświeżyłem statystyki.", action())
+
+    @discord.ui.button(label="Pogoda", style=discord.ButtonStyle.secondary, emoji="🌤️")
+    async def refresh_weather(self, interaction: discord.Interaction, button: discord.ui.Button):
+        guild = interaction.guild
+
+        async def action():
+            cfg = get_guild_config(guild.id)
+            if cfg and cfg.get("channels"):
+                weather = await get_weather_data_for_guild(guild, cfg, force=True)
+                await update_weather_channels(guild, cfg, weather)
+                await update_clock_channels(guild, cfg, weather)
+
+        await self._run_action(interaction, "Odświeżyłem pogodę i powiązany zegar.", action())
+
+    @discord.ui.button(label="Zegar", style=discord.ButtonStyle.secondary, emoji="🕒")
+    async def refresh_clock(self, interaction: discord.Interaction, button: discord.ui.Button):
+        guild = interaction.guild
+
+        async def action():
+            cfg = get_guild_config(guild.id)
+            if cfg and cfg.get("channels"):
+                await update_clock_channels(guild, cfg)
+
+        await self._run_action(interaction, "Odświeżyłem zegar.", action())
+
+    @discord.ui.button(label="Wyczyść cache pogody", style=discord.ButtonStyle.danger, emoji="🧹")
+    async def clear_weather_cache(self, interaction: discord.Interaction, button: discord.ui.Button):
+        guild = interaction.guild
+
+        async def action():
+            weather_cache.pop(guild.id, None)
+            weather_cache_fetched_at.pop(guild.id, None)
+            last_weather_snapshot.pop(guild.id, None)
+            last_clock_snapshot.pop(guild.id, None)
+
+        await self._run_action(interaction, "Wyczyściłem cache pogody i snapshoty.", action())
+
+
+@bot.tree.command(name="panel_admina", description="Otwiera panel administracyjny odświeżania bota")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def panel_admina(interaction: discord.Interaction):
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "only_server"), ephemeral=True)
+        return
+
+    cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
+    weather_age_text = "brak"
+    if guild.id in weather_cache_fetched_at:
+        age = int((datetime.now(UTC) - weather_cache_fetched_at[guild.id]).total_seconds())
+        weather_age_text = f"{age}s temu"
+
+    embed = discord.Embed(title="🛠️ Panel admina • Kosmiczny Zegar", color=discord.Color.blurple())
+    embed.description = (
+        "Tutaj możesz bezpiecznie sterować odświeżaniem bez spamowania Discord API.\n\n"
+        f"• pogoda: co najmniej co **{WEATHER_API_MIN_INTERVAL_SECONDS}s** do API\n"
+        f"• cooldown globalny edycji kanałów: **{GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS}s**\n"
+        f"• cooldown serwera: **{GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS}s**\n"
+        f"• ostatnia pogoda w cache: **{weather_age_text}**"
+    )
+    await interaction.response.send_message(embed=embed, view=AdminPanelView(), ephemeral=True)
 
 
 # ================================
@@ -2576,7 +2779,10 @@ async def on_guild_join(guild: discord.Guild):
 async def auto_refresh():
     for guild in bot.guilds:
         try:
-            await schedule_background_refresh(guild)
+            cfg = get_guild_config(guild.id)
+            if cfg and cfg.get("channels"):
+                weather = await get_weather_data_for_guild(guild, cfg, force=False)
+                await update_weather_channels(guild, cfg, weather)
         except Exception as e:
             logging.warning("Błąd auto_refresh dla serwera %s: %s", guild.id, e)
 
