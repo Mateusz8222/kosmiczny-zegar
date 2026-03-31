@@ -49,19 +49,19 @@ DEFAULT_LANGUAGE = "pl"
 # Uspokojone odświeżanie pod Discord API / 429
 WEATHER_REFRESH_MINUTES = 5
 CLOCK_REFRESH_SECONDS = 60
-STATS_FALLBACK_REFRESH_SECONDS = 180
+STATS_FALLBACK_REFRESH_SECONDS = 45
 STATUS_CLOCK_REFRESH_SECONDS = 120
-CHANNEL_EDIT_DELAY = 1.2
+CHANNEL_EDIT_DELAY = 0.35
 STATS_REFRESH_DEBOUNCE_SECONDS = 8
 WEATHER_API_MIN_INTERVAL_SECONDS = 600
 WEATHER_API_ERROR_BACKOFF_SECONDS = 900
-GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS = 1.2
-GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS = 1.8
-MAX_CHANNEL_EDITS_PER_MINUTE = 12
-EDIT_SPAM_EXTRA_BACKOFF_SECONDS = 15
-DISCORD_RATE_LIMIT_SOFT_THRESHOLD_SECONDS = 15
-DISCORD_RATE_LIMIT_LONG_THRESHOLD_SECONDS = 60
-DISCORD_RATE_LIMIT_EXTRA_SAFETY_SECONDS = 5
+GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS = 0.25
+GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS = 0.4
+MAX_CHANNEL_EDITS_PER_MINUTE = 18
+EDIT_SPAM_EXTRA_BACKOFF_SECONDS = 8
+DISCORD_RATE_LIMIT_SOFT_THRESHOLD_SECONDS = 10
+DISCORD_RATE_LIMIT_LONG_THRESHOLD_SECONDS = 45
+DISCORD_RATE_LIMIT_EXTRA_SAFETY_SECONDS = 3
 WEATHER_SIGNIFICANT_TEMP_DELTA = 1.0
 WEATHER_SIGNIFICANT_WIND_DELTA = 2.0
 WEATHER_SIGNIFICANT_CLOUDS_DELTA = 10.0
@@ -91,6 +91,7 @@ last_weather_snapshot: dict[int, dict[str, object]] = {}
 last_clock_snapshot: dict[int, dict[str, str]] = {}
 last_valid_clock_snapshot: dict[int, dict[str, str]] = {}
 last_full_refresh_at: dict[int, datetime] = {}
+initial_boot_fill_done: dict[int, bool] = {}
 
 
 class KosmicznyBot(commands.Bot):
@@ -1170,6 +1171,30 @@ def get_weather_api_backoff_remaining(guild_id: int) -> int:
     return max(0, remaining)
 
 
+def get_effective_channel_edit_delay(guild_id: int | None) -> float:
+    if guild_id is not None and not initial_boot_fill_done.get(guild_id, False):
+        return 0.15
+    return CHANNEL_EDIT_DELAY
+
+
+def get_effective_global_edit_cooldown(guild_id: int | None) -> float:
+    if guild_id is not None and not initial_boot_fill_done.get(guild_id, False):
+        return 0.08
+    return GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS
+
+
+def get_effective_guild_edit_cooldown(guild_id: int | None) -> float:
+    if guild_id is not None and not initial_boot_fill_done.get(guild_id, False):
+        return 0.12
+    return GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS
+
+
+def get_effective_max_edits_per_minute(guild_id: int | None) -> int:
+    if guild_id is not None and not initial_boot_fill_done.get(guild_id, False):
+        return 28
+    return MAX_CHANNEL_EDITS_PER_MINUTE
+
+
 async def wait_for_channel_edit_slot(guild_id: int | None):
     global last_global_channel_edit_at
 
@@ -1203,7 +1228,8 @@ async def wait_for_channel_edit_slot(guild_id: int | None):
                 prune_old_edit_timestamps(now, recent_channel_edit_times)
                 prune_old_edit_timestamps(now, guild_queue)
 
-        if len(recent_channel_edit_times) >= min(MAX_CHANNEL_EDITS_PER_MINUTE, 8):
+        effective_max_edits = get_effective_max_edits_per_minute(guild_id)
+        if len(recent_channel_edit_times) >= effective_max_edits:
             oldest = recent_channel_edit_times[0]
             wait_time = max(1.0, 60.0 - (now - oldest).total_seconds()) + EDIT_SPAM_EXTRA_BACKOFF_SECONDS
             if guild_id is not None:
@@ -1215,18 +1241,20 @@ async def wait_for_channel_edit_slot(guild_id: int | None):
             if guild_id is not None:
                 prune_old_edit_timestamps(now, get_guild_edit_queue(guild_id))
 
+        effective_global_cooldown = get_effective_global_edit_cooldown(guild_id)
         if last_global_channel_edit_at is not None:
             global_diff = (now - last_global_channel_edit_at).total_seconds()
-            if global_diff < GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS:
-                await asyncio.sleep(GLOBAL_CHANNEL_EDIT_COOLDOWN_SECONDS - global_diff)
+            if global_diff < effective_global_cooldown:
+                await asyncio.sleep(effective_global_cooldown - global_diff)
                 now = datetime.now(UTC)
 
         if guild_id is not None:
+            effective_guild_cooldown = get_effective_guild_edit_cooldown(guild_id)
             last_guild_edit = last_guild_channel_edit_at.get(guild_id)
             if last_guild_edit is not None:
                 guild_diff = (now - last_guild_edit).total_seconds()
-                if guild_diff < GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS:
-                    await asyncio.sleep(GUILD_CHANNEL_EDIT_COOLDOWN_SECONDS - guild_diff)
+                if guild_diff < effective_guild_cooldown:
+                    await asyncio.sleep(effective_guild_cooldown - guild_diff)
                     now = datetime.now(UTC)
 
         last_global_channel_edit_at = now
@@ -1296,8 +1324,9 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
             await wait_for_channel_edit_slot(guild_id)
             await channel.edit(name=new_name)
             logging.info("[KANAŁ] %s -> %s (id=%s)", old_name, new_name, channel.id)
-            if CHANNEL_EDIT_DELAY > 0:
-                await asyncio.sleep(CHANNEL_EDIT_DELAY)
+            edit_delay = get_effective_channel_edit_delay(guild_id)
+            if edit_delay > 0:
+                await asyncio.sleep(edit_delay)
         except discord.Forbidden:
             logging.warning("Brak uprawnień do zmiany nazwy kanału %s", channel.id)
         except discord.HTTPException as e:
@@ -1330,8 +1359,9 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
                     await wait_for_channel_edit_slot(guild_id)
                     await channel.edit(name=new_name)
                     logging.info("[KANAŁ-RETRY] %s -> %s (id=%s)", old_name, new_name, channel.id)
-                    if CHANNEL_EDIT_DELAY > 0:
-                        await asyncio.sleep(CHANNEL_EDIT_DELAY)
+                    retry_delay = get_effective_channel_edit_delay(guild_id)
+                    if retry_delay > 0:
+                        await asyncio.sleep(retry_delay)
                     return
                 except Exception as e2:
                     logging.warning("Retry zmiany nazwy kanału %s nieudany: %s", channel.id, e2)
@@ -1339,7 +1369,7 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
 
             message = str(e).lower()
             if "429" in message or "rate limit" in message:
-                fallback_wait = max(CHANNEL_EDIT_DELAY, 5.0)
+                fallback_wait = max(get_effective_channel_edit_delay(guild_id), 3.0)
                 set_discord_backoff(guild_id, fallback_wait)
                 logging.warning("[ANTI-429] Discord rate limit przy zmianie kanału %s: %s", channel.id, e)
                 await asyncio.sleep(fallback_wait)
@@ -2060,6 +2090,11 @@ async def refresh_existing_panel(
         await update_clock_channels(guild, cfg, weather)
     if refresh_stats:
         await update_stats_channels(guild, cfg)
+
+    if not initial_boot_fill_done.get(guild.id, False):
+        initial_boot_fill_done[guild.id] = True
+        logging.info("[FAST-START] Zakończono pierwsze szybkie wypełnienie kanałów dla serwera %s", guild.name)
+
     return True
 
 
