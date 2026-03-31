@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import sqlite3
 from collections import deque
 from datetime import UTC, date, datetime, timedelta
@@ -83,6 +84,7 @@ background_refresh_tasks: dict[int, asyncio.Task] = {}
 last_presence_text: str | None = None
 last_weather_snapshot: dict[int, dict[str, object]] = {}
 last_clock_snapshot: dict[int, dict[str, str]] = {}
+last_valid_clock_snapshot: dict[int, dict[str, str]] = {}
 last_full_refresh_at: dict[int, datetime] = {}
 
 
@@ -883,12 +885,95 @@ def get_channel_fallback_name(lang: str, key: str) -> str:
     return tr(lang, translation_key)
 
 
-def get_channel_from_config(guild: discord.Guild, cfg: dict, key: str):
-    channel_id = cfg.get("channels", {}).get(key)
-    if not channel_id:
+def normalize_channel_name(name: str) -> str:
+    if not name:
+        return ""
+    normalized = unicodedata.normalize("NFKD", str(name))
+    normalized = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    normalized = normalized.lower().replace("–", "-").replace("—", "-").replace("→", "-").replace("•", " ")
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    return normalized
+
+
+def get_channel_base_names(key: str) -> list[str]:
+    _, translation_key = CHANNEL_TEMPLATE_KEYS[key]
+    names: list[str] = []
+    for lang_code in LANGUAGES:
+        translated = tr(lang_code, translation_key)
+        if translated not in names:
+            names.append(translated)
+        stripped = re.sub(r"^[^\w\d]+\s*", "", translated).strip()
+        if stripped and stripped not in names:
+            names.append(stripped)
+    return names
+
+
+def channel_name_matches_base(channel_name: str, base_names: list[str]) -> bool:
+    current = normalize_channel_name(channel_name)
+    for base in base_names:
+        base_norm = normalize_channel_name(base)
+        if not base_norm:
+            continue
+        if current == base_norm:
+            return True
+        if current.startswith(base_norm + " "):
+            return True
+        if current.startswith(base_norm + "-"):
+            return True
+    return False
+
+
+def find_matching_channel_for_key(guild: discord.Guild, cfg: dict, key: str) -> discord.VoiceChannel | None:
+    if key not in CHANNEL_TEMPLATE_KEYS:
         return None
-    ch = guild.get_channel(channel_id)
-    return ch if isinstance(ch, discord.VoiceChannel) else None
+
+    group_name, _ = CHANNEL_TEMPLATE_KEYS[key]
+    category_id = cfg.get(f"{group_name}_category_id")
+    category = guild.get_channel(category_id) if category_id else None
+    fallback_names = get_channel_base_names(key)
+
+    search_space = category.voice_channels if isinstance(category, discord.CategoryChannel) else [
+        ch for ch in guild.voice_channels if isinstance(ch, discord.VoiceChannel)
+    ]
+
+    matches = [ch for ch in search_space if channel_name_matches_base(ch.name, fallback_names)]
+    if len(matches) == 1:
+        return matches[0]
+    return None
+
+
+def save_channel_mapping(guild_id: int, key: str, channel_id: int):
+    cfg = get_guild_config(guild_id) or build_default_guild_config(guild_id)
+    channels = dict(cfg.get("channels", {}))
+    channels[key] = channel_id
+    cfg["channels"] = channels
+    save_guild_config(guild_id, cfg)
+
+
+def get_channel_from_config(guild: discord.Guild, cfg: dict, key: str):
+    channels = cfg.get("channels", {})
+    channel_id = channels.get(key)
+    if channel_id:
+        ch = guild.get_channel(channel_id)
+        if isinstance(ch, discord.VoiceChannel):
+            return ch
+
+    repaired = find_matching_channel_for_key(guild, cfg, key)
+    if repaired is not None:
+        channels = dict(cfg.get("channels", {}))
+        channels[key] = repaired.id
+        cfg["channels"] = channels
+        save_guild_config(guild.id, cfg)
+        logging.warning(
+            "[AUTO-ID] Naprawiono ID kanału %s na serwerze %s -> %s (%s)",
+            key,
+            guild.name,
+            repaired.id,
+            repaired.name,
+        )
+        return repaired
+
+    return None
 
 
 def find_voice_channel_in_category_by_name(
@@ -1006,6 +1091,35 @@ def weather_changed_significantly(old_signature: dict | None, new_signature: dic
     ])
 
 
+def is_placeholder_clock_value(value: str | None) -> bool:
+    if value is None:
+        return True
+    normalized = str(value).strip().lower()
+    return normalized in {"", "--", "--:--", "—", "n/a", "none"}
+
+
+def has_invalid_clock_markers(clock_names: dict[str, str] | None) -> bool:
+    if not clock_names:
+        return True
+    critical_keys = ("sunrise", "sunset", "day_length")
+    for key in critical_keys:
+        value = clock_names.get(key, "")
+        if "--:--" in value or value.rstrip().endswith(" --") or is_placeholder_clock_value(value):
+            return True
+    return False
+
+
+def should_block_channel_name(new_name: str) -> bool:
+    normalized = trim_channel_name(new_name)
+    if not normalized:
+        return True
+    blocked_fragments = ("--:--",)
+    if any(fragment in normalized for fragment in blocked_fragments):
+        return True
+    placeholder_suffixes = (" --", " - --", " → --")
+    return any(normalized.endswith(suffix) for suffix in placeholder_suffixes)
+
+
 def get_weather_api_backoff_remaining(guild_id: int) -> int:
     until = weather_api_backoff_until.get(guild_id)
     if until is None:
@@ -1033,7 +1147,7 @@ async def wait_for_channel_edit_slot(guild_id: int | None):
                 prune_old_edit_timestamps(now, recent_channel_edit_times)
                 prune_old_edit_timestamps(now, guild_queue)
 
-        if len(recent_channel_edit_times) >= MAX_CHANNEL_EDITS_PER_MINUTE:
+        if len(recent_channel_edit_times) >= min(MAX_CHANNEL_EDITS_PER_MINUTE, 8):
             oldest = recent_channel_edit_times[0]
             wait_time = max(1.0, 60.0 - (now - oldest).total_seconds()) + EDIT_SPAM_EXTRA_BACKOFF_SECONDS
             if guild_id is not None:
@@ -1108,6 +1222,10 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
         return
 
     new_name = trim_channel_name(new_name)
+    if should_block_channel_name(new_name):
+        logging.warning("[BLOCK] Pomijam próbę ustawienia niepełnej nazwy kanału: %s", new_name)
+        return
+
     if channel.name == new_name:
         return
 
@@ -1127,6 +1245,11 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
         except discord.Forbidden:
             logging.warning("Brak uprawnień do zmiany nazwy kanału %s", channel.id)
         except discord.HTTPException as e:
+            message_text = str(e)
+            if "Unknown Channel" in message_text or "error code: 10003" in message_text:
+                logging.warning("Kanał %s już nie istnieje - pomijam zmianę nazwy i czekam na auto-naprawę ID", channel.id)
+                return
+
             retry_after = getattr(e, "retry_after", None)
 
             if retry_after:
@@ -1738,7 +1861,7 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict |
     sunset_label = cached_weather.get("sunset", f"🌇 {tr(lang, 'field_sunset')} --:--")
     day_length_label = cached_weather.get("day_length", f"{tr(lang, 'day_length_prefix')} --")
 
-    clock_names = build_channel_snapshot({
+    proposed_clock_names = build_channel_snapshot({
         "date": f"{tr(lang, 'ch_date')} {weekdays[now.weekday()]} {now.strftime('%d.%m.%Y')}",
         "part_of_day": format_part_of_day(now, lang, sunrise_time, sunset_time),
         "sunrise": sunrise_label,
@@ -1747,13 +1870,28 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict |
         "moon": moon_phase_name(now, lang),
     })
 
+    if has_invalid_clock_markers(proposed_clock_names):
+        fallback_snapshot = last_valid_clock_snapshot.get(guild.id)
+        if fallback_snapshot:
+            logging.warning("[ZEGAR] Otrzymano niepełne dane dla serwera %s - zostawiam ostatnie poprawne wartości", guild.name)
+            clock_names = dict(fallback_snapshot)
+            clock_names["date"] = proposed_clock_names["date"]
+            clock_names["part_of_day"] = proposed_clock_names["part_of_day"]
+            clock_names["moon"] = proposed_clock_names["moon"]
+        else:
+            logging.warning("[ZEGAR] Otrzymano niepełne dane dla serwera %s i brak fallbacku - pomijam edycję kanałów", guild.name)
+            return
+    else:
+        clock_names = proposed_clock_names
+        last_valid_clock_snapshot[guild.id] = dict(clock_names)
+
     previous_snapshot = last_clock_snapshot.get(guild.id)
     if previous_snapshot == clock_names and channel_snapshot_is_applied(guild, cfg, clock_names):
         logging.info("[ZEGAR] Brak zmian dla serwera %s - pomijam edycję kanałów", guild.name)
         return
 
     logging.info("[ZEGAR] Odświeżanie kanałów zegara dla serwera %s", guild.name)
-    last_clock_snapshot[guild.id] = clock_names
+    last_clock_snapshot[guild.id] = dict(clock_names)
 
     for key, new_name in clock_names.items():
         await safe_edit_channel_name(get_channel_from_config(guild, cfg, key), new_name)
@@ -2521,6 +2659,37 @@ async def language_command(interaction: discord.Interaction, code: str):
         logging.error("Błąd odświeżania po zmianie języka: %s", e)
 
     await interaction.followup.send(tr(code, "language_set"), ephemeral=True)
+
+
+@bot.tree.command(name="napraw_id", description="Naprawia zapisane ID kanałów w bazie")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def napraw_id_command(interaction: discord.Interaction):
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "only_server"), ephemeral=True)
+        return
+
+    cfg = get_guild_config(guild.id)
+    if not cfg or not cfg.get("channels"):
+        await interaction.response.send_message("ℹ️ Brak konfiguracji kanałów. Najpierw użyj `/setup`.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+    repaired = 0
+    checked = 0
+
+    for key in CHANNEL_TEMPLATE_KEYS.keys():
+        checked += 1
+        before_id = cfg.get("channels", {}).get(key)
+        channel = get_channel_from_config(guild, cfg, key)
+        after_id = cfg.get("channels", {}).get(key)
+        if channel is not None and before_id != after_id:
+            repaired += 1
+
+    await interaction.followup.send(
+        f"✅ Auto-naprawa zakończona. Sprawdzono {checked} wpisów, naprawiono {repaired} ID kanałów.",
+        ephemeral=True,
+    )
 
 
 @bot.tree.command(name="panel_statusow", description="Tworzy panel statusów, nastroju i aktywności")
