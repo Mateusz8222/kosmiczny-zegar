@@ -92,6 +92,9 @@ last_clock_snapshot: dict[int, dict[str, str]] = {}
 last_valid_clock_snapshot: dict[int, dict[str, str]] = {}
 last_full_refresh_at: dict[int, datetime] = {}
 initial_boot_fill_done: dict[int, bool] = {}
+channel_edit_queue: asyncio.Queue[tuple[discord.abc.GuildChannel | None, str]] = asyncio.Queue()
+channel_edit_worker_task: asyncio.Task | None = None
+queued_channel_names: dict[int, str] = {}
 
 
 class KosmicznyBot(commands.Bot):
@@ -1301,7 +1304,7 @@ async def get_weather_data_for_guild(guild: discord.Guild, cfg: dict, *, force: 
         raise
 
 
-async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_name: str):
+async def _apply_channel_name_edit(channel: discord.abc.GuildChannel | None, new_name: str):
     if channel is None:
         return
 
@@ -1376,6 +1379,52 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
                 return
 
             logging.warning("Nie udało się zmienić nazwy kanału %s: %s", channel.id, e)
+
+
+async def channel_edit_worker():
+    logging.info("[QUEUE] Uruchomiono worker kolejki edycji kanałów")
+    while True:
+        channel, queued_name = await channel_edit_queue.get()
+        try:
+            if channel is None:
+                continue
+            latest_name = queued_channel_names.get(channel.id)
+            if latest_name is None:
+                continue
+            if latest_name != queued_name:
+                # starsze zlecenie - pomijam, bo jest już nowsza nazwa
+                continue
+            await _apply_channel_name_edit(channel, queued_name)
+        except Exception as e:
+            logging.warning("[QUEUE] Błąd workera kolejki dla kanału %s: %s", getattr(channel, 'id', 'unknown'), e)
+        finally:
+            if channel is not None and queued_channel_names.get(channel.id) == queued_name:
+                queued_channel_names.pop(channel.id, None)
+            channel_edit_queue.task_done()
+
+
+async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_name: str):
+    if channel is None:
+        return
+
+    new_name = trim_channel_name(new_name)
+    if should_block_channel_name(new_name):
+        logging.warning("[BLOCK] Pomijam próbę ustawienia niepełnej nazwy kanału: %s", new_name)
+        return
+
+    if channel.name == new_name:
+        queued_channel_names.pop(channel.id, None)
+        return
+
+    # deduplikacja - dla danego kanału trzymamy tylko ostatnią żądaną nazwę
+    queued_channel_names[channel.id] = new_name
+    await channel_edit_queue.put((channel, new_name))
+
+
+async def ensure_channel_edit_worker_running():
+    global channel_edit_worker_task
+    if channel_edit_worker_task is None or channel_edit_worker_task.done():
+        channel_edit_worker_task = asyncio.create_task(channel_edit_worker())
 
 
 async def create_or_get_category(guild: discord.Guild, name: str) -> discord.CategoryChannel:
@@ -1456,15 +1505,37 @@ async def schedule_background_refresh(
 
     now = datetime.now(UTC)
     if not force_full:
-        last_run = last_full_refresh_at.get(guild.id)
-        if last_run is not None:
-            diff = (now - last_run).total_seconds()
-            if diff < FULL_REFRESH_MIN_INTERVAL_SECONDS:
-                logging.info("[REFRESH] Pomijam pełny refresh dla %s (%ss od ostatniego)", guild.name, int(diff))
-                cfg = get_guild_config(guild.id)
-                if cfg and cfg.get("channels") and refresh_stats:
+        cfg = get_guild_config(guild.id)
+        if not cfg or not cfg.get("channels"):
+            return
+
+        async def runner():
+            try:
+                logging.info("[REFRESH] Start odświeżenia częściowego dla serwera %s", guild.name)
+                if refresh_stats:
                     await update_stats_channels(guild, cfg)
-                return
+                if refresh_clock:
+                    await update_clock_channels(guild, cfg)
+                if force_weather:
+                    weather = await get_weather_data_for_guild(guild, cfg, force=True)
+                    await update_weather_channels(guild, cfg, weather)
+                if refresh_status_panel:
+                    await refresh_status_panel_message(guild)
+                logging.info("[REFRESH] Koniec odświeżenia częściowego dla serwera %s", guild.name)
+            except Exception as e:
+                logging.warning("Błąd częściowego refresh dla serwera %s: %s", guild.id, e)
+            finally:
+                background_refresh_tasks.pop(guild.id, None)
+
+        background_refresh_tasks[guild.id] = asyncio.create_task(runner())
+        return
+
+    last_run = last_full_refresh_at.get(guild.id)
+    if last_run is not None:
+        diff = (now - last_run).total_seconds()
+        if diff < FULL_REFRESH_MIN_INTERVAL_SECONDS:
+            logging.info("[REFRESH] Pomijam pełny refresh dla %s (%ss od ostatniego)", guild.name, int(diff))
+            return
 
     async def runner():
         try:
@@ -1946,9 +2017,12 @@ async def update_weather_channels(guild: discord.Guild, cfg: dict, weather: dict
     logging.info("[POGODA] Odświeżanie kanałów pogody dla serwera %s", guild.name)
     last_weather_snapshot[guild.id] = current_signature or {}
 
+    enqueue_tasks = []
     for key, new_name in weather_names.items():
         channel = get_channel_from_config(guild, cfg, key)
-        await safe_edit_channel_name(channel, new_name)
+        enqueue_tasks.append(asyncio.create_task(safe_edit_channel_name(channel, new_name)))
+    if enqueue_tasks:
+        await asyncio.gather(*enqueue_tasks)
 
 
 async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict | None = None):
