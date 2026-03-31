@@ -44,12 +44,13 @@ DEFAULT_COUNTRY = "Polska"
 DEFAULT_TIMEZONE = "Europe/Warsaw"
 DEFAULT_LANGUAGE = "pl"
 
-WEATHER_REFRESH_MINUTES = 5
+# Uspokojone odświeżanie pod Discord API / 429
+WEATHER_REFRESH_MINUTES = 10
 CLOCK_REFRESH_SECONDS = 300
-STATS_FALLBACK_REFRESH_SECONDS = 300
-STATUS_CLOCK_REFRESH_SECONDS = 60
-CHANNEL_EDIT_DELAY = 0.25
-STATS_REFRESH_DEBOUNCE_SECONDS = 3
+STATS_FALLBACK_REFRESH_SECONDS = 600
+STATUS_CLOCK_REFRESH_SECONDS = 120
+CHANNEL_EDIT_DELAY = 2.0
+STATS_REFRESH_DEBOUNCE_SECONDS = 10
 MAX_CHANNEL_NAME_LENGTH = 100
 
 DEFAULT_BANS_CHANNEL_ID = int(os.getenv("DEFAULT_BANS_CHANNEL_ID", "1487577447540195444"))
@@ -88,6 +89,7 @@ intents.guilds = True
 intents.members = True
 intents.voice_states = True
 intents.presences = True
+intents.message_content = True
 
 bot = KosmicznyBot(command_prefix="!", intents=intents)
 
@@ -906,6 +908,7 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
     async with lock:
         if channel.name == new_name:
             return
+
         old_name = channel.name
         try:
             await channel.edit(name=new_name)
@@ -915,6 +918,32 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
         except discord.Forbidden:
             logging.warning("Brak uprawnień do zmiany nazwy kanału %s", channel.id)
         except discord.HTTPException as e:
+            retry_after = getattr(e, "retry_after", None)
+
+            if retry_after:
+                wait_time = float(retry_after) + 1.0
+                logging.warning(
+                    "Rate limit dla kanału %s. Czekam %.2fs i próbuję ponownie.",
+                    channel.id,
+                    wait_time,
+                )
+                await asyncio.sleep(wait_time)
+                try:
+                    await channel.edit(name=new_name)
+                    logging.info("[KANAŁ-RETRY] %s -> %s (id=%s)", old_name, new_name, channel.id)
+                    if CHANNEL_EDIT_DELAY > 0:
+                        await asyncio.sleep(CHANNEL_EDIT_DELAY)
+                    return
+                except Exception as e2:
+                    logging.warning("Retry zmiany nazwy kanału %s nieudany: %s", channel.id, e2)
+                    return
+
+            message = str(e).lower()
+            if "429" in message or "rate limit" in message:
+                logging.warning("Discord rate limit przy zmianie kanału %s: %s", channel.id, e)
+                await asyncio.sleep(max(CHANNEL_EDIT_DELAY, 5.0))
+                return
+
             logging.warning("Nie udało się zmienić nazwy kanału %s: %s", channel.id, e)
 
 
@@ -978,6 +1007,7 @@ async def ensure_guild_members_cached(guild: discord.Guild):
 async def schedule_background_refresh(guild: discord.Guild):
     existing = background_refresh_tasks.get(guild.id)
     if existing and not existing.done():
+        logging.info("[REFRESH] Odświeżenie już trwa dla serwera %s", guild.name)
         return
 
     async def runner():
@@ -1429,12 +1459,10 @@ async def setup_categories_and_channels(guild: discord.Guild):
 
 async def update_weather_channels(guild: discord.Guild, cfg: dict, weather: dict):
     logging.info("[POGODA] Odświeżanie kanałów pogody dla serwera %s", guild.name)
-    tasks_to_run = []
     for key in ["temperature", "feels", "clouds", "air", "pollen", "rain", "wind", "pressure", "alerts"]:
         channel = get_channel_from_config(guild, cfg, key)
         new_name = weather.get(key, get_channel_fallback_name(get_lang_code(cfg), key))
-        tasks_to_run.append(safe_edit_channel_name(channel, new_name))
-    await asyncio.gather(*tasks_to_run)
+        await safe_edit_channel_name(channel, new_name)
 
 
 async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict | None = None):
@@ -1452,34 +1480,23 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict |
 
     logging.info("[ZEGAR] Odświeżanie kanałów zegara dla serwera %s", guild.name)
 
-    tasks_to_run = [
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "date"),
+    updates = [
+        (
+            "date",
             f"{tr(lang, 'ch_date')} {weekdays[now.weekday()]} {now.strftime('%d.%m.%Y')}",
         ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "part_of_day"),
+        (
+            "part_of_day",
             format_part_of_day(now, lang, sunrise_time, sunset_time),
         ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "sunrise"),
-            sunrise_label,
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "sunset"),
-            sunset_label,
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "day_length"),
-            day_length_label,
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "moon"),
-            moon_phase_name(now, lang),
-        ),
+        ("sunrise", sunrise_label),
+        ("sunset", sunset_label),
+        ("day_length", day_length_label),
+        ("moon", moon_phase_name(now, lang)),
     ]
 
-    await asyncio.gather(*tasks_to_run)
+    for key, new_name in updates:
+        await safe_edit_channel_name(get_channel_from_config(guild, cfg, key), new_name)
 
 
 async def update_stats_channels(guild: discord.Guild, cfg: dict):
@@ -1532,43 +1549,23 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
         bans_count,
     )
 
-    tasks_to_run = [
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "members"),
-            tr(lang, "stats_members", count=members_count),
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "humans"),
-            tr(lang, "stats_humans", count=humans_count),
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "online"),
-            tr(lang, "stats_online", count=online_count),
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "bots"),
-            tr(lang, "stats_bots", count=bots_count),
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "vc"),
-            tr(lang, "stats_vc", count=vc_count),
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "joined_today"),
-            tr(lang, "stats_joined_today", count=joined_today_count),
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "bans"),
-            tr(lang, "stats_bans", count=bans_count),
-        ),
+    updates = [
+        ("members", tr(lang, "stats_members", count=members_count)),
+        ("humans", tr(lang, "stats_humans", count=humans_count)),
+        ("online", tr(lang, "stats_online", count=online_count)),
+        ("bots", tr(lang, "stats_bots", count=bots_count)),
+        ("vc", tr(lang, "stats_vc", count=vc_count)),
+        ("joined_today", tr(lang, "stats_joined_today", count=joined_today_count)),
+        ("bans", tr(lang, "stats_bans", count=bans_count)),
     ]
 
-    await asyncio.gather(*tasks_to_run)
+    for key, new_name in updates:
+        await safe_edit_channel_name(get_channel_from_config(guild, cfg, key), new_name)
 
 
 async def refresh_existing_panel(guild: discord.Guild) -> bool:
     cfg = get_guild_config(guild.id)
-    if not cfg:
+    if not cfg or not cfg.get("channels"):
         return False
 
     lang = get_lang_code(cfg)
@@ -1582,11 +1579,9 @@ async def refresh_existing_panel(guild: discord.Guild) -> bool:
 
     weather_cache[guild.id] = weather
 
-    await asyncio.gather(
-        update_weather_channels(guild, cfg, weather),
-        update_clock_channels(guild, cfg, weather),
-        update_stats_channels(guild, cfg),
-    )
+    await update_weather_channels(guild, cfg, weather)
+    await update_clock_channels(guild, cfg, weather)
+    await update_stats_channels(guild, cfg)
     return True
 
 
@@ -2498,7 +2493,7 @@ def schedule_stats_refresh(guild: discord.Guild):
         try:
             await asyncio.sleep(STATS_REFRESH_DEBOUNCE_SECONDS)
             cfg = get_guild_config(guild.id)
-            if cfg:
+            if cfg and cfg.get("channels"):
                 await update_stats_channels(guild, cfg)
         except Exception as e:
             logging.warning("Błąd odświeżania statystyk live dla %s: %s", guild.id, e)
@@ -2556,9 +2551,7 @@ async def on_guild_join(guild: discord.Guild):
 async def auto_refresh():
     for guild in bot.guilds:
         try:
-            cfg = get_guild_config(guild.id)
-            if cfg:
-                await refresh_existing_panel(guild)
+            await schedule_background_refresh(guild)
         except Exception as e:
             logging.warning("Błąd auto_refresh dla serwera %s: %s", guild.id, e)
 
