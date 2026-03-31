@@ -1,0 +1,22 @@
+{
+  "vip_7dni": {
+    "name": "VIP 7 dni",
+    "description": "Nagroda ręczna od administracji",
+    "price": 5000,
+    "type": "manual"
+  },
+  "specjalna_rola": {
+    "name": "Specjalna rola",
+    "description": "Rola przyznawana automatycznie przez bota",
+    "price": 3000,
+    "type": "role",
+    "role_id": 0
+  },
+  "mega_pakiet": {
+    "name": "Mega Pakiet Punktów",
+    "description": "Dostajesz dodatkowe punkty",
+    "price": 4000,
+    "type": "points",
+    "points": 2500
+  }
+}
