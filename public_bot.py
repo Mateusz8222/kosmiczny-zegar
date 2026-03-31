@@ -62,6 +62,8 @@ last_midnight_reset_dates: dict[int, date] = {}
 weather_cache: dict[int, dict] = {}
 background_refresh_tasks: dict[int, asyncio.Task] = {}
 last_presence_text: str | None = None
+last_weather_snapshot: dict[int, dict[str, str]] = {}
+last_clock_snapshot: dict[int, dict[str, str]] = {}
 
 
 class KosmicznyBot(commands.Bot):
@@ -896,6 +898,18 @@ def get_channel_lock(channel_id: int) -> asyncio.Lock:
     return channel_edit_locks[channel_id]
 
 
+def build_channel_snapshot(mapping: dict[str, str]) -> dict[str, str]:
+    return {key: trim_channel_name(value) for key, value in mapping.items()}
+
+
+def channel_snapshot_is_applied(guild: discord.Guild, cfg: dict, snapshot: dict[str, str]) -> bool:
+    for key, expected_name in snapshot.items():
+        channel = get_channel_from_config(guild, cfg, key)
+        if channel is None or trim_channel_name(channel.name) != trim_channel_name(expected_name):
+            return False
+    return True
+
+
 async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_name: str):
     if channel is None:
         return
@@ -1458,10 +1472,21 @@ async def setup_categories_and_channels(guild: discord.Guild):
 
 
 async def update_weather_channels(guild: discord.Guild, cfg: dict, weather: dict):
+    weather_names = build_channel_snapshot({
+        key: weather.get(key, get_channel_fallback_name(get_lang_code(cfg), key))
+        for key in ["temperature", "feels", "clouds", "air", "pollen", "rain", "wind", "pressure", "alerts"]
+    })
+
+    previous_snapshot = last_weather_snapshot.get(guild.id)
+    if previous_snapshot == weather_names and channel_snapshot_is_applied(guild, cfg, weather_names):
+        logging.info("[POGODA] Brak zmian dla serwera %s - pomijam edycję kanałów", guild.name)
+        return
+
     logging.info("[POGODA] Odświeżanie kanałów pogody dla serwera %s", guild.name)
-    for key in ["temperature", "feels", "clouds", "air", "pollen", "rain", "wind", "pressure", "alerts"]:
+    last_weather_snapshot[guild.id] = weather_names
+
+    for key, new_name in weather_names.items():
         channel = get_channel_from_config(guild, cfg, key)
-        new_name = weather.get(key, get_channel_fallback_name(get_lang_code(cfg), key))
         await safe_edit_channel_name(channel, new_name)
 
 
@@ -1478,24 +1503,24 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict |
     sunset_label = cached_weather.get("sunset", f"🌇 {tr(lang, 'field_sunset')} --:--")
     day_length_label = cached_weather.get("day_length", f"{tr(lang, 'day_length_prefix')} --")
 
+    clock_names = build_channel_snapshot({
+        "date": f"{tr(lang, 'ch_date')} {weekdays[now.weekday()]} {now.strftime('%d.%m.%Y')}",
+        "part_of_day": format_part_of_day(now, lang, sunrise_time, sunset_time),
+        "sunrise": sunrise_label,
+        "sunset": sunset_label,
+        "day_length": day_length_label,
+        "moon": moon_phase_name(now, lang),
+    })
+
+    previous_snapshot = last_clock_snapshot.get(guild.id)
+    if previous_snapshot == clock_names and channel_snapshot_is_applied(guild, cfg, clock_names):
+        logging.info("[ZEGAR] Brak zmian dla serwera %s - pomijam edycję kanałów", guild.name)
+        return
+
     logging.info("[ZEGAR] Odświeżanie kanałów zegara dla serwera %s", guild.name)
+    last_clock_snapshot[guild.id] = clock_names
 
-    updates = [
-        (
-            "date",
-            f"{tr(lang, 'ch_date')} {weekdays[now.weekday()]} {now.strftime('%d.%m.%Y')}",
-        ),
-        (
-            "part_of_day",
-            format_part_of_day(now, lang, sunrise_time, sunset_time),
-        ),
-        ("sunrise", sunrise_label),
-        ("sunset", sunset_label),
-        ("day_length", day_length_label),
-        ("moon", moon_phase_name(now, lang)),
-    ]
-
-    for key, new_name in updates:
+    for key, new_name in clock_names.items():
         await safe_edit_channel_name(get_channel_from_config(guild, cfg, key), new_name)
 
 
