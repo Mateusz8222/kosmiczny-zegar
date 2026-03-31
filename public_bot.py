@@ -2264,6 +2264,15 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
         await queue_channel_edit_priority(get_channel_from_config(guild, cfg, key), new_name, PRIORITY_DEFAULT)
 
 
+
+
+async def flush_channel_edit_queue(timeout: float = 8.0):
+    try:
+        await asyncio.wait_for(channel_edit_priority_queue.join(), timeout=timeout)
+    except Exception:
+        pass
+
+
 async def refresh_existing_panel(
     guild: discord.Guild,
     *,
@@ -2701,6 +2710,7 @@ async def setup_command(interaction: discord.Interaction):
     try:
         await setup_categories_and_channels(guild)
         await schedule_background_refresh(guild, force_full=True)
+        await flush_channel_edit_queue(timeout=12.0)
         await interaction.followup.send(tr(lang, "setup_ok"), ephemeral=True)
     except Exception as e:
         await interaction.followup.send(tr(lang, "setup_error", error=e), ephemeral=True)
@@ -2723,6 +2733,7 @@ async def refresh_command(interaction: discord.Interaction):
             await interaction.followup.send(tr(lang, "refresh_no_config"), ephemeral=True)
             return
         await schedule_background_refresh(guild, force_full=True)
+        await flush_channel_edit_queue(timeout=12.0)
         await interaction.followup.send(tr(lang, "refresh_ok"), ephemeral=True)
     except Exception as e:
         await interaction.followup.send(tr(lang, "refresh_error", error=e), ephemeral=True)
@@ -2941,7 +2952,14 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
         weather_cache.pop(guild.id, None)
         weather_cache_fetched_at.pop(guild.id, None)
         weather_api_backoff_until.pop(guild.id, None)
-        await schedule_background_refresh(guild, force_full=True, force_weather=True)
+
+        # krótki tryb turbo dla natychmiastowej aktualizacji po komendzie /miasto
+        manual_fast_refresh_until[guild.id] = datetime.now(UTC) + timedelta(seconds=20)
+
+        weather = await get_weather_data_for_guild(guild, cfg, force=True)
+        await update_weather_channels(guild, cfg, weather)
+        await update_clock_channels(guild, cfg, weather)
+        await flush_channel_edit_queue(timeout=10.0)
 
         extra = f", {city['admin1']}" if city.get("admin1") else ""
         await interaction.followup.send(
@@ -3292,6 +3310,7 @@ class AdminPanelView(discord.ui.View):
             cfg = get_guild_config(guild.id)
             if cfg and cfg.get("channels"):
                 await update_stats_channels(guild, cfg)
+                await flush_channel_edit_queue(timeout=6.0)
 
         await self._run_action(interaction, "Odświeżyłem statystyki.", action())
 
@@ -3305,6 +3324,7 @@ class AdminPanelView(discord.ui.View):
                 weather = await get_weather_data_for_guild(guild, cfg, force=True)
                 await update_weather_channels(guild, cfg, weather)
                 await update_clock_channels(guild, cfg, weather)
+                await flush_channel_edit_queue(timeout=8.0)
 
         await self._run_action(interaction, "Odświeżyłem pogodę i powiązany zegar.", action())
 
@@ -3316,6 +3336,7 @@ class AdminPanelView(discord.ui.View):
             cfg = get_guild_config(guild.id)
             if cfg and cfg.get("channels"):
                 await update_clock_channels(guild, cfg)
+                await flush_channel_edit_queue(timeout=6.0)
 
         await self._run_action(interaction, "Odświeżyłem zegar.", action())
 
