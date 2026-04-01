@@ -37,7 +37,9 @@ STATS_FALLBACK_REFRESH_SECONDS = 90
 PRESENCE_REFRESH_SECONDS = 120
 STATUS_CLOCK_REFRESH_SECONDS = PRESENCE_REFRESH_SECONDS
 ONLINE_CHANNEL_MIN_UPDATE_SECONDS = 180
-CHANNEL_EDIT_DELAY = 0.35
+CHANNEL_CREATE_DELAY = 0.03
+CHANNEL_DELETE_DELAY = 0.12
+CHANNEL_EDIT_DELAY = 0.20
 WEATHER_API_MIN_INTERVAL_SECONDS = 600
 MAX_CHANNEL_NAME_LENGTH = 100
 
@@ -1127,7 +1129,7 @@ async def _apply_channel_name_edit(channel: discord.abc.GuildChannel | None, new
             await channel.edit(name=new_name)
             recent_channel_edit_times.append(datetime.now(UTC))
             logging.info("[KANAŁ] %s -> %s (id=%s)", channel.name, new_name, channel.id)
-            await asyncio.sleep(CHANNEL_EDIT_DELAY)
+            await asyncio.sleep(CHANNEL_DELETE_DELAY)
         except discord.Forbidden:
             logging.warning("Brak uprawnień do zmiany nazwy kanału %s", channel.id)
         except discord.HTTPException as e:
@@ -1187,6 +1189,7 @@ async def create_or_get_category(guild: discord.Guild, name: str) -> discord.Cat
 
     category = await guild.create_category(name)
     logging.info("[SETUP] Utworzono kategorię %s na serwerze %s", name, guild.name)
+    await asyncio.sleep(CHANNEL_CREATE_DELAY)
     return category
 
 
@@ -1197,6 +1200,7 @@ async def create_or_get_voice_channel(category: discord.CategoryChannel, name: s
 
     channel = await category.create_voice_channel(name)
     logging.info("[SETUP] Utworzono kanał %s w kategorii %s", name, category.name)
+    await asyncio.sleep(CHANNEL_CREATE_DELAY)
     return channel
 
 
@@ -1227,8 +1231,9 @@ async def setup_categories_and_channels(guild: discord.Guild):
     }
 
     channels = dict(cfg.get("channels", {}))
+    create_semaphore = asyncio.Semaphore(4)
 
-    for key, (group_name, _) in CHANNEL_TEMPLATE_KEYS.items():
+    async def resolve_channel(key: str, group_name: str):
         target_category = category_map[group_name]
         fallback_name = get_channel_fallback_name(lang, key)
 
@@ -1241,9 +1246,17 @@ async def setup_categories_and_channels(guild: discord.Guild):
             current_channel = find_voice_channel_in_category_by_name(target_category, fallback_name)
 
         if current_channel is None:
-            current_channel = await create_or_get_voice_channel(target_category, fallback_name)
+            async with create_semaphore:
+                current_channel = await create_or_get_voice_channel(target_category, fallback_name)
 
-        channels[key] = current_channel.id
+        return key, current_channel.id
+
+    results = await asyncio.gather(
+        *(resolve_channel(key, group_name) for key, (group_name, _) in CHANNEL_TEMPLATE_KEYS.items())
+    )
+
+    for key, channel_id in results:
+        channels[key] = channel_id
 
     cfg["channels"] = channels
     save_guild_config(guild.id, cfg)
@@ -2073,7 +2086,7 @@ async def delete_category_if_exists(guild: discord.Guild, category_id: int | Non
     for ch in channels_to_delete:
         try:
             await ch.delete(reason="Usunięcie konfiguracji bota")
-            await asyncio.sleep(CHANNEL_EDIT_DELAY)
+            await asyncio.sleep(CHANNEL_DELETE_DELAY)
         except Exception as e:
             logging.warning("Nie udało się usunąć kanału %s: %s", getattr(ch, "id", None), e)
 
@@ -2487,5 +2500,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
