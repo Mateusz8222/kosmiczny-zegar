@@ -33,10 +33,10 @@ DEFAULT_LANGUAGE = "pl"
 
 WEATHER_REFRESH_MINUTES = 5
 CLOCK_REFRESH_SECONDS = 60
-STATS_FALLBACK_REFRESH_SECONDS = 90
-STATUS_CLOCK_REFRESH_SECONDS = 120
-ONLINE_CHANNEL_MIN_UPDATE_SECONDS = 45
-CHANNEL_EDIT_DELAY = 0.25
+STATS_FALLBACK_REFRESH_SECONDS = 180
+STATUS_CLOCK_REFRESH_SECONDS = PRESENCE_REFRESH_SECONDS
+ONLINE_CHANNEL_MIN_UPDATE_SECONDS = 180
+CHANNEL_EDIT_DELAY = 1.2
 WEATHER_API_MIN_INTERVAL_SECONDS = 600
 MAX_CHANNEL_NAME_LENGTH = 100
 
@@ -46,6 +46,117 @@ PRIORITY_STATS = 2
 PRIORITY_CLOCK = 3
 PRIORITY_WEATHER = 4
 PRIORITY_DEFAULT = 5
+
+
+# =================================
+# SYSTEM STATUSÓW / PANEL RÓL
+# =================================
+
+STATUS_ROLE_IDS = {
+    "dostepny": 1475627194582831184,
+    "zaraz_wracam": 1475595615055511747,
+    "afk": 1475592478286676160,
+    "nocny_tryb": 1475626089597374680,
+    "nie_przeszkadzac": 1475627340494278727,
+    "poza_kompem": 1475627428217884764,
+    "poza_domem": 1475627463865270404,
+    "w_pracy": 1475627537022582804,
+    "w_szkole": 1475627641582391457,
+    "ide_spac": 1475627705188880547,
+    "nowy_tutaj": 1475592165227761704,
+    "chce_poznac_nowych_ludzi": 1475595483899494492,
+}
+
+MOOD_ROLE_IDS = {
+    "na_luzie": 1475616916348604618,
+    "full_energia": 1475625987914858677,
+    "w_dobrym_humorze": 1475625302641086504,
+    "wkurzony": 1475625886886662324,
+    "chory": 1475645832702328884,
+    "zmeczony": 1475625667075768395,
+}
+
+ACTIVITY_ROLE_IDS = {
+    "slucham_muzyki": 1475586115569324043,
+    "czatuje": 1475591441085366273,
+    "gram": 1475591583314477278,
+    "ucze_sie": 1475594865860542554,
+    "na_vc": 1475595019770396932,
+    "streamuje": 1475595081200304259,
+    "ogladam_streama": 1475596164026859745,
+}
+
+ROLE_GROUPS = {
+    "status": STATUS_ROLE_IDS,
+    "mood": MOOD_ROLE_IDS,
+    "activity": ACTIVITY_ROLE_IDS,
+}
+
+ROLE_GROUP_DISPLAY = {
+    "status": "🟢 Status",
+    "mood": "😎 Nastrój",
+    "activity": "🎮 Aktywność",
+}
+
+ROLE_DISPLAY_NAMES = {
+    "dostepny": "Dostępny",
+    "zaraz_wracam": "Zaraz wracam",
+    "afk": "AFK",
+    "nocny_tryb": "Nocny tryb",
+    "nie_przeszkadzac": "Nie przeszkadzać",
+    "poza_kompem": "Poza kompem",
+    "poza_domem": "Poza domem",
+    "w_pracy": "W pracy",
+    "w_szkole": "W szkole",
+    "ide_spac": "Idę spać",
+    "nowy_tutaj": "Nowy tutaj",
+    "chce_poznac_nowych_ludzi": "Chcę poznać nowych ludzi",
+    "na_luzie": "Na luzie",
+    "full_energia": "Full energia",
+    "w_dobrym_humorze": "W dobrym humorze",
+    "wkurzony": "Wkurzony",
+    "chory": "Chory",
+    "zmeczony": "Zmęczony",
+    "slucham_muzyki": "Słucham muzyki",
+    "czatuje": "Czatuję",
+    "gram": "Gram",
+    "ucze_sie": "Uczę się",
+    "na_vc": "Na VC",
+    "streamuje": "Streamuję",
+    "ogladam_streama": "Oglądam streama",
+}
+
+ROLE_EMOJIS = {
+    "dostepny": "🟢",
+    "zaraz_wracam": "⏳",
+    "afk": "😴",
+    "nocny_tryb": "🌙",
+    "nie_przeszkadzac": "⛔",
+    "poza_kompem": "🖥️",
+    "poza_domem": "🚪",
+    "w_pracy": "💼",
+    "w_szkole": "📚",
+    "ide_spac": "🛌",
+    "nowy_tutaj": "👋",
+    "chce_poznac_nowych_ludzi": "🤝",
+    "na_luzie": "😎",
+    "full_energia": "⚡",
+    "w_dobrym_humorze": "😊",
+    "wkurzony": "😡",
+    "chory": "🤒",
+    "zmeczony": "🥱",
+    "slucham_muzyki": "🎧",
+    "czatuje": "💬",
+    "gram": "🎮",
+    "ucze_sie": "📖",
+    "na_vc": "🗣️",
+    "streamuje": "📡",
+    "ogladam_streama": "👀",
+}
+
+STATUS_PANEL_STORAGE_FILE = os.getenv("STATUS_PANEL_STORAGE_FILE", "status_panel.json")
+STATUS_ROLE_DEBOUNCE_SECONDS = 12
+PRESENCE_REFRESH_SECONDS = 300
 
 # =================================
 # LOGOWANIE
@@ -84,6 +195,10 @@ weather_cache_fetched_at: dict[int, datetime] = {}
 
 last_presence_text: str | None = None
 last_online_channel_update_at: dict[int, datetime] = {}
+
+status_panel_update_tasks: dict[int, asyncio.Task] = {}
+status_panel_refresh_locks: dict[int, asyncio.Lock] = {}
+status_role_refresh_tasks: dict[int, asyncio.Task] = {}
 stats_update_tasks: dict[int, asyncio.Task] = {}
 background_refresh_tasks: dict[int, asyncio.Task] = {}
 
@@ -333,7 +448,9 @@ def init_db():
             longitude REAL,
             country TEXT,
             timezone TEXT,
-            language TEXT
+            language TEXT,
+            status_panel_channel_id INTEGER,
+            status_panel_message_id INTEGER
         )
         """
     )
@@ -348,6 +465,10 @@ def init_db():
         c.execute("ALTER TABLE guild_config ADD COLUMN timezone TEXT")
     if "language" not in columns:
         c.execute("ALTER TABLE guild_config ADD COLUMN language TEXT")
+    if "status_panel_channel_id" not in columns:
+        c.execute("ALTER TABLE guild_config ADD COLUMN status_panel_channel_id INTEGER")
+    if "status_panel_message_id" not in columns:
+        c.execute("ALTER TABLE guild_config ADD COLUMN status_panel_message_id INTEGER")
 
     conn.commit()
     conn.close()
@@ -360,7 +481,8 @@ def get_guild_config(guild_id: int) -> dict | None:
     c.execute(
         """
         SELECT guild_id, weather_category_id, clock_category_id, stats_category_id,
-               channels_json, city_name, latitude, longitude, country, timezone, language
+               channels_json, city_name, latitude, longitude, country, timezone, language,
+               status_panel_channel_id, status_panel_message_id
         FROM guild_config
         WHERE guild_id=?
         """,
@@ -390,6 +512,8 @@ def get_guild_config(guild_id: int) -> dict | None:
         "country": row[8] or DEFAULT_COUNTRY,
         "timezone": row[9] or DEFAULT_TIMEZONE,
         "language": row[10] or DEFAULT_LANGUAGE,
+        "status_panel_channel_id": row[11],
+        "status_panel_message_id": row[12],
     }
 
 
@@ -410,9 +534,11 @@ def save_guild_config(guild_id: int, cfg: dict):
             longitude,
             country,
             timezone,
-            language
+            language,
+            status_panel_channel_id,
+            status_panel_message_id
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             guild_id,
@@ -426,6 +552,8 @@ def save_guild_config(guild_id: int, cfg: dict):
             cfg.get("country", DEFAULT_COUNTRY),
             cfg.get("timezone", DEFAULT_TIMEZONE),
             cfg.get("language", DEFAULT_LANGUAGE),
+            cfg.get("status_panel_channel_id"),
+            cfg.get("status_panel_message_id"),
         ),
     )
 
@@ -446,6 +574,8 @@ def build_default_guild_config(guild_id: int) -> dict:
         "country": DEFAULT_COUNTRY,
         "timezone": DEFAULT_TIMEZONE,
         "language": DEFAULT_LANGUAGE,
+        "status_panel_channel_id": None,
+        "status_panel_message_id": None,
     }
 
 
@@ -629,6 +759,299 @@ def channel_snapshot_is_applied(guild: discord.Guild, cfg: dict, snapshot: dict[
     return True
 
 
+
+def get_status_panel_lock(guild_id: int) -> asyncio.Lock:
+    if guild_id not in status_panel_refresh_locks:
+        status_panel_refresh_locks[guild_id] = asyncio.Lock()
+    return status_panel_refresh_locks[guild_id]
+
+
+def get_all_status_role_ids() -> set[int]:
+    ids: set[int] = set()
+    for group in ROLE_GROUPS.values():
+        ids.update(group.values())
+    return ids
+
+
+def get_role_group_for_key(role_key: str) -> str | None:
+    for group_name, roles in ROLE_GROUPS.items():
+        if role_key in roles:
+            return group_name
+    return None
+
+
+def get_role_by_key(guild: discord.Guild, role_key: str) -> discord.Role | None:
+    role_id = None
+    for roles in ROLE_GROUPS.values():
+        if role_key in roles:
+            role_id = roles[role_key]
+            break
+    if role_id is None:
+        return None
+    role = guild.get_role(role_id)
+    return role
+
+
+def build_role_label(role_key: str) -> str:
+    emoji = ROLE_EMOJIS.get(role_key, "")
+    name = ROLE_DISPLAY_NAMES.get(role_key, role_key)
+    return f"{emoji} {name}".strip()
+
+
+def count_members_with_role(guild: discord.Guild, role_id: int) -> int:
+    role = guild.get_role(role_id)
+    if role is None:
+        return 0
+    return sum(1 for member in role.members if not member.bot)
+
+
+def build_status_panel_embed(guild: discord.Guild) -> discord.Embed:
+    embed = discord.Embed(
+        title="✨ Panel statusów",
+        description="Każdy może ustawić sobie prywatnie status komendą `/statusy`.",
+        color=discord.Color.blurple(),
+    )
+
+    for group_name, roles in ROLE_GROUPS.items():
+        lines = []
+        for role_key, role_id in roles.items():
+            count = count_members_with_role(guild, role_id)
+            role = guild.get_role(role_id)
+            mention = role.mention if role else f"`{ROLE_DISPLAY_NAMES.get(role_key, role_key)}`"
+            lines.append(f"{build_role_label(role_key)} — {mention} **{count}**")
+        embed.add_field(
+            name=ROLE_GROUP_DISPLAY.get(group_name, group_name.title()),
+            value="\n".join(lines) if lines else "Brak ról.",
+            inline=False,
+        )
+
+    embed.set_footer(text="Panel odświeża się automatycznie po zmianie statusu.")
+    return embed
+
+
+def load_status_panel_storage() -> dict[str, dict[str, int]]:
+    if not os.path.exists(STATUS_PANEL_STORAGE_FILE):
+        return {}
+    try:
+        with open(STATUS_PANEL_STORAGE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def save_status_panel_storage(data: dict[str, dict[str, int]]):
+    try:
+        with open(STATUS_PANEL_STORAGE_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logging.warning("Nie udało się zapisać %s: %s", STATUS_PANEL_STORAGE_FILE, e)
+
+
+def save_status_panel_reference(guild_id: int, channel_id: int | None, message_id: int | None):
+    data = load_status_panel_storage()
+    key = str(guild_id)
+    if channel_id is None or message_id is None:
+        data.pop(key, None)
+    else:
+        data[key] = {"channel_id": int(channel_id), "message_id": int(message_id)}
+    save_status_panel_storage(data)
+
+
+def load_status_panel_reference(guild_id: int) -> tuple[int | None, int | None]:
+    data = load_status_panel_storage()
+    item = data.get(str(guild_id), {})
+    try:
+        return item.get("channel_id"), item.get("message_id")
+    except Exception:
+        return None, None
+
+
+async def refresh_status_panel(guild: discord.Guild, *, force: bool = False) -> bool:
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        return False
+
+    channel_id = cfg.get("status_panel_channel_id")
+    message_id = cfg.get("status_panel_message_id")
+
+    if not channel_id or not message_id:
+        file_channel_id, file_message_id = load_status_panel_reference(guild.id)
+        if file_channel_id and file_message_id:
+            channel_id = file_channel_id
+            message_id = file_message_id
+            cfg["status_panel_channel_id"] = channel_id
+            cfg["status_panel_message_id"] = message_id
+            save_guild_config(guild.id, cfg)
+
+    if not channel_id or not message_id:
+        return False
+
+    channel = guild.get_channel(channel_id)
+    if not isinstance(channel, discord.TextChannel):
+        cfg["status_panel_channel_id"] = None
+        cfg["status_panel_message_id"] = None
+        save_guild_config(guild.id, cfg)
+        save_status_panel_reference(guild.id, None, None)
+        return False
+
+    lock = get_status_panel_lock(guild.id)
+    async with lock:
+        try:
+            message = await channel.fetch_message(message_id)
+            await message.edit(embed=build_status_panel_embed(guild), view=PublicStatusPanelLauncherView())
+            return True
+        except discord.NotFound:
+            cfg["status_panel_channel_id"] = None
+            cfg["status_panel_message_id"] = None
+            save_guild_config(guild.id, cfg)
+            save_status_panel_reference(guild.id, None, None)
+            return False
+        except discord.Forbidden:
+            logging.warning("Brak uprawnień do odświeżenia panelu statusów na %s", guild.id)
+            return False
+        except discord.HTTPException as e:
+            logging.warning("Błąd odświeżania panelu statusów na %s: %s", guild.id, e)
+            return False
+
+
+def schedule_status_panel_refresh(guild: discord.Guild, *, delay: float = 1.0):
+    existing = status_panel_update_tasks.get(guild.id)
+    if existing and not existing.done():
+        return
+
+    async def runner():
+        try:
+            await asyncio.sleep(delay)
+            await refresh_status_panel(guild)
+        finally:
+            status_panel_update_tasks.pop(guild.id, None)
+
+    status_panel_update_tasks[guild.id] = asyncio.create_task(runner())
+
+
+async def clear_member_role_group(member: discord.Member, group_name: str):
+    role_ids = set(ROLE_GROUPS.get(group_name, {}).values())
+    removable = [role for role in member.roles if role.id in role_ids]
+    if removable:
+        await member.remove_roles(*removable, reason="Zmiana statusu użytkownika")
+
+
+async def set_member_status_role(member: discord.Member, role_key: str) -> str:
+    guild = member.guild
+    role = get_role_by_key(guild, role_key)
+    if role is None:
+        raise RuntimeError(f"Nie znaleziono roli dla klucza: {role_key}")
+
+    bot_member = guild.me or guild.get_member(bot.user.id) if bot.user else None
+    if bot_member is None:
+        raise RuntimeError("Bot nie widzi swojej roli na serwerze.")
+
+    if not guild.me.guild_permissions.manage_roles:
+        raise RuntimeError("Bot nie ma uprawnienia Manage Roles.")
+
+    if role >= bot_member.top_role:
+        raise RuntimeError("Rola bota jest za nisko w hierarchii, żeby nadać tę rolę.")
+
+    group_name = get_role_group_for_key(role_key)
+    if group_name is None:
+        raise RuntimeError("Nie udało się ustalić kategorii roli.")
+
+    await clear_member_role_group(member, group_name)
+    if role not in member.roles:
+        await member.add_roles(role, reason="Ustawienie statusu użytkownika")
+    schedule_status_panel_refresh(guild, delay=1.0)
+    return ROLE_DISPLAY_NAMES.get(role_key, role_key)
+
+
+async def clear_member_all_status_roles(member: discord.Member):
+    all_ids = get_all_status_role_ids()
+    removable = [role for role in member.roles if role.id in all_ids]
+    if removable:
+        await member.remove_roles(*removable, reason="Wyczyszczenie statusów użytkownika")
+    schedule_status_panel_refresh(member.guild, delay=1.0)
+
+
+class StatusRoleSelect(discord.ui.Select):
+    def __init__(self, group_name: str):
+        options = []
+        for role_key in ROLE_GROUPS[group_name]:
+            options.append(
+                discord.SelectOption(
+                    label=ROLE_DISPLAY_NAMES.get(role_key, role_key)[:100],
+                    value=role_key,
+                    emoji=ROLE_EMOJIS.get(role_key) or None,
+                )
+            )
+
+        placeholder_map = {
+            "status": "Wybierz status",
+            "mood": "Wybierz nastrój",
+            "activity": "Wybierz aktywność",
+        }
+
+        super().__init__(
+            placeholder=placeholder_map.get(group_name, "Wybierz"),
+            min_values=1,
+            max_values=1,
+            options=options,
+            custom_id=f"status_select:{group_name}",
+        )
+        self.group_name = group_name
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.guild is None or not isinstance(interaction.user, discord.Member):
+            await send_interaction_message(interaction, "❌ Tej komendy można użyć tylko na serwerze.", ephemeral=True)
+            return
+
+        role_key = self.values[0]
+        try:
+            role_name = await set_member_status_role(interaction.user, role_key)
+            await interaction.response.send_message(
+                f"✅ Ustawiono: **{role_name}**.",
+                ephemeral=True,
+            )
+        except Exception as e:
+            await send_interaction_message(interaction, f"❌ Nie udało się ustawić statusu: {e}", ephemeral=True)
+
+
+class PrivateStatusView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=600)
+        self.add_item(StatusRoleSelect("status"))
+        self.add_item(StatusRoleSelect("mood"))
+        self.add_item(StatusRoleSelect("activity"))
+
+    @discord.ui.button(label="Wyczyść wszystko", style=discord.ButtonStyle.danger, custom_id="status_clear_all")
+    async def clear_all(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.guild is None or not isinstance(interaction.user, discord.Member):
+            await send_interaction_message(interaction, "❌ Tej komendy można użyć tylko na serwerze.", ephemeral=True)
+            return
+
+        try:
+            await clear_member_all_status_roles(interaction.user)
+            await interaction.response.send_message("🧹 Wyczyściłem Twoje statusy.", ephemeral=True)
+        except Exception as e:
+            await send_interaction_message(interaction, f"❌ Nie udało się wyczyścić statusów: {e}", ephemeral=True)
+
+
+class PublicStatusPanelLauncherView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label="Ustaw swój status",
+        style=discord.ButtonStyle.success,
+        emoji="✨",
+        custom_id="status_panel_open_private",
+    )
+    async def open_private_panel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await send_interaction_message(
+            interaction,
+            "Wybierz swój status w prywatnym okienku poniżej.",
+            ephemeral=True,
+            view=PrivateStatusView(),
+        )
 # =================================
 # INTERACTION
 # =================================
@@ -1316,6 +1739,8 @@ async def schedule_background_refresh(
 
                 if refresh_stats:
                     await update_stats_channels(guild, cfg)
+                await refresh_status_panel(guild)
+                await refresh_status_panel(guild)
 
                 if refresh_clock:
                     await update_clock_channels(guild, cfg)
@@ -1325,6 +1750,7 @@ async def schedule_background_refresh(
                     await update_weather_channels(guild, cfg, weather)
 
             await flush_channel_edit_queue(timeout=8.0)
+            await refresh_status_panel(guild)
         except Exception as e:
             logging.warning("Błąd refresh dla serwera %s: %s", guild.id, e)
         finally:
@@ -1336,6 +1762,37 @@ async def schedule_background_refresh(
 # =================================
 # KOMENDY
 # =================================
+
+
+
+async def status_role_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    current = current.lower().strip()
+    choices = []
+    for key in STATUS_ROLE_IDS:
+        display = ROLE_DISPLAY_NAMES.get(key, key)
+        if not current or current in key.lower() or current in display.lower():
+            choices.append(app_commands.Choice(name=build_role_label(key)[:100], value=key))
+    return choices[:25]
+
+
+async def mood_role_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    current = current.lower().strip()
+    choices = []
+    for key in MOOD_ROLE_IDS:
+        display = ROLE_DISPLAY_NAMES.get(key, key)
+        if not current or current in key.lower() or current in display.lower():
+            choices.append(app_commands.Choice(name=build_role_label(key)[:100], value=key))
+    return choices[:25]
+
+
+async def activity_role_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    current = current.lower().strip()
+    choices = []
+    for key in ACTIVITY_ROLE_IDS:
+        display = ROLE_DISPLAY_NAMES.get(key, key)
+        if not current or current in key.lower() or current in display.lower():
+            choices.append(app_commands.Choice(name=build_role_label(key)[:100], value=key))
+    return choices[:25]
 
 
 async def city_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
@@ -1603,6 +2060,59 @@ async def language_command(interaction: discord.Interaction, code: str):
     await interaction.followup.send(tr(code, "language_set"), ephemeral=True)
 
 
+async def delete_category_if_exists(guild: discord.Guild, category_id: int | None):
+    if not category_id:
+        return
+    category = guild.get_channel(category_id)
+    if not isinstance(category, discord.CategoryChannel):
+        return
+
+    channels_to_delete = list(category.channels)
+    for ch in channels_to_delete:
+        try:
+            await ch.delete(reason="Usunięcie konfiguracji bota")
+            await asyncio.sleep(CHANNEL_EDIT_DELAY)
+        except Exception as e:
+            logging.warning("Nie udało się usunąć kanału %s: %s", getattr(ch, "id", None), e)
+
+    try:
+        await category.delete(reason="Usunięcie konfiguracji bota")
+    except Exception as e:
+        logging.warning("Nie udało się usunąć kategorii %s: %s", category.id, e)
+
+
+@bot.tree.command(name="usun_wszystko", description="Usuwa kategorie bota i czyści konfigurację")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def usun_wszystko_command(interaction: discord.Interaction):
+    guild = interaction.guild
+    if guild is None:
+        await send_interaction_message(interaction, "❌ Tylko na serwerze.", ephemeral=True)
+        return
+
+    await maybe_defer(interaction, ephemeral=True)
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        await interaction.followup.send("ℹ️ Brak konfiguracji do usunięcia.", ephemeral=True)
+        return
+
+    try:
+        await delete_category_if_exists(guild, cfg.get("weather_category_id"))
+        await delete_category_if_exists(guild, cfg.get("clock_category_id"))
+        await delete_category_if_exists(guild, cfg.get("stats_category_id"))
+
+        cfg = build_default_guild_config(guild.id)
+        save_guild_config(guild.id, cfg)
+        save_status_panel_reference(guild.id, None, None)
+        weather_cache.pop(guild.id, None)
+        weather_cache_fetched_at.pop(guild.id, None)
+        last_weather_snapshot.pop(guild.id, None)
+        last_clock_snapshot.pop(guild.id, None)
+
+        await interaction.followup.send("✅ Usunąłem kategorie bota i wyczyściłem konfigurację. Możesz zrobić `/setup` od nowa.", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Nie udało się usunąć wszystkiego: {e}", ephemeral=True)
+
+
 @bot.tree.command(name="napraw_id", description="Naprawia zapisane ID kanałów w bazie")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def napraw_id_command(interaction: discord.Interaction):
@@ -1645,6 +2155,140 @@ async def napraw_id_command(interaction: discord.Interaction):
     )
 
 
+
+@bot.tree.command(name="statusy", description="Otwiera prywatne okienko do ustawiania statusów")
+async def statusy_command(interaction: discord.Interaction):
+    guild = interaction.guild
+    if guild is None:
+        await send_interaction_message(interaction, "❌ Tej komendy można użyć tylko na serwerze.", ephemeral=True)
+        return
+
+    await send_interaction_message(
+        interaction,
+        "✨ Tutaj ustawisz swój status, nastrój i aktywność.",
+        ephemeral=True,
+        view=PrivateStatusView(),
+    )
+
+
+@bot.tree.command(name="panel_statusow", description="Tworzy lub odświeża publiczny panel statusów")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def panel_statusow_command(interaction: discord.Interaction):
+    guild = interaction.guild
+    if guild is None:
+        await send_interaction_message(interaction, "❌ Tej komendy można użyć tylko na serwerze.", ephemeral=True)
+        return
+
+    cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
+    await maybe_defer(interaction, ephemeral=True)
+
+    channel: discord.TextChannel | None = None
+    if isinstance(interaction.channel, discord.TextChannel):
+        channel = interaction.channel
+    elif guild.system_channel and guild.system_channel.permissions_for(guild.me).send_messages:
+        channel = guild.system_channel
+
+    if channel is None:
+        await interaction.followup.send(
+            "❌ Użyj tej komendy na kanale tekstowym, gdzie bot może wysyłać wiadomości.",
+            ephemeral=True,
+        )
+        return
+
+    existing_channel_id = cfg.get("status_panel_channel_id")
+    existing_message_id = cfg.get("status_panel_message_id")
+
+    if existing_channel_id and existing_message_id:
+        ok = await refresh_status_panel(guild, force=True)
+        if ok:
+            await interaction.followup.send("✅ Panel statusów został odświeżony.", ephemeral=True)
+            return
+
+    message = await channel.send(embed=build_status_panel_embed(guild), view=PublicStatusPanelLauncherView())
+    cfg["status_panel_channel_id"] = channel.id
+    cfg["status_panel_message_id"] = message.id
+    save_guild_config(guild.id, cfg)
+    save_status_panel_reference(guild.id, channel.id, message.id)
+
+    await interaction.followup.send("✅ Panel statusów został utworzony.", ephemeral=True)
+
+
+@bot.tree.command(name="pokaz_statusy", description="Pokazuje aktualne liczniki ról statusowych")
+async def pokaz_statusy_command(interaction: discord.Interaction):
+    guild = interaction.guild
+    if guild is None:
+        await send_interaction_message(interaction, "❌ Tej komendy można użyć tylko na serwerze.", ephemeral=True)
+        return
+
+    await send_interaction_message(interaction, ephemeral=True, embed=build_status_panel_embed(guild))
+
+
+@bot.tree.command(name="ustaw_status_swoj", description="Ustaw swój status szybkim wyborem")
+@app_commands.autocomplete(status=status_role_autocomplete, nastroj=mood_role_autocomplete, aktywnosc=activity_role_autocomplete)
+@app_commands.describe(
+    status="Klucz statusu, np. dostepny",
+    nastroj="Klucz nastroju, np. na_luzie",
+    aktywnosc="Klucz aktywności, np. gram",
+)
+async def ustaw_status_swoj_command(
+    interaction: discord.Interaction,
+    status: str | None = None,
+    nastroj: str | None = None,
+    aktywnosc: str | None = None,
+):
+    guild = interaction.guild
+    member = interaction.user if isinstance(interaction.user, discord.Member) else None
+    if guild is None or member is None:
+        await send_interaction_message(interaction, "❌ Tej komendy można użyć tylko na serwerze.", ephemeral=True)
+        return
+
+    updates = []
+    errors = []
+
+    if status:
+        if status not in STATUS_ROLE_IDS:
+            errors.append(f"Nieznany status: `{status}`")
+        else:
+            try:
+                await set_member_status_role(member, status)
+                updates.append(ROLE_DISPLAY_NAMES.get(status, status))
+            except Exception as e:
+                errors.append(str(e))
+
+    if nastroj:
+        if nastroj not in MOOD_ROLE_IDS:
+            errors.append(f"Nieznany nastrój: `{nastroj}`")
+        else:
+            try:
+                await set_member_status_role(member, nastroj)
+                updates.append(ROLE_DISPLAY_NAMES.get(nastroj, nastroj))
+            except Exception as e:
+                errors.append(str(e))
+
+    if aktywnosc:
+        if aktywnosc not in ACTIVITY_ROLE_IDS:
+            errors.append(f"Nieznana aktywność: `{aktywnosc}`")
+        else:
+            try:
+                await set_member_status_role(member, aktywnosc)
+                updates.append(ROLE_DISPLAY_NAMES.get(aktywnosc, aktywnosc))
+            except Exception as e:
+                errors.append(str(e))
+
+    if not updates and not errors:
+        await send_interaction_message(
+            interaction,
+            "ℹ️ Podaj przynajmniej jeden argument albo użyj `/statusy` dla wygodnego okienka.",
+            ephemeral=True,
+        )
+        return
+
+    msg = []
+    if updates:
+        msg.append("✅ Ustawiono: " + ", ".join(f"**{item}**" for item in updates))
+    if errors:
+        msg.append("❌ " + " | ".join(errors))
+    await send_interaction_message(interaction, "\n".join(msg), ephemeral=True)
 # =================================
 # EVENTY I TASKI
 # =================================
@@ -1656,7 +2300,7 @@ def schedule_stats_refresh(guild: discord.Guild):
 
     async def delayed_refresh():
         try:
-            await asyncio.sleep(5)
+            await asyncio.sleep(STATUS_ROLE_DEBOUNCE_SECONDS)
             cfg = get_guild_config(guild.id)
             if cfg and cfg.get("channels"):
                 await update_stats_channels(guild, cfg)
@@ -1676,6 +2320,17 @@ async def on_member_join(member: discord.Member):
 @bot.event
 async def on_member_remove(member: discord.Member):
     schedule_stats_refresh(member.guild)
+
+
+@bot.event
+async def on_member_update(before: discord.Member, after: discord.Member):
+    before_ids = {role.id for role in before.roles}
+    after_ids = {role.id for role in after.roles}
+    all_status_ids = get_all_status_role_ids()
+
+    if (before_ids ^ after_ids) & all_status_ids:
+        schedule_stats_refresh(after.guild)
+        schedule_status_panel_refresh(after.guild, delay=1.0)
 
 
 @bot.event
@@ -1730,7 +2385,7 @@ async def update_status_clock():
 
     timezone_obj = get_timezone_object(DEFAULT_TIMEZONE)
     now = datetime.now(timezone_obj)
-    presence_text = f"🕒 {now.strftime('%H:%M:%S')}"
+    presence_text = f"🕒 {now.strftime('%H:%M')}"
 
     if last_presence_text == presence_text:
         return
@@ -1779,6 +2434,11 @@ async def on_ready():
 
     if _channel_edit_worker_task is None or _channel_edit_worker_task.done():
         _channel_edit_worker_task = asyncio.create_task(channel_edit_worker())
+
+    try:
+        bot.add_view(PublicStatusPanelLauncherView())
+    except Exception:
+        pass
 
     logging.info("Zalogowano jako %s (%s)", bot.user, bot.user.id if bot.user else "brak ID")
 
