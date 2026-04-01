@@ -254,6 +254,9 @@ CHANNEL_TEMPLATE_KEYS = {
     "wind": ("weather", "ch_wind"),
     "pressure": ("weather", "ch_pressure"),
     "alerts": ("weather", "ch_alerts"),
+    "allergy_live": ("allergy", "ch_allergy_live"),
+    "allergy_alert": ("allergy", "ch_allergy_alert"),
+    "allergy_advice": ("allergy", "ch_allergy_advice"),
     "date": ("clock", "ch_date"),
     "part_of_day": ("clock", "ch_part_of_day"),
     "sunrise": ("clock", "ch_sunrise"),
@@ -284,6 +287,9 @@ LANGUAGES = {
         "ch_wind": "💨 Wiatr",
         "ch_pressure": "⏱ Ciśnienie",
         "ch_alerts": "🟢 ALERT brak",
+        "ch_allergy_live": "🌿 Pylenie live",
+        "ch_allergy_alert": "🚨 Alert alergiczny",
+        "ch_allergy_advice": "💊 Na co uważać",
         "ch_date": "📅 Data",
         "ch_part_of_day": "🌓 Pora dnia",
         "ch_sunrise": "🌅 Wschód",
@@ -314,6 +320,7 @@ LANGUAGES = {
         "status_weather_cat": "Kategoria Pogoda",
         "status_clock_cat": "Kategoria Kosmiczny Zegar",
         "status_stats_cat": "Kategoria Statystyki",
+        "status_allergy_cat": "Kategoria Ostrzeżenia dla alergików",
         "status_saved_channels": "Zapisane kanały",
         "status_city": "Miasto",
         "status_lat": "Szerokość",
@@ -330,6 +337,8 @@ LANGUAGES = {
         "field_wind": "Wiatr",
         "field_pressure": "Ciśnienie",
         "field_alerts": "Alerty",
+        "field_allergy_alert": "Alert alergiczny",
+        "field_allergy_advice": "Na co uważać",
         "field_sunrise": "Wschód",
         "field_sunset": "Zachód",
         "field_day_length": "Długość dnia",
@@ -363,6 +372,9 @@ LANGUAGES = {
         "ch_wind": "💨 Wind",
         "ch_pressure": "⏱ Pressure",
         "ch_alerts": "🟢 ALERT none",
+        "ch_allergy_live": "🌿 Pollen live",
+        "ch_allergy_alert": "🚨 Allergy alert",
+        "ch_allergy_advice": "💊 Watch out",
         "ch_date": "📅 Date",
         "ch_part_of_day": "🌓 Part of day",
         "ch_sunrise": "🌅 Sunrise",
@@ -393,6 +405,7 @@ LANGUAGES = {
         "status_weather_cat": "Weather category",
         "status_clock_cat": "Cosmic Clock category",
         "status_stats_cat": "Statistics category",
+        "status_allergy_cat": "Allergy warnings category",
         "status_saved_channels": "Saved channels",
         "status_city": "City",
         "status_lat": "Latitude",
@@ -409,6 +422,8 @@ LANGUAGES = {
         "field_wind": "Wind",
         "field_pressure": "Pressure",
         "field_alerts": "Alerts",
+        "field_allergy_alert": "Allergy alert",
+        "field_allergy_advice": "Watch out",
         "field_sunrise": "Sunrise",
         "field_sunset": "Sunset",
         "field_day_length": "Day length",
@@ -446,6 +461,7 @@ def init_db():
             weather_category_id INTEGER,
             clock_category_id INTEGER,
             stats_category_id INTEGER,
+            allergy_category_id INTEGER,
             channels_json TEXT,
             city_name TEXT,
             latitude REAL,
@@ -469,6 +485,8 @@ def init_db():
         c.execute("ALTER TABLE guild_config ADD COLUMN timezone TEXT")
     if "language" not in columns:
         c.execute("ALTER TABLE guild_config ADD COLUMN language TEXT")
+    if "allergy_category_id" not in columns:
+        c.execute("ALTER TABLE guild_config ADD COLUMN allergy_category_id INTEGER")
     if "status_panel_channel_id" not in columns:
         c.execute("ALTER TABLE guild_config ADD COLUMN status_panel_channel_id INTEGER")
     if "status_panel_message_id" not in columns:
@@ -484,7 +502,7 @@ def get_guild_config(guild_id: int) -> dict | None:
 
     c.execute(
         """
-        SELECT guild_id, weather_category_id, clock_category_id, stats_category_id,
+        SELECT guild_id, weather_category_id, clock_category_id, stats_category_id, allergy_category_id,
                channels_json, city_name, latitude, longitude, country, timezone, language,
                status_panel_channel_id, status_panel_message_id
         FROM guild_config
@@ -500,7 +518,7 @@ def get_guild_config(guild_id: int) -> dict | None:
         return None
 
     try:
-        channels = json.loads(row[4]) if row[4] else {}
+        channels = json.loads(row[5]) if row[5] else {}
     except Exception:
         channels = {}
 
@@ -509,15 +527,16 @@ def get_guild_config(guild_id: int) -> dict | None:
         "weather_category_id": row[1],
         "clock_category_id": row[2],
         "stats_category_id": row[3],
+        "allergy_category_id": row[4],
         "channels": channels,
-        "city_name": row[5] or DEFAULT_CITY_NAME,
-        "latitude": row[6] if row[6] is not None else DEFAULT_LATITUDE,
-        "longitude": row[7] if row[7] is not None else DEFAULT_LONGITUDE,
-        "country": row[8] or DEFAULT_COUNTRY,
-        "timezone": row[9] or DEFAULT_TIMEZONE,
-        "language": row[10] or DEFAULT_LANGUAGE,
-        "status_panel_channel_id": row[11],
-        "status_panel_message_id": row[12],
+        "city_name": row[6] or DEFAULT_CITY_NAME,
+        "latitude": row[7] if row[7] is not None else DEFAULT_LATITUDE,
+        "longitude": row[8] if row[8] is not None else DEFAULT_LONGITUDE,
+        "country": row[9] or DEFAULT_COUNTRY,
+        "timezone": row[10] or DEFAULT_TIMEZONE,
+        "language": row[11] or DEFAULT_LANGUAGE,
+        "status_panel_channel_id": row[12],
+        "status_panel_message_id": row[13],
     }
 
 
@@ -532,6 +551,7 @@ def save_guild_config(guild_id: int, cfg: dict):
             weather_category_id,
             clock_category_id,
             stats_category_id,
+            allergy_category_id,
             channels_json,
             city_name,
             latitude,
@@ -542,13 +562,14 @@ def save_guild_config(guild_id: int, cfg: dict):
             status_panel_channel_id,
             status_panel_message_id
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             guild_id,
             cfg.get("weather_category_id"),
             cfg.get("clock_category_id"),
             cfg.get("stats_category_id"),
+            cfg.get("allergy_category_id"),
             json.dumps(cfg.get("channels", {}), ensure_ascii=False),
             cfg.get("city_name", DEFAULT_CITY_NAME),
             cfg.get("latitude", DEFAULT_LATITUDE),
@@ -571,6 +592,7 @@ def build_default_guild_config(guild_id: int) -> dict:
         "weather_category_id": None,
         "clock_category_id": None,
         "stats_category_id": None,
+        "allergy_category_id": None,
         "channels": {},
         "city_name": DEFAULT_CITY_NAME,
         "latitude": DEFAULT_LATITUDE,
@@ -644,6 +666,7 @@ def get_category_name(lang: str, group_name: str) -> str:
         "weather": tr(lang, "cat_weather"),
         "clock": tr(lang, "cat_clock"),
         "stats": tr(lang, "cat_stats"),
+        "allergy": tr(lang, "cat_allergy"),
     }
     return mapping[group_name]
 
@@ -1211,6 +1234,7 @@ async def setup_categories_and_channels(guild: discord.Guild):
     weather_category = guild.get_channel(cfg.get("weather_category_id")) if cfg.get("weather_category_id") else None
     clock_category = guild.get_channel(cfg.get("clock_category_id")) if cfg.get("clock_category_id") else None
     stats_category = guild.get_channel(cfg.get("stats_category_id")) if cfg.get("stats_category_id") else None
+    allergy_category = guild.get_channel(cfg.get("allergy_category_id")) if cfg.get("allergy_category_id") else None
 
     if not isinstance(weather_category, discord.CategoryChannel):
         weather_category = await create_or_get_category(guild, get_category_name(lang, "weather"))
@@ -1224,10 +1248,15 @@ async def setup_categories_and_channels(guild: discord.Guild):
         stats_category = await create_or_get_category(guild, get_category_name(lang, "stats"))
         cfg["stats_category_id"] = stats_category.id
 
+    if not isinstance(allergy_category, discord.CategoryChannel):
+        allergy_category = await create_or_get_category(guild, get_category_name(lang, "allergy"))
+        cfg["allergy_category_id"] = allergy_category.id
+
     category_map = {
         "weather": weather_category,
         "clock": clock_category,
         "stats": stats_category,
+        "allergy": allergy_category,
     }
 
     channels = dict(cfg.get("channels", {}))
@@ -1551,6 +1580,11 @@ async def get_weather_data(
         "clouds": f"☁ {tr(lang, 'field_clouds')} {round(float(clouds))}%" if clouds is not None else f"☁ {tr(lang, 'field_clouds')} --%",
         "air": air_quality_text(air_current.get("european_aqi"), lang),
         "pollen": build_pollen_channel_text(alder, birch, grass, mugwort, ragweed, lang),
+        "pollen_details": build_pollen_details_text(alder, birch, grass, mugwort, ragweed, lang),
+        "allergy_live": build_allergy_live_channel_text(alder, birch, grass, mugwort, ragweed, lang),
+        "allergy_alert": build_allergy_alert_channel_text(alder, birch, grass, mugwort, ragweed, lang),
+        "allergy_advice": build_allergy_advice_channel_text(alder, birch, grass, mugwort, ragweed, lang),
+        "allergy_alerts_text": build_allergy_alerts_text(alder, birch, grass, mugwort, ragweed, lang),
         "rain": trim_channel_name(rain_text),
         "wind": f"💨 {tr(lang, 'field_wind')} {round(float(wind))} km/h" if wind is not None else f"💨 {tr(lang, 'field_wind')} -- km/h",
         "pressure": f"⏱ {tr(lang, 'field_pressure')} {round(float(pressure))} hPa" if pressure is not None else f"⏱ {tr(lang, 'field_pressure')} -- hPa",
@@ -1592,7 +1626,10 @@ async def update_weather_channels(guild: discord.Guild, cfg: dict, weather: dict
     weather_names = build_channel_snapshot(
         {
             key: weather.get(key, get_channel_fallback_name(get_lang_code(cfg), key))
-            for key in ["temperature", "feels", "clouds", "air", "pollen", "rain", "wind", "pressure", "alerts"]
+            for key in [
+                "temperature", "feels", "clouds", "air", "pollen", "rain", "wind", "pressure", "alerts",
+                "allergy_live", "allergy_alert", "allergy_advice"
+            ]
         }
     )
 
@@ -1920,6 +1957,7 @@ async def status_command(interaction: discord.Interaction):
     embed.add_field(name=tr(lang, "status_weather_cat"), value=str(cfg.get("weather_category_id")), inline=False)
     embed.add_field(name=tr(lang, "status_clock_cat"), value=str(cfg.get("clock_category_id")), inline=False)
     embed.add_field(name=tr(lang, "status_stats_cat"), value=str(cfg.get("stats_category_id")), inline=False)
+    embed.add_field(name=tr(lang, "status_allergy_cat"), value=str(cfg.get("allergy_category_id")), inline=False)
     embed.add_field(name=tr(lang, "status_saved_channels"), value=str(len(cfg.get("channels", {}))), inline=False)
     embed.add_field(
         name=tr(lang, "status_city"),
@@ -1963,7 +2001,9 @@ async def weather_command(interaction: discord.Interaction):
         embed.add_field(name=tr(lang, "field_feels"), value=weather["feels"], inline=False)
         embed.add_field(name=tr(lang, "field_clouds"), value=weather["clouds"], inline=False)
         embed.add_field(name=tr(lang, "field_air"), value=weather["air"], inline=False)
-        embed.add_field(name=tr(lang, "field_pollen"), value=weather["pollen"], inline=False)
+        embed.add_field(name=tr(lang, "field_pollen"), value=weather.get("pollen_details", weather["pollen"]), inline=False)
+        embed.add_field(name=tr(lang, "field_allergy_alert"), value=weather.get("allergy_alerts_text", tr(lang, "none")), inline=False)
+        embed.add_field(name=tr(lang, "field_allergy_advice"), value=weather.get("allergy_advice", tr(lang, "none")), inline=False)
         embed.add_field(name=tr(lang, "field_rain"), value=weather["rain"], inline=False)
         embed.add_field(name=tr(lang, "field_wind"), value=weather["wind"], inline=False)
         embed.add_field(name=tr(lang, "field_pressure"), value=weather["pressure"], inline=False)
@@ -2114,6 +2154,7 @@ async def usun_wszystko_command(interaction: discord.Interaction):
         await delete_category_if_exists(guild, cfg.get("weather_category_id"))
         await delete_category_if_exists(guild, cfg.get("clock_category_id"))
         await delete_category_if_exists(guild, cfg.get("stats_category_id"))
+        await delete_category_if_exists(guild, cfg.get("allergy_category_id"))
 
         cfg = build_default_guild_config(guild.id)
         save_guild_config(guild.id, cfg)
