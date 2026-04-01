@@ -249,7 +249,6 @@ CHANNEL_TEMPLATE_KEYS = {
     "feels": ("weather", "ch_feels"),
     "clouds": ("weather", "ch_clouds"),
     "air": ("weather", "ch_air"),
-    "pollen": ("weather", "ch_pollen"),
     "rain": ("weather", "ch_rain"),
     "wind": ("weather", "ch_wind"),
     "pressure": ("weather", "ch_pressure"),
@@ -282,7 +281,6 @@ LANGUAGES = {
         "ch_feels": "🥵 Odczuwalna",
         "ch_clouds": "☁ Zachmurzenie",
         "ch_air": "🌫 Powietrze",
-        "ch_pollen": "🌿 Pylenie",
         "ch_rain": "🌧 Opady",
         "ch_wind": "💨 Wiatr",
         "ch_pressure": "⏱ Ciśnienie",
@@ -367,7 +365,6 @@ LANGUAGES = {
         "ch_feels": "🥵 Feels like",
         "ch_clouds": "☁ Clouds",
         "ch_air": "🌫 Air quality",
-        "ch_pollen": "🌿 Pollen",
         "ch_rain": "🌧 Precipitation",
         "ch_wind": "💨 Wind",
         "ch_pressure": "⏱ Pressure",
@@ -1260,6 +1257,17 @@ async def setup_categories_and_channels(guild: discord.Guild):
     }
 
     channels = dict(cfg.get("channels", {}))
+
+    # Usuń stary kanał pylenia z kategorii pogody, jeśli jeszcze istnieje
+    old_pollen_id = channels.pop("pollen", None)
+    old_pollen_channel = guild.get_channel(old_pollen_id) if old_pollen_id else None
+    if isinstance(old_pollen_channel, discord.VoiceChannel):
+        try:
+            await old_pollen_channel.delete(reason="Usunięcie starego kanału pylenia z kategorii pogody")
+            await asyncio.sleep(CHANNEL_DELETE_DELAY)
+        except Exception:
+            logging.exception("[SETUP] Nie udało się usunąć starego kanału pylenia na serwerze %s", guild.name)
+
     create_semaphore = asyncio.Semaphore(4)
 
     async def resolve_channel(key: str, group_name: str):
@@ -1436,10 +1444,10 @@ def build_allergy_live_channel_text(alder, birch, grass, mugwort, ragweed, lang:
     for name, value in _pollen_entries(alder, birch, grass, mugwort, ragweed, lang):
         lvl = pollen_level_data(value, lang)
         if lvl['rank'] > 0:
-            active.append((lvl['rank'], value, f"{name.lower()}-{lvl['short']}"))
+            active.append((lvl['rank'], value, f"{name.lower()}-{lvl['label'].lower().replace(' ', '-')}"))
 
     if not active:
-        base = "🌿 pylenie-spokojne" if lang == "pl" else "🌿 low-pollen"
+        base = "🌿︱spokojne-pylenie" if lang == "pl" else "🌿︱low-pollen"
         return trim_channel_name(base)
 
     active.sort(key=lambda x: (x[0], x[1]), reverse=True)
@@ -1452,14 +1460,13 @@ def build_allergy_alert_channel_text(alder, birch, grass, mugwort, ragweed, lang
     for name, value in _pollen_entries(alder, birch, grass, mugwort, ragweed, lang):
         lvl = pollen_level_data(value, lang)
         if lvl['rank'] >= 3:
-            alerts.append((lvl['rank'], value, f"{name.lower()}-{lvl['short']}"))
+            alerts.append((lvl['rank'], value, f"alert-{name.lower()}-{lvl['label'].lower().replace(' ', '-')}"))
 
     if not alerts:
-        return trim_channel_name("🟢 ALERT brak" if lang == "pl" else "🟢 ALERT none")
+        return trim_channel_name("🟢︱brak-alertu" if lang == "pl" else "🟢︱no-alert")
 
     alerts.sort(key=lambda x: (x[0], x[1]), reverse=True)
-    prefix = "🚨︱" if lang == "pl" else "🚨︱"
-    return trim_channel_name(prefix + "︱".join(item[2] for item in alerts[:2]))
+    return trim_channel_name("🚨︱" + alerts[0][2])
 
 
 def build_allergy_alerts_text(alder, birch, grass, mugwort, ragweed, lang: str) -> str:
@@ -1482,26 +1489,26 @@ def build_allergy_advice_channel_text(alder, birch, grass, mugwort, ragweed, lan
 
     if lang == 'pl':
         if max_rank >= 4:
-            text = '💊 unikaj spacerów-rano zamknij-okna leki'
+            text = '💊︱unikaj-spacerow-rano'
         elif max_rank == 3:
-            text = '💊 uważaj-na-zewnątrz okulary płukanie-nosa'
+            text = '💊︱uwazaj-na-zewnatrz'
         elif max_rank == 2:
-            text = '💊 obserwuj-objawy miej-leki-przy-sobie'
+            text = '💊︱miej-leki-przy-sobie'
         elif max_rank == 1:
-            text = '💊 lekkie-pylenie standardowa-ostrożność'
+            text = '💊︱lekka-ostroznosc'
         else:
-            text = '💊 dziś-spokojnie brak-istotnego-pylenia'
+            text = '💊︱brak-specjalnych-zalecen'
     else:
         if max_rank >= 4:
-            text = '💊 avoid-morning-walks close-windows meds'
+            text = '💊︱avoid-morning-walks'
         elif max_rank == 3:
-            text = '💊 be-careful-outside glasses nasal-rinse'
+            text = '💊︱be-careful-outside'
         elif max_rank == 2:
-            text = '💊 watch-symptoms keep-meds-nearby'
+            text = '💊︱keep-meds-nearby'
         elif max_rank == 1:
-            text = '💊 light-pollen standard-caution'
+            text = '💊︱light-caution'
         else:
-            text = '💊 calm-day no-significant-pollen'
+            text = '💊︱no-special-advice'
 
     return trim_channel_name(text)
 
@@ -1743,7 +1750,7 @@ async def update_weather_channels(guild: discord.Guild, cfg: dict, weather: dict
         {
             key: weather.get(key, get_channel_fallback_name(get_lang_code(cfg), key))
             for key in [
-                "temperature", "feels", "clouds", "air", "pollen", "rain", "wind", "pressure", "alerts",
+                "temperature", "feels", "clouds", "air", "rain", "wind", "pressure", "alerts",
                 "allergy_live", "allergy_alert", "allergy_advice"
             ]
         }
