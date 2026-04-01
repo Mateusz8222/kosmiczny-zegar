@@ -31,16 +31,16 @@ DEFAULT_COUNTRY = "Polska"
 DEFAULT_TIMEZONE = "Europe/Warsaw"
 DEFAULT_LANGUAGE = "pl"
 
-WEATHER_REFRESH_MINUTES = 5
-CLOCK_REFRESH_SECONDS = 60
+WEATHER_REFRESH_MINUTES = 2
+CLOCK_REFRESH_SECONDS = 30
 STATS_FALLBACK_REFRESH_SECONDS = 90
-PRESENCE_REFRESH_SECONDS = 120
+PRESENCE_REFRESH_SECONDS = 90
 STATUS_CLOCK_REFRESH_SECONDS = PRESENCE_REFRESH_SECONDS
 ONLINE_CHANNEL_MIN_UPDATE_SECONDS = 180
-CHANNEL_CREATE_DELAY = 0.03
-CHANNEL_DELETE_DELAY = 0.12
-CHANNEL_EDIT_DELAY = 0.20
-WEATHER_API_MIN_INTERVAL_SECONDS = 600
+CHANNEL_CREATE_DELAY = 0.02
+CHANNEL_DELETE_DELAY = 0.06
+CHANNEL_EDIT_DELAY = 0.12
+WEATHER_API_MIN_INTERVAL_SECONDS = 120
 MAX_CHANNEL_NAME_LENGTH = 100
 
 
@@ -1388,6 +1388,122 @@ def build_pollen_channel_text(alder, birch, grass, mugwort, ragweed, lang: str) 
 
     return trim_channel_name(f"🌿 {tr(lang, 'field_pollen')} " + " • ".join(top))
 
+
+
+
+def _pollen_entries(alder, birch, grass, mugwort, ragweed, lang: str):
+    labels_pl = [
+        ("Olsza", alder),
+        ("Brzoza", birch),
+        ("Trawy", grass),
+        ("Bylica", mugwort),
+        ("Ambrozja", ragweed),
+    ]
+    labels_en = [
+        ("Alder", alder),
+        ("Birch", birch),
+        ("Grass", grass),
+        ("Mugwort", mugwort),
+        ("Ragweed", ragweed),
+    ]
+    labels = labels_pl if lang == "pl" else labels_en
+    return [(name, float(value or 0)) for name, value in labels]
+
+
+def pollen_level_data(value: float, lang: str):
+    v = float(value or 0)
+    if v <= 0:
+        return {"rank": 0, "emoji": "⚪", "short": "brak" if lang == "pl" else "none", "label": "Brak" if lang == "pl" else "None"}
+    if v < 1:
+        return {"rank": 1, "emoji": "🟢", "short": "niskie" if lang == "pl" else "low", "label": "Niskie" if lang == "pl" else "Low"}
+    if v < 10:
+        return {"rank": 2, "emoji": "🟡", "short": "umiarkowane" if lang == "pl" else "moderate", "label": "Umiarkowane" if lang == "pl" else "Moderate"}
+    if v < 50:
+        return {"rank": 3, "emoji": "🟠", "short": "wysokie" if lang == "pl" else "high", "label": "Wysokie" if lang == "pl" else "High"}
+    return {"rank": 4, "emoji": "🔴", "short": "bardzo-wysokie" if lang == "pl" else "very-high", "label": "Bardzo wysokie" if lang == "pl" else "Very high"}
+
+
+def build_pollen_details_text(alder, birch, grass, mugwort, ragweed, lang: str) -> str:
+    parts = []
+    for name, value in _pollen_entries(alder, birch, grass, mugwort, ragweed, lang):
+        lvl = pollen_level_data(value, lang)
+        parts.append(f"{lvl['emoji']} {name} — {lvl['label']}")
+    return "\n".join(parts)
+
+
+def build_allergy_live_channel_text(alder, birch, grass, mugwort, ragweed, lang: str) -> str:
+    active = []
+    for name, value in _pollen_entries(alder, birch, grass, mugwort, ragweed, lang):
+        lvl = pollen_level_data(value, lang)
+        if lvl['rank'] > 0:
+            active.append((lvl['rank'], value, f"{name.lower()}-{lvl['short']}"))
+
+    if not active:
+        base = "🌿 pylenie-spokojne" if lang == "pl" else "🌿 low-pollen"
+        return trim_channel_name(base)
+
+    active.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    text = "🌿︱" + "︱".join(item[2] for item in active[:2])
+    return trim_channel_name(text)
+
+
+def build_allergy_alert_channel_text(alder, birch, grass, mugwort, ragweed, lang: str) -> str:
+    alerts = []
+    for name, value in _pollen_entries(alder, birch, grass, mugwort, ragweed, lang):
+        lvl = pollen_level_data(value, lang)
+        if lvl['rank'] >= 3:
+            alerts.append((lvl['rank'], value, f"{name.lower()}-{lvl['short']}"))
+
+    if not alerts:
+        return trim_channel_name("🟢 ALERT brak" if lang == "pl" else "🟢 ALERT none")
+
+    alerts.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    prefix = "🚨︱" if lang == "pl" else "🚨︱"
+    return trim_channel_name(prefix + "︱".join(item[2] for item in alerts[:2]))
+
+
+def build_allergy_alerts_text(alder, birch, grass, mugwort, ragweed, lang: str) -> str:
+    alerts = []
+    for name, value in _pollen_entries(alder, birch, grass, mugwort, ragweed, lang):
+        lvl = pollen_level_data(value, lang)
+        if lvl['rank'] >= 3:
+            alerts.append(f"{lvl['emoji']} {name} — {lvl['label']}")
+
+    if not alerts:
+        return "🟢 Brak podwyższonego zagrożenia pyleniem" if lang == "pl" else "🟢 No elevated pollen risk"
+
+    return "\n".join(alerts)
+
+
+def build_allergy_advice_channel_text(alder, birch, grass, mugwort, ragweed, lang: str) -> str:
+    max_rank = 0
+    for _name, value in _pollen_entries(alder, birch, grass, mugwort, ragweed, lang):
+        max_rank = max(max_rank, pollen_level_data(value, lang)['rank'])
+
+    if lang == 'pl':
+        if max_rank >= 4:
+            text = '💊 unikaj spacerów-rano zamknij-okna leki'
+        elif max_rank == 3:
+            text = '💊 uważaj-na-zewnątrz okulary płukanie-nosa'
+        elif max_rank == 2:
+            text = '💊 obserwuj-objawy miej-leki-przy-sobie'
+        elif max_rank == 1:
+            text = '💊 lekkie-pylenie standardowa-ostrożność'
+        else:
+            text = '💊 dziś-spokojnie brak-istotnego-pylenia'
+    else:
+        if max_rank >= 4:
+            text = '💊 avoid-morning-walks close-windows meds'
+        elif max_rank == 3:
+            text = '💊 be-careful-outside glasses nasal-rinse'
+        elif max_rank == 2:
+            text = '💊 watch-symptoms keep-meds-nearby'
+        elif max_rank == 1:
+            text = '💊 light-pollen standard-caution'
+        else:
+            text = '💊 calm-day no-significant-pollen'
+
+    return trim_channel_name(text)
 
 def build_weather_alerts(current: dict, lang: str) -> str:
     weather_code = int(current.get("weather_code", -1)) if current.get("weather_code") is not None else -1
