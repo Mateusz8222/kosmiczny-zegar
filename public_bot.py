@@ -114,6 +114,8 @@ channel_edit_worker_task: asyncio.Task | None = None
 channel_edit_recent_timestamps: deque[float] = deque()
 CHANNEL_EDIT_BUCKET_LIMIT = 5
 CHANNEL_EDIT_BUCKET_WINDOW = 60.0
+QUEUE_INPUT_BATCH_SIZE = 2
+QUEUE_INPUT_BATCH_DELAY = 15.0
 last_midnight_reset_dates: dict[int, date] = {}
 weather_cache: dict[int, dict] = {}
 background_refresh_tasks: dict[int, asyncio.Task] = {}
@@ -1075,8 +1077,9 @@ async def apply_channel_name_updates_sequentially(
     *,
     log_prefix: str,
 ) -> int:
-    """Aktualizuje kanały pojedynczo, z odstępem, tylko dla pól które się zmieniły."""
-    changed = 0
+    """Aktualizuje kanały bardzo ostrożnie: małe batche do kolejki, z przerwą między batchami."""
+    pending_items: list[tuple[str, str]] = []
+
     for key, new_name in payload.items():
         channel = get_channel_from_config(guild, cfg, key)
         if channel is None:
@@ -1085,12 +1088,43 @@ async def apply_channel_name_updates_sequentially(
         after = trim_channel_name(new_name)
         if before == after:
             continue
-        await safe_edit_channel_name(channel, after)
-        changed += 1
-    if changed == 0:
+        pending_items.append((key, after))
+
+    if not pending_items:
         logging.info("%s Brak realnych zmian nazw kanałów dla serwera %s", log_prefix, guild.name)
-    else:
-        logging.info("%s Zaktualizowano %s kanałów dla serwera %s", log_prefix, changed, guild.name)
+        return 0
+
+    changed = 0
+    for batch_start in range(0, len(pending_items), QUEUE_INPUT_BATCH_SIZE):
+        batch = pending_items[batch_start:batch_start + QUEUE_INPUT_BATCH_SIZE]
+
+        logging.info(
+            "%s Wysyłam batch %s-%s/%s do kolejki dla serwera %s",
+            log_prefix,
+            batch_start + 1,
+            batch_start + len(batch),
+            len(pending_items),
+            guild.name,
+        )
+
+        for key, new_name in batch:
+            channel = get_channel_from_config(guild, cfg, key)
+            if channel is None:
+                continue
+            ok = await safe_edit_channel_name(channel, new_name)
+            if ok:
+                changed += 1
+
+        if batch_start + QUEUE_INPUT_BATCH_SIZE < len(pending_items):
+            logging.info(
+                "%s Przerwa %.1fs przed kolejnym batchem dla serwera %s",
+                log_prefix,
+                QUEUE_INPUT_BATCH_DELAY,
+                guild.name,
+            )
+            await asyncio.sleep(QUEUE_INPUT_BATCH_DELAY)
+
+    logging.info("%s Zaktualizowano %s kanałów dla serwera %s", log_prefix, changed, guild.name)
     return changed
 
 async def create_or_get_category(guild: discord.Guild, name: str) -> discord.CategoryChannel:
