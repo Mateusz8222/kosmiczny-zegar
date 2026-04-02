@@ -58,7 +58,7 @@ DEFAULT_LANGUAGE = "pl"
 WEATHER_REFRESH_MINUTES = 5
 CLOCK_REFRESH_SECONDS = 300
 STATS_FALLBACK_REFRESH_SECONDS = 300
-STATUS_CLOCK_REFRESH_SECONDS = 60
+STATUS_CLOCK_REFRESH_SECONDS = 1
 CHANNEL_EDIT_DELAY = 2.0
 STATS_REFRESH_DEBOUNCE_SECONDS = 3
 MAX_CHANNEL_NAME_LENGTH = 100
@@ -927,6 +927,12 @@ def find_voice_channel_in_category_by_name(
         if channel.name == name:
             return channel
     return None
+
+
+def sleep_seconds_until_next_second(now: datetime | None = None) -> float:
+    current = now or datetime.now()
+    remaining = 1.0 - (current.microsecond / 1_000_000)
+    return remaining if remaining > 0 else 0.001
 
 
 def format_uptime(delta: timedelta) -> str:
@@ -2682,14 +2688,14 @@ async def update_status_clock():
     now = datetime.now(timezone_obj)
     presence_text = f"🕒 {now.strftime('%H:%M:%S')}"
 
-    if last_presence_text == presence_text:
-        return
+    if last_presence_text != presence_text:
+        try:
+            await bot.change_presence(activity=discord.CustomActivity(name=presence_text))
+            last_presence_text = presence_text
+        except Exception as e:
+            logging.warning("Błąd update_status_clock: %s", e)
 
-    try:
-        await bot.change_presence(activity=discord.CustomActivity(name=presence_text))
-        last_presence_text = presence_text
-    except Exception as e:
-        logging.warning("Błąd update_status_clock: %s", e)
+    await asyncio.sleep(sleep_seconds_until_next_second(datetime.now()))
 
 
 @auto_refresh.before_loop
