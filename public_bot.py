@@ -29,18 +29,19 @@ DEFAULT_LONGITUDE = 21.9990
 DEFAULT_TIMEZONE = "Europe/Warsaw"
 DEFAULT_LANGUAGE = "pl"
 
-WEATHER_REFRESH_SECONDS = 120
-CLOCK_REFRESH_SECONDS = 15
-STATS_REFRESH_SECONDS = 60
-PRESENCE_REFRESH_SECONDS = 2
-CHANNEL_EDIT_DELAY = 0.65
-CHANNEL_CREATE_DELAY = 0.18
-CHANNEL_DELETE_DELAY = 0.30
+WEATHER_REFRESH_SECONDS = 180
+CLOCK_REFRESH_SECONDS = 30
+STATS_REFRESH_SECONDS = 90
+PRESENCE_REFRESH_SECONDS = 5
+CHANNEL_EDIT_DELAY = 1.25
+CHANNEL_CREATE_DELAY = 0.22
+CHANNEL_DELETE_DELAY = 0.35
 MAX_CHANNEL_NAME_LENGTH = 100
 
 CONFIG_LOCK = asyncio.Lock()
-EDIT_QUEUE: asyncio.Queue[tuple[int, int, str]] = asyncio.Queue()
+EDIT_QUEUE: asyncio.Queue[tuple[int, int | None, str]] = asyncio.Queue()
 LAST_DESIRED_NAMES: dict[int, str] = {}
+LAST_EDIT_AT: dict[int, float] = {}
 EDIT_WORKER: asyncio.Task | None = None
 
 
@@ -483,62 +484,87 @@ async def channel_edit_worker() -> None:
     while not bot.is_closed():
         try:
             channel_id, position, desired_name = await EDIT_QUEUE.get()
-            LAST_DESIRED_NAMES[channel_id] = desired_name
-            await asyncio.sleep(0.05)
-            # coalesce pending edits for same channel
-            while not EDIT_QUEUE.empty():
+            pending: dict[int, tuple[int | None, str]] = {channel_id: (position, sanitize_channel_name(desired_name))}
+            await asyncio.sleep(0.20)
+
+            while True:
                 try:
                     next_id, next_pos, next_name = EDIT_QUEUE.get_nowait()
+                    pending[next_id] = (next_pos, sanitize_channel_name(next_name))
                 except asyncio.QueueEmpty:
                     break
-                if next_id == channel_id:
-                    position = next_pos
-                    desired_name = next_name
-                    LAST_DESIRED_NAMES[channel_id] = next_name
-                else:
-                    await EDIT_QUEUE.put((next_id, next_pos, next_name))
-                    break
 
-            channel = bot.get_channel(channel_id)
-            if not isinstance(channel, discord.abc.GuildChannel):
-                continue
+            for current_id, (current_pos, current_name) in pending.items():
+                LAST_DESIRED_NAMES[current_id] = current_name
+                channel = bot.get_channel(current_id)
+                if not isinstance(channel, discord.abc.GuildChannel):
+                    continue
 
-            edits: dict[str, Any] = {}
-            if sanitize_channel_name(channel.name) != sanitize_channel_name(desired_name):
-                edits["name"] = sanitize_channel_name(desired_name)
-            if channel.position != position:
-                edits["position"] = position
+                edits: dict[str, Any] = {}
+                safe_name = sanitize_channel_name(current_name)
+                if sanitize_channel_name(channel.name) != safe_name:
+                    edits["name"] = safe_name
+                # Pozycje zmieniamy tylko wtedy, gdy zostały wyraźnie podane.
+                if current_pos is not None and channel.position != current_pos:
+                    edits["position"] = current_pos
 
-            if edits:
+                if not edits:
+                    continue
+
                 try:
                     await channel.edit(**edits)
                     await asyncio.sleep(CHANNEL_EDIT_DELAY)
-                except discord.HTTPException:
-                    logger.exception("Błąd edycji kanału %s", channel_id)
+                except discord.HTTPException as e:
+                    logger.warning("Błąd edycji kanału %s: %s", current_id, e)
+                    await asyncio.sleep(max(CHANNEL_EDIT_DELAY, 2.0))
         except Exception:
             logger.exception("Błąd worker edycji kanałów")
             await asyncio.sleep(1)
 
 
-async def queue_channel_update(channel: discord.abc.GuildChannel, name: str, position: int) -> None:
+async def queue_channel_update(channel: discord.abc.GuildChannel, name: str, position: int | None = None) -> None:
     await EDIT_QUEUE.put((channel.id, position, sanitize_channel_name(name)))
+
+
+async def wait_for_edit_queue_idle(timeout: float = 45.0) -> None:
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+    while loop.time() < deadline:
+        if EDIT_QUEUE.empty():
+            await asyncio.sleep(0.3)
+            if EDIT_QUEUE.empty():
+                return
+        await asyncio.sleep(0.3)
 
 
 async def api_get_json(url: str) -> dict[str, Any]:
     if not bot.http_session:
         raise RuntimeError("Brak sesji HTTP")
     async with bot.http_session.get(url) as resp:
-        resp.raise_for_status()
+        if resp.status >= 400:
+            body = await resp.text()
+            raise aiohttp.ClientResponseError(
+                request_info=resp.request_info,
+                history=resp.history,
+                status=resp.status,
+                message=body[:300],
+                headers=resp.headers,
+            )
         return await resp.json()
 
 
 async def geocode_city(city: str) -> dict[str, Any] | None:
     q = aiohttp.helpers.quote(city, safe="")
-    url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count=1&language=pl&format=json"
+    url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count=10&language=pl&format=json"
     data = await api_get_json(url)
     results = data.get("results") or []
     if not results:
         return None
+    city_lower = city.strip().lower()
+    for item in results:
+        name = str(item.get("name", "")).strip().lower()
+        if name == city_lower:
+            return item
     return results[0]
 
 
@@ -809,23 +835,24 @@ async def create_or_sync_structure(guild: discord.Guild) -> dict[str, Any]:
 
 async def sort_channels(guild: discord.Guild, cfg: dict[str, Any]) -> None:
     channels = cfg.get("channels", {})
-    ordered = WEATHER_CHANNEL_ORDER + CLOCK_CHANNEL_ORDER + STATS_CHANNEL_ORDER + ALLERGY_CHANNEL_ORDER
 
-    for key in ordered:
-        ch_id = channels.get(key)
-        ch = guild.get_channel(ch_id) if ch_id else None
-        if not isinstance(ch, discord.VoiceChannel):
-            continue
-        if key in WEATHER_CHANNEL_ORDER:
-            idx = WEATHER_CHANNEL_ORDER.index(key)
-        elif key in CLOCK_CHANNEL_ORDER:
-            idx = CLOCK_CHANNEL_ORDER.index(key)
-        elif key in STATS_CHANNEL_ORDER:
-            idx = STATS_CHANNEL_ORDER.index(key)
-        else:
-            idx = ALLERGY_CHANNEL_ORDER.index(key)
+    groups = [
+        WEATHER_CHANNEL_ORDER,
+        CLOCK_CHANNEL_ORDER,
+        STATS_CHANNEL_ORDER,
+        ALLERGY_CHANNEL_ORDER,
+    ]
 
-        await queue_channel_update(ch, ch.name, idx)
+    for order in groups:
+        for idx, key in enumerate(order):
+            ch_id = channels.get(key)
+            ch = guild.get_channel(ch_id) if ch_id else None
+            if not isinstance(ch, discord.VoiceChannel):
+                continue
+            # Sortowanie robimy tylko przy /setup, żeby nie generować 429 przy każdym refreshu.
+            await queue_channel_update(ch, ch.name, idx)
+
+    await wait_for_edit_queue_idle()
 
 
 async def refresh_weather_channels(guild: discord.Guild, cfg: dict[str, Any]) -> None:
@@ -835,22 +862,22 @@ async def refresh_weather_channels(guild: discord.Guild, cfg: dict[str, Any]) ->
     daily = bundle["weather"].get("daily", {})
     air = bundle["air"].get("current", {})
 
-    temp = round(current.get("temperature_2m", 0))
-    feels = round(current.get("apparent_temperature", 0))
-    clouds = round(current.get("cloud_cover", 0))
-    wind = round(current.get("wind_speed_10m", 0))
-    pressure = round(current.get("pressure_msl", 0))
-    weather_code = int(current.get("weather_code", 0))
+    temp_v = current.get("temperature_2m")
+    feels_v = current.get("apparent_temperature")
+    clouds_v = current.get("cloud_cover")
+    wind_v = current.get("wind_speed_10m")
+    pressure_v = current.get("pressure_msl")
+    weather_code = int(current.get("weather_code", 0) or 0)
     rain_sum = daily.get("precipitation_sum", [0])[0]
     aqi = air.get("european_aqi")
 
     names = {
-        "temperature": f"🌡️ Temperatura {temp}°C",
-        "feels": f"🥵 Odczuwalna {feels}°C",
-        "clouds": f"☁️ Zachmurzenie {clouds}%",
-        "rain": f"🌧️ Opady {round(rain_sum, 1)} mm" if rain_sum else "🌧️ Opady brak",
-        "wind": f"🌬️ Wiatr {wind} km/h",
-        "pressure": f"🧭 Ciśnienie {pressure} hPa",
+        "temperature": f"🌡️ Temperatura {round(temp_v)}°C" if temp_v is not None else "🌡️ Temperatura --°C",
+        "feels": f"🥵 Odczuwalna {round(feels_v)}°C" if feels_v is not None else "🥵 Odczuwalna --°C",
+        "clouds": f"☁️ Zachmurzenie {round(clouds_v)}%" if clouds_v is not None else "☁️ Zachmurzenie --%",
+        "rain": f"🌧️ Opady {round(float(rain_sum), 1)} mm" if rain_sum not in (None, 0, 0.0, "0", "0.0") else "🌧️ Opady brak",
+        "wind": f"🌬️ Wiatr {round(wind_v)} km/h" if wind_v is not None else "🌬️ Wiatr -- km/h",
+        "pressure": f"🧭 Ciśnienie {round(pressure_v)} hPa" if pressure_v is not None else "🧭 Ciśnienie ---- hPa",
         "air": f"🟡 Powietrze {aqi_text(aqi)}",
         "alerts": "🟢 ALERT brak" if weather_code in {0,1,2,3} else f"⚠️ ALERT {weather_code_text(weather_code)}",
     }
@@ -864,11 +891,7 @@ async def refresh_weather_channels(guild: discord.Guild, cfg: dict[str, Any]) ->
         ch_id = channels.get(key)
         ch = guild.get_channel(ch_id) if ch_id else None
         if isinstance(ch, discord.VoiceChannel):
-            if key in WEATHER_CHANNEL_ORDER:
-                pos = WEATHER_CHANNEL_ORDER.index(key)
-            else:
-                pos = ALLERGY_CHANNEL_ORDER.index(key)
-            await queue_channel_update(ch, names[key], pos)
+            await queue_channel_update(ch, names[key])
 
 
 async def refresh_clock_channels(guild: discord.Guild, cfg: dict[str, Any]) -> None:
@@ -901,8 +924,7 @@ async def refresh_clock_channels(guild: discord.Guild, cfg: dict[str, Any]) -> N
         ch_id = channels.get(key)
         ch = guild.get_channel(ch_id) if ch_id else None
         if isinstance(ch, discord.VoiceChannel):
-            pos = CLOCK_CHANNEL_ORDER.index(key)
-            await queue_channel_update(ch, names[key], pos)
+            await queue_channel_update(ch, names[key])
 
 
 async def refresh_stats_channels(guild: discord.Guild, cfg: dict[str, Any]) -> None:
@@ -933,11 +955,10 @@ async def refresh_stats_channels(guild: discord.Guild, cfg: dict[str, Any]) -> N
         ch_id = channels.get(key)
         ch = guild.get_channel(ch_id) if ch_id else None
         if isinstance(ch, discord.VoiceChannel):
-            pos = STATS_CHANNEL_ORDER.index(key)
-            await queue_channel_update(ch, names[key], pos)
+            await queue_channel_update(ch, names[key])
 
 
-async def full_refresh_guild(guild: discord.Guild) -> None:
+async def full_refresh_guild(guild: discord.Guild, *, sort_after: bool = False) -> None:
     await ensure_status_roles(guild)
     cfg = await create_or_sync_structure(guild)
     await asyncio.gather(
@@ -945,7 +966,9 @@ async def full_refresh_guild(guild: discord.Guild) -> None:
         refresh_clock_channels(guild, cfg),
         refresh_stats_channels(guild, cfg),
     )
-    await sort_channels(guild, cfg)
+    if sort_after:
+        await sort_channels(guild, cfg)
+    await wait_for_edit_queue_idle()
     await refresh_status_panel(guild)
 
 
@@ -1037,7 +1060,7 @@ async def setup_cmd(interaction: discord.Interaction) -> None:
     cfg = await get_guild_config(guild.id)
     lang = get_lang(cfg)
     try:
-        await full_refresh_guild(guild)
+        await full_refresh_guild(guild, sort_after=True)
         await interaction.followup.send(lang["setup_ok"], ephemeral=True)
     except Exception as e:
         logger.exception("Błąd /setup")
@@ -1149,7 +1172,7 @@ async def weather_cmd(interaction: discord.Interaction) -> None:
     if not guild:
         await interaction.response.send_message("❌ Tylko na serwerze.", ephemeral=True)
         return
-    await interaction.response.defer(ephemeral=True)
+    await interaction.response.defer(ephemeral=True, thinking=True)
     cfg = await get_guild_config(guild.id)
     lang = get_lang(cfg)
     bundle = await fetch_weather_bundle(cfg)
