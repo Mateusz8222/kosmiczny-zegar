@@ -129,6 +129,10 @@ startup_full_refresh_done: set[int] = set()
 last_global_refresh_at: dict[int, float] = {}
 GLOBAL_REFRESH_COOLDOWN_SECONDS = 60.0
 GLOBAL_UPDATE_LOCK = asyncio.Lock()
+FAST_FIRST_SYNC_DELAY = 0.75
+NORMAL_CHANNEL_EDIT_DELAY = CHANNEL_EDIT_DELAY
+fast_first_sync_active: set[int] = set()
+
 
 
 
@@ -969,10 +973,13 @@ async def wait_for_global_channel_edit_slot() -> None:
             while channel_edit_recent_timestamps and (now - channel_edit_recent_timestamps[0]) >= CHANNEL_EDIT_BUCKET_WINDOW:
                 channel_edit_recent_timestamps.popleft()
 
+            effective_delay = FAST_FIRST_SYNC_DELAY if fast_first_sync_active else NORMAL_CHANNEL_EDIT_DELAY
+            effective_bucket_limit = 8 if fast_first_sync_active else CHANNEL_EDIT_BUCKET_LIMIT
+
             spacing_wait = max(0.0, next_global_channel_edit_time - now)
 
             bucket_wait = 0.0
-            if len(channel_edit_recent_timestamps) >= CHANNEL_EDIT_BUCKET_LIMIT:
+            if len(channel_edit_recent_timestamps) >= effective_bucket_limit:
                 oldest = channel_edit_recent_timestamps[0]
                 bucket_wait = max(0.0, CHANNEL_EDIT_BUCKET_WINDOW - (now - oldest))
 
@@ -980,7 +987,7 @@ async def wait_for_global_channel_edit_slot() -> None:
 
             if wait_for <= 0:
                 now2 = monotonic()
-                next_global_channel_edit_time = now2 + CHANNEL_EDIT_DELAY
+                next_global_channel_edit_time = now2 + effective_delay
                 channel_edit_recent_timestamps.append(now2)
                 return
 
@@ -1120,13 +1127,14 @@ async def apply_channel_name_updates_sequentially(
                 changed += 1
 
         if batch_start + QUEUE_INPUT_BATCH_SIZE < len(pending_items):
+            batch_delay = 2.0 if guild.id in fast_first_sync_active else QUEUE_INPUT_BATCH_DELAY
             logging.info(
                 "%s Przerwa %.1fs przed kolejnym batchem dla serwera %s",
                 log_prefix,
-                QUEUE_INPUT_BATCH_DELAY,
+                batch_delay,
                 guild.name,
             )
-            await asyncio.sleep(QUEUE_INPUT_BATCH_DELAY)
+            await asyncio.sleep(batch_delay)
 
     logging.info("%s Zaktualizowano %s kanałów dla serwera %s", log_prefix, changed, guild.name)
     return changed
@@ -1209,6 +1217,8 @@ async def schedule_background_refresh(guild: discord.Guild, *, force_full: bool 
     async def runner():
         try:
             async with GLOBAL_UPDATE_LOCK:
+                if force_full:
+                    fast_first_sync_active.add(guild.id)
                 last_global_refresh_at[guild.id] = monotonic()
                 logging.info(
                     "[REFRESH] Start %sodświeżenia dla serwera %s",
@@ -1226,6 +1236,7 @@ async def schedule_background_refresh(guild: discord.Guild, *, force_full: bool 
         except Exception as e:
             logging.warning("Błąd background refresh dla serwera %s: %s", guild.id, e)
         finally:
+            fast_first_sync_active.discard(guild.id)
             background_refresh_tasks.pop(guild.id, None)
 
     task = asyncio.create_task(runner())
