@@ -107,6 +107,10 @@ last_midnight_reset_dates: dict[int, date] = {}
 weather_cache: dict[int, dict] = {}
 background_refresh_tasks: dict[int, asyncio.Task] = {}
 last_presence_text: str | None = None
+last_weather_payloads: dict[int, dict[str, str]] = {}
+last_clock_payloads: dict[int, dict[str, str]] = {}
+last_stats_payloads: dict[int, dict[str, str]] = {}
+last_status_panel_signatures: dict[int, str] = {}
 
 
 class KosmicznyBot(commands.Bot):
@@ -965,6 +969,14 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
             logging.warning("Nie udało się zmienić nazwy kanału %s: %s", channel.id, e)
 
 
+def _payload_changed(cache: dict[int, dict[str, str]], guild_id: int, new_payload: dict[str, str]) -> bool:
+    old_payload = cache.get(guild_id)
+    if old_payload == new_payload:
+        return False
+    cache[guild_id] = dict(new_payload)
+    return True
+
+
 async def create_or_get_category(guild: discord.Guild, name: str) -> discord.CategoryChannel:
     for category in guild.categories:
         if category.name == name:
@@ -1475,11 +1487,18 @@ async def setup_categories_and_channels(guild: discord.Guild):
 
 
 async def update_weather_channels(guild: discord.Guild, cfg: dict, weather: dict):
-    logging.info("[POGODA] Odświeżanie kanałów pogody dla serwera %s", guild.name)
+    payload = {
+        key: weather.get(key, get_channel_fallback_name(get_lang_code(cfg), key))
+        for key in ["temperature", "feels", "clouds", "air", "pollen", "rain", "wind", "pressure", "alerts"]
+    }
+
+    if not _payload_changed(last_weather_payloads, guild.id, payload):
+        return
+
+    logging.info("[POGODA] Wykryto zmianę danych pogody dla serwera %s", guild.name)
     tasks_to_run = []
-    for key in ["temperature", "feels", "clouds", "air", "pollen", "rain", "wind", "pressure", "alerts"]:
+    for key, new_name in payload.items():
         channel = get_channel_from_config(guild, cfg, key)
-        new_name = weather.get(key, get_channel_fallback_name(get_lang_code(cfg), key))
         tasks_to_run.append(safe_edit_channel_name(channel, new_name))
     await asyncio.gather(*tasks_to_run)
 
@@ -1493,37 +1512,22 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict |
     cached_weather = weather or weather_cache.get(guild.id, {})
     sunrise_time = cached_weather.get("sunrise_time")
     sunset_time = cached_weather.get("sunset_time")
-    sunrise_label = cached_weather.get("sunrise", f"🌅 {tr(lang, 'field_sunrise')} --:--")
-    sunset_label = cached_weather.get("sunset", f"🌇 {tr(lang, 'field_sunset')} --:--")
-    day_length_label = cached_weather.get("day_length", f"{tr(lang, 'day_length_prefix')} --")
+    payload = {
+        "date": f"{tr(lang, 'ch_date')} {weekdays[now.weekday()]} {now.strftime('%d.%m.%Y')}",
+        "part_of_day": format_part_of_day(now, lang, sunrise_time, sunset_time),
+        "sunrise": cached_weather.get("sunrise", f"🌅 {tr(lang, 'field_sunrise')} --:--"),
+        "sunset": cached_weather.get("sunset", f"🌇 {tr(lang, 'field_sunset')} --:--"),
+        "day_length": cached_weather.get("day_length", f"{tr(lang, 'day_length_prefix')} --"),
+        "moon": moon_phase_name(now, lang),
+    }
 
-    logging.info("[ZEGAR] Odświeżanie kanałów zegara dla serwera %s", guild.name)
+    if not _payload_changed(last_clock_payloads, guild.id, payload):
+        return
 
+    logging.info("[ZEGAR] Wykryto zmianę kanałów zegara dla serwera %s", guild.name)
     tasks_to_run = [
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "date"),
-            f"{tr(lang, 'ch_date')} {weekdays[now.weekday()]} {now.strftime('%d.%m.%Y')}",
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "part_of_day"),
-            format_part_of_day(now, lang, sunrise_time, sunset_time),
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "sunrise"),
-            sunrise_label,
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "sunset"),
-            sunset_label,
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "day_length"),
-            day_length_label,
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "moon"),
-            moon_phase_name(now, lang),
-        ),
+        safe_edit_channel_name(get_channel_from_config(guild, cfg, key), new_name)
+        for key, new_name in payload.items()
     ]
 
     await asyncio.gather(*tasks_to_run)
@@ -1567,8 +1571,21 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
         logging.warning("[STATYSTYKI] Nie udało się pobrać banów na serwerze %s: %s", guild.name, e)
         bans_count = 0
 
+    payload = {
+        "members": tr(lang, "stats_members", count=members_count),
+        "humans": tr(lang, "stats_humans", count=humans_count),
+        "online": tr(lang, "stats_online", count=online_count),
+        "bots": tr(lang, "stats_bots", count=bots_count),
+        "vc": tr(lang, "stats_vc", count=vc_count),
+        "joined_today": tr(lang, "stats_joined_today", count=joined_today_count),
+        "bans": tr(lang, "stats_bans", count=bans_count),
+    }
+
+    if not _payload_changed(last_stats_payloads, guild.id, payload):
+        return
+
     logging.info(
-        "[STATYSTYKI] %s | wszyscy=%s ludzie=%s boty=%s online=%s vc=%s today=%s bany=%s",
+        "[STATYSTYKI] Zmiana | %s | wszyscy=%s ludzie=%s boty=%s online=%s vc=%s today=%s bany=%s",
         guild.name,
         members_count,
         humans_count,
@@ -1580,34 +1597,8 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
     )
 
     tasks_to_run = [
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "members"),
-            tr(lang, "stats_members", count=members_count),
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "humans"),
-            tr(lang, "stats_humans", count=humans_count),
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "online"),
-            tr(lang, "stats_online", count=online_count),
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "bots"),
-            tr(lang, "stats_bots", count=bots_count),
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "vc"),
-            tr(lang, "stats_vc", count=vc_count),
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "joined_today"),
-            tr(lang, "stats_joined_today", count=joined_today_count),
-        ),
-        safe_edit_channel_name(
-            get_channel_from_config(guild, cfg, "bans"),
-            tr(lang, "stats_bans", count=bans_count),
-        ),
+        safe_edit_channel_name(get_channel_from_config(guild, cfg, key), new_name)
+        for key, new_name in payload.items()
     ]
 
     await asyncio.gather(*tasks_to_run)
@@ -2288,6 +2279,8 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
         save_guild_config(guild.id, cfg)
 
         weather_cache.pop(guild.id, None)
+        last_weather_payloads.pop(guild.id, None)
+        last_clock_payloads.pop(guild.id, None)
         await schedule_background_refresh(guild)
 
         extra = f", {city['admin1']}" if city.get("admin1") else ""
@@ -2351,6 +2344,7 @@ async def panel_statusow(interaction: discord.Interaction):
         cfg = get_guild_config(interaction.guild.id) or build_default_guild_config(interaction.guild.id)
         cfg["status_panel_message_id"] = message.id
         save_guild_config(interaction.guild.id, cfg)
+        last_status_panel_signatures[interaction.guild.id] = embed.to_dict().__repr__()
     except Exception as e:
         logging.warning("Nie udało się zapisać ID panelu statusów: %s", e)
 
