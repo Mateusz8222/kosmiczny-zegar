@@ -4,6 +4,7 @@ import logging
 import os
 import sqlite3
 from datetime import UTC, date, datetime, timedelta
+from time import monotonic
 from pathlib import Path
 from urllib.parse import quote
 
@@ -58,10 +59,10 @@ DEFAULT_LANGUAGE = "pl"
 WEATHER_REFRESH_MINUTES = 5
 CLOCK_REFRESH_SECONDS = 300
 STATS_FALLBACK_REFRESH_SECONDS = 300
-STATUS_CLOCK_REFRESH_SECONDS = 1
-CHANNEL_EDIT_DELAY = 2.0
+STATUS_CLOCK_REFRESH_SECONDS = 60
+CHANNEL_EDIT_DELAY = 3.0
 CHANNEL_EDIT_RETRY_COUNT = 3
-CHANNEL_EDIT_RETRY_DELAY = 5.0
+CHANNEL_EDIT_RETRY_DELAY = 10.0
 STATS_REFRESH_DEBOUNCE_SECONDS = 3
 MAX_CHANNEL_NAME_LENGTH = 100
 
@@ -105,6 +106,8 @@ async def safe_send(
         return await interaction.followup.send(wait=wait, **kwargs)
 stats_update_tasks: dict[int, asyncio.Task] = {}
 channel_edit_locks: dict[int, asyncio.Lock] = {}
+global_channel_edit_lock = asyncio.Lock()
+next_global_channel_edit_time: float = 0.0
 last_midnight_reset_dates: dict[int, date] = {}
 weather_cache: dict[int, dict] = {}
 background_refresh_tasks: dict[int, asyncio.Task] = {}
@@ -931,12 +934,6 @@ def find_voice_channel_in_category_by_name(
     return None
 
 
-def sleep_seconds_until_next_second(now: datetime | None = None) -> float:
-    current = now or datetime.now()
-    remaining = 1.0 - (current.microsecond / 1_000_000)
-    return remaining if remaining > 0 else 0.001
-
-
 def format_uptime(delta: timedelta) -> str:
     total_seconds = int(delta.total_seconds())
     days, rem = divmod(total_seconds, 86400)
@@ -945,6 +942,17 @@ def format_uptime(delta: timedelta) -> str:
     if days > 0:
         return f"{days}d {hours}h {minutes}m {seconds}s"
     return f"{hours}h {minutes}m {seconds}s"
+
+
+async def wait_for_global_channel_edit_slot() -> None:
+    global next_global_channel_edit_time
+
+    async with global_channel_edit_lock:
+        now = monotonic()
+        wait_for = max(0.0, next_global_channel_edit_time - now)
+        if wait_for > 0:
+            await asyncio.sleep(wait_for)
+        next_global_channel_edit_time = monotonic() + CHANNEL_EDIT_DELAY
 
 
 def get_channel_lock(channel_id: int) -> asyncio.Lock:
@@ -970,10 +978,9 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
 
         for attempt in range(1, CHANNEL_EDIT_RETRY_COUNT + 1):
             try:
+                await wait_for_global_channel_edit_slot()
                 await channel.edit(name=new_name)
                 logging.info("[KANAŁ] %s -> %s (id=%s)", old_name, new_name, channel.id)
-                if CHANNEL_EDIT_DELAY > 0:
-                    await asyncio.sleep(CHANNEL_EDIT_DELAY)
                 return True
 
             except discord.Forbidden:
@@ -2719,14 +2726,14 @@ async def update_status_clock():
     now = datetime.now(timezone_obj)
     presence_text = f"🕒 {now.strftime('%H:%M:%S')}"
 
-    if last_presence_text != presence_text:
-        try:
-            await bot.change_presence(activity=discord.CustomActivity(name=presence_text))
-            last_presence_text = presence_text
-        except Exception as e:
-            logging.warning("Błąd update_status_clock: %s", e)
+    if last_presence_text == presence_text:
+        return
 
-    await asyncio.sleep(sleep_seconds_until_next_second(datetime.now()))
+    try:
+        await bot.change_presence(activity=discord.CustomActivity(name=presence_text))
+        last_presence_text = presence_text
+    except Exception as e:
+        logging.warning("Błąd update_status_clock: %s", e)
 
 
 @auto_refresh.before_loop
