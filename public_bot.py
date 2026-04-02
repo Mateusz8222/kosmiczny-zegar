@@ -128,6 +128,7 @@ last_status_panel_signatures: dict[int, str] = {}
 startup_full_refresh_done: set[int] = set()
 last_global_refresh_at: dict[int, float] = {}
 GLOBAL_REFRESH_COOLDOWN_SECONDS = 60.0
+GLOBAL_UPDATE_LOCK = asyncio.Lock()
 
 
 
@@ -1207,20 +1208,21 @@ async def schedule_background_refresh(guild: discord.Guild, *, force_full: bool 
 
     async def runner():
         try:
-            last_global_refresh_at[guild.id] = monotonic()
-            logging.info(
-                "[REFRESH] Start %sodświeżenia dla serwera %s",
-                "pełnego " if force_full else "",
-                guild.name,
-            )
-            await ensure_guild_members_cached(guild)
-            await refresh_existing_panel(guild, force_full=force_full)
-            await refresh_status_panel_message(guild)
-            logging.info(
-                "[REFRESH] Koniec %sodświeżenia dla serwera %s",
-                "pełnego " if force_full else "",
-                guild.name,
-            )
+            async with GLOBAL_UPDATE_LOCK:
+                last_global_refresh_at[guild.id] = monotonic()
+                logging.info(
+                    "[REFRESH] Start %sodświeżenia dla serwera %s",
+                    "pełnego " if force_full else "",
+                    guild.name,
+                )
+                await ensure_guild_members_cached(guild)
+                await refresh_existing_panel(guild, force_full=force_full)
+                await refresh_status_panel_message(guild)
+                logging.info(
+                    "[REFRESH] Koniec %sodświeżenia dla serwera %s",
+                    "pełnego " if force_full else "",
+                    guild.name,
+                )
         except Exception as e:
             logging.warning("Błąd background refresh dla serwera %s: %s", guild.id, e)
         finally:
