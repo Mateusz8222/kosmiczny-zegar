@@ -60,6 +60,8 @@ CLOCK_REFRESH_SECONDS = 300
 STATS_FALLBACK_REFRESH_SECONDS = 300
 STATUS_CLOCK_REFRESH_SECONDS = 1
 CHANNEL_EDIT_DELAY = 2.0
+CHANNEL_EDIT_RETRY_COUNT = 3
+CHANNEL_EDIT_RETRY_DELAY = 5.0
 STATS_REFRESH_DEBOUNCE_SECONDS = 3
 MAX_CHANNEL_NAME_LENGTH = 100
 
@@ -953,26 +955,55 @@ def get_channel_lock(channel_id: int) -> asyncio.Lock:
 
 async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_name: str):
     if channel is None:
-        return
+        return False
 
     new_name = trim_channel_name(new_name)
     if channel.name == new_name:
-        return
+        return True
 
     lock = get_channel_lock(channel.id)
     async with lock:
         if channel.name == new_name:
-            return
+            return True
+
         old_name = channel.name
-        try:
-            await channel.edit(name=new_name)
-            logging.info("[KANAŁ] %s -> %s (id=%s)", old_name, new_name, channel.id)
-            if CHANNEL_EDIT_DELAY > 0:
-                await asyncio.sleep(CHANNEL_EDIT_DELAY)
-        except discord.Forbidden:
-            logging.warning("Brak uprawnień do zmiany nazwy kanału %s", channel.id)
-        except discord.HTTPException as e:
-            logging.warning("Nie udało się zmienić nazwy kanału %s: %s", channel.id, e)
+
+        for attempt in range(1, CHANNEL_EDIT_RETRY_COUNT + 1):
+            try:
+                await channel.edit(name=new_name)
+                logging.info("[KANAŁ] %s -> %s (id=%s)", old_name, new_name, channel.id)
+                if CHANNEL_EDIT_DELAY > 0:
+                    await asyncio.sleep(CHANNEL_EDIT_DELAY)
+                return True
+
+            except discord.Forbidden:
+                logging.warning("Brak uprawnień do zmiany nazwy kanału %s", channel.id)
+                return False
+
+            except discord.HTTPException as e:
+                status = getattr(e, "status", None)
+
+                if status == 429:
+                    wait_for = CHANNEL_EDIT_RETRY_DELAY * attempt
+                    logging.warning(
+                        "Rate limit 429 dla kanału %s przy próbie %s/%s. Czekam %.1fs i próbuję ponownie.",
+                        channel.id,
+                        attempt,
+                        CHANNEL_EDIT_RETRY_COUNT,
+                        wait_for,
+                    )
+                    await asyncio.sleep(wait_for)
+                    continue
+
+                logging.warning("Nie udało się zmienić nazwy kanału %s: %s", channel.id, e)
+                return False
+
+        logging.warning(
+            "Nie udało się zmienić nazwy kanału %s po %s próbach z powodu rate limit.",
+            channel.id,
+            CHANNEL_EDIT_RETRY_COUNT,
+        )
+        return False
 
 
 def _payload_changed(cache: dict[int, dict[str, str]], guild_id: int, new_payload: dict[str, str]) -> bool:
