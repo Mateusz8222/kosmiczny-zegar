@@ -32,15 +32,15 @@ DEFAULT_TIMEZONE = "Europe/Warsaw"
 DEFAULT_LANGUAGE = "pl"
 
 WEATHER_REFRESH_MINUTES = 2
-CLOCK_REFRESH_SECONDS = 30
+CLOCK_REFRESH_SECONDS = 5
 STATS_FALLBACK_REFRESH_SECONDS = 90
-PRESENCE_REFRESH_SECONDS = 90
+PRESENCE_REFRESH_SECONDS = 2
 STATUS_CLOCK_REFRESH_SECONDS = PRESENCE_REFRESH_SECONDS
 ONLINE_CHANNEL_MIN_UPDATE_SECONDS = 180
 CHANNEL_CREATE_DELAY = 0.02
 CHANNEL_DELETE_DELAY = 0.06
 CHANNEL_EDIT_DELAY = 0.12
-WEATHER_API_MIN_INTERVAL_SECONDS = 120
+WEATHER_API_MIN_INTERVAL_SECONDS = 90
 MAX_CHANNEL_NAME_LENGTH = 100
 
 
@@ -277,6 +277,7 @@ LANGUAGES = {
         "cat_weather": "🌤️ Pogoda",
         "cat_clock": "🛰️ Kosmiczny Zegar",
         "cat_stats": "📊 Statystyki",
+        "cat_allergy": "⚠️ Ostrzeżenia dla alergików",
         "ch_temperature": "🌡 Temperatura",
         "ch_feels": "🥵 Odczuwalna",
         "ch_clouds": "☁ Zachmurzenie",
@@ -361,6 +362,7 @@ LANGUAGES = {
         "cat_weather": "🌤️ Weather",
         "cat_clock": "🛰️ Cosmic Clock",
         "cat_stats": "📊 Statistics",
+        "cat_allergy": "⚠️ Allergy warnings",
         "ch_temperature": "🌡 Temperature",
         "ch_feels": "🥵 Feels like",
         "ch_clouds": "☁ Clouds",
@@ -1149,7 +1151,7 @@ async def _apply_channel_name_edit(channel: discord.abc.GuildChannel | None, new
             await channel.edit(name=new_name)
             recent_channel_edit_times.append(datetime.now(UTC))
             logging.info("[KANAŁ] %s -> %s (id=%s)", channel.name, new_name, channel.id)
-            await asyncio.sleep(CHANNEL_DELETE_DELAY)
+            await asyncio.sleep(CHANNEL_EDIT_DELAY)
         except discord.Forbidden:
             logging.warning("Brak uprawnień do zmiany nazwy kanału %s", channel.id)
         except discord.HTTPException as e:
@@ -1224,6 +1226,52 @@ async def create_or_get_voice_channel(category: discord.CategoryChannel, name: s
     return channel
 
 
+def get_desired_channel_key_order() -> dict[str, list[str]]:
+    return {
+        "weather": ["air", "clouds", "feels", "temperature", "rain", "wind", "pressure", "alerts"],
+        "clock": ["date", "sunrise", "part_of_day", "sunset", "day_length", "moon"],
+        "stats": ["members", "humans", "online", "bots", "vc", "joined_today", "bans"],
+        "allergy": ["allergy_alert", "allergy_live", "allergy_advice"],
+    }
+
+
+async def ensure_category_name(category: discord.CategoryChannel | None, expected_name: str):
+    if category is None or category.name == expected_name:
+        return
+    try:
+        await category.edit(name=expected_name)
+        await asyncio.sleep(CHANNEL_EDIT_DELAY)
+    except Exception:
+        logging.exception("[SETUP] Nie udało się zmienić nazwy kategorii %s -> %s", getattr(category, "name", None), expected_name)
+
+
+async def reorder_category_channels(guild: discord.Guild, cfg: dict, group_name: str):
+    category_id_map = {
+        "weather": cfg.get("weather_category_id"),
+        "clock": cfg.get("clock_category_id"),
+        "stats": cfg.get("stats_category_id"),
+        "allergy": cfg.get("allergy_category_id"),
+    }
+    category = guild.get_channel(category_id_map.get(group_name)) if category_id_map.get(group_name) else None
+    if not isinstance(category, discord.CategoryChannel):
+        return
+
+    ordered_keys = get_desired_channel_key_order().get(group_name, [])
+    for index, key in enumerate(ordered_keys):
+        channel = get_channel_from_config(guild, cfg, key)
+        if isinstance(channel, discord.VoiceChannel) and channel.category_id == category.id and channel.position != index:
+            try:
+                await channel.edit(position=index, category=category)
+                await asyncio.sleep(CHANNEL_EDIT_DELAY)
+            except Exception:
+                logging.exception("[SETUP] Nie udało się ustawić pozycji kanału %s", channel.id)
+
+
+async def reorder_all_configured_channels(guild: discord.Guild, cfg: dict):
+    for group_name in ["weather", "clock", "stats", "allergy"]:
+        await reorder_category_channels(guild, cfg, group_name)
+
+
 async def setup_categories_and_channels(guild: discord.Guild):
     cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
     lang = get_lang_code(cfg)
@@ -1236,18 +1284,22 @@ async def setup_categories_and_channels(guild: discord.Guild):
     if not isinstance(weather_category, discord.CategoryChannel):
         weather_category = await create_or_get_category(guild, get_category_name(lang, "weather"))
         cfg["weather_category_id"] = weather_category.id
+    await ensure_category_name(weather_category, get_category_name(lang, "weather"))
 
     if not isinstance(clock_category, discord.CategoryChannel):
         clock_category = await create_or_get_category(guild, get_category_name(lang, "clock"))
         cfg["clock_category_id"] = clock_category.id
+    await ensure_category_name(clock_category, get_category_name(lang, "clock"))
 
     if not isinstance(stats_category, discord.CategoryChannel):
         stats_category = await create_or_get_category(guild, get_category_name(lang, "stats"))
         cfg["stats_category_id"] = stats_category.id
+    await ensure_category_name(stats_category, get_category_name(lang, "stats"))
 
     if not isinstance(allergy_category, discord.CategoryChannel):
         allergy_category = await create_or_get_category(guild, get_category_name(lang, "allergy"))
         cfg["allergy_category_id"] = allergy_category.id
+    await ensure_category_name(allergy_category, get_category_name(lang, "allergy"))
 
     category_map = {
         "weather": weather_category,
@@ -1297,6 +1349,7 @@ async def setup_categories_and_channels(guild: discord.Guild):
 
     cfg["channels"] = channels
     save_guild_config(guild.id, cfg)
+    await reorder_all_configured_channels(guild, cfg)
     return cfg
 
 
@@ -1883,6 +1936,7 @@ async def refresh_existing_panel(
     if refresh_stats:
         await update_stats_channels(guild, cfg)
 
+    await reorder_all_configured_channels(guild, cfg)
     return True
 
 
@@ -1923,6 +1977,8 @@ async def schedule_background_refresh(
                 if force_weather:
                     weather = await get_weather_data_for_guild(guild, cfg, force=True)
                     await update_weather_channels(guild, cfg, weather)
+
+                await reorder_all_configured_channels(guild, cfg)
 
             await flush_channel_edit_queue(timeout=8.0)
             await refresh_status_panel(guild)
@@ -2562,9 +2618,16 @@ async def auto_refresh_stats_only():
 async def update_status_clock():
     global last_presence_text
 
-    timezone_obj = get_timezone_object(DEFAULT_TIMEZONE)
+    timezone_name = DEFAULT_TIMEZONE
+    for guild in bot.guilds:
+        cfg = get_guild_config(guild.id)
+        if cfg and cfg.get("channels"):
+            timezone_name = cfg.get("timezone", DEFAULT_TIMEZONE)
+            break
+
+    timezone_obj = get_timezone_object(timezone_name)
     now = datetime.now(timezone_obj)
-    presence_text = f"🕒 {now.strftime('%H:%M')}"
+    presence_text = f"🕒 {now.strftime('%H:%M:%S')}"
 
     if last_presence_text == presence_text:
         return
@@ -2627,6 +2690,7 @@ async def on_ready():
             if cfg and cfg.get("channels"):
                 await ensure_guild_members_cached(guild)
                 await update_stats_channels(guild, cfg)
+                await reorder_all_configured_channels(guild, cfg)
         except Exception as e:
             logging.warning(
                 "Nie udało się zrobić początkowego odświeżenia statystyk dla %s: %s",
