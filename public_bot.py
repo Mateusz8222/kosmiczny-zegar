@@ -100,6 +100,7 @@ LANG = {
 CATEGORY_KEYS = ("weather", "clock", "stats", "allergy")
 
 WEATHER_CHANNEL_ORDER = [
+    "city",
     "temperature",
     "feels",
     "clouds",
@@ -134,6 +135,7 @@ ALLERGY_CHANNEL_ORDER = [
 
 CHANNEL_SPECS = {
     "weather": {
+        "city": "🏙️ Miasto Rzeszów",
         "temperature": "🌡️ Temperatura --°C",
         "feels": "🥵 Odczuwalna --°C",
         "clouds": "☁️ Zachmurzenie --%",
@@ -301,6 +303,12 @@ async def clear_guild_config(guild_id: int) -> None:
 def get_lang(cfg: dict[str, Any]) -> dict[str, str]:
     return LANG.get(cfg.get("language", DEFAULT_LANGUAGE), LANG["pl"])
 
+
+
+def get_weather_category_name(cfg: dict[str, Any]) -> str:
+    lang = get_lang(cfg)
+    city = str(cfg.get("city_name", DEFAULT_CITY_NAME)).strip() or DEFAULT_CITY_NAME
+    return sanitize_channel_name(f"{lang['cat_weather']} • {city}")
 
 
 
@@ -555,7 +563,7 @@ async def api_get_json(url: str) -> dict[str, Any]:
 
 async def geocode_city(city: str) -> dict[str, Any] | None:
     q = aiohttp.helpers.quote(city, safe="")
-    url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count=10&language=pl&format=json"
+    url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count=25&language=pl&format=json"
     data = await api_get_json(url)
     results = data.get("results") or []
     if not results:
@@ -780,7 +788,7 @@ async def create_or_sync_structure(guild: discord.Guild) -> dict[str, Any]:
     categories = dict(cfg.get("categories", {}))
     channels = dict(cfg.get("channels", {}))
 
-    weather_cat = await ensure_category(guild, lang["cat_weather"], categories.get("weather"))
+    weather_cat = await ensure_category(guild, get_weather_category_name(cfg), categories.get("weather"))
     clock_cat = await ensure_category(guild, lang["cat_clock"], categories.get("clock"))
     stats_cat = await ensure_category(guild, lang["cat_stats"], categories.get("stats"))
     allergy_cat = await ensure_category(guild, lang["cat_allergy"], categories.get("allergy"))
@@ -871,7 +879,12 @@ async def refresh_weather_channels(guild: discord.Guild, cfg: dict[str, Any]) ->
     rain_sum = daily.get("precipitation_sum", [0])[0]
     aqi = air.get("european_aqi")
 
+    city_name = str(cfg.get("city_name", DEFAULT_CITY_NAME)).strip() or DEFAULT_CITY_NAME
+    country_name = str(cfg.get("country", "")).strip()
+    city_label = f"{city_name}, {country_name}" if country_name else city_name
+
     names = {
+        "city": f"🏙️ Miasto {city_label}",
         "temperature": f"🌡️ Temperatura {round(temp_v)}°C" if temp_v is not None else "🌡️ Temperatura --°C",
         "feels": f"🥵 Odczuwalna {round(feels_v)}°C" if feels_v is not None else "🥵 Odczuwalna --°C",
         "clouds": f"☁️ Zachmurzenie {round(clouds_v)}%" if clouds_v is not None else "☁️ Zachmurzenie --%",
@@ -1125,6 +1138,37 @@ async def city_cmd(interaction: discord.Interaction, nazwa: str) -> None:
     except Exception as e:
         logger.exception("Błąd /miasto")
         await interaction.followup.send(lang["city_error"].format(error=str(e)), ephemeral=True)
+
+
+
+@city_cmd.autocomplete("nazwa")
+async def city_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    query = current.strip()
+    if len(query) < 2:
+        return []
+    try:
+        q = aiohttp.helpers.quote(query, safe="")
+        url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count=25&language=pl&format=json"
+        data = await api_get_json(url)
+        results = data.get("results") or []
+        seen: set[str] = set()
+        choices: list[app_commands.Choice[str]] = []
+        for item in results:
+            name = str(item.get("name", "")).strip()
+            country = str(item.get("country", "")).strip()
+            admin1 = str(item.get("admin1", "")).strip()
+            display = ", ".join(part for part in [name, admin1, country] if part)
+            if not display or display in seen:
+                continue
+            seen.add(display)
+            value = display[:100]
+            choices.append(app_commands.Choice(name=display[:100], value=value))
+            if len(choices) >= 25:
+                break
+        return choices
+    except Exception:
+        logger.exception("Błąd autocomplete /miasto")
+        return []
 
 
 @bot.tree.command(name="language", description="Ustawia język bota")
