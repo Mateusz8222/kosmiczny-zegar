@@ -7,6 +7,7 @@ from datetime import UTC, date, datetime, timedelta
 from time import monotonic
 from pathlib import Path
 from urllib.parse import quote
+from collections import deque
 
 import aiohttp
 import discord
@@ -56,14 +57,14 @@ DEFAULT_COUNTRY = "Polska"
 DEFAULT_TIMEZONE = "Europe/Warsaw"
 DEFAULT_LANGUAGE = "pl"
 
-WEATHER_REFRESH_MINUTES = 5
-CLOCK_REFRESH_SECONDS = 300
-STATS_FALLBACK_REFRESH_SECONDS = 300
+WEATHER_REFRESH_MINUTES = 10
+CLOCK_REFRESH_SECONDS = 600
+STATS_FALLBACK_REFRESH_SECONDS = 600
 STATUS_CLOCK_REFRESH_SECONDS = 60
-CHANNEL_EDIT_DELAY = 3.0
+CHANNEL_EDIT_DELAY = 6.0
 CHANNEL_EDIT_RETRY_COUNT = 3
-CHANNEL_EDIT_RETRY_DELAY = 10.0
-STATS_REFRESH_DEBOUNCE_SECONDS = 3
+CHANNEL_EDIT_RETRY_DELAY = 30.0
+STATS_REFRESH_DEBOUNCE_SECONDS = 15
 MAX_CHANNEL_NAME_LENGTH = 100
 
 DEFAULT_BANS_CHANNEL_ID = int(os.getenv("DEFAULT_BANS_CHANNEL_ID", "1487577447540195444"))
@@ -110,6 +111,9 @@ global_channel_edit_lock = asyncio.Lock()
 next_global_channel_edit_time: float = 0.0
 channel_edit_queue: asyncio.Queue[tuple[discord.abc.GuildChannel, str, asyncio.Future]] = asyncio.Queue()
 channel_edit_worker_task: asyncio.Task | None = None
+channel_edit_recent_timestamps: deque[float] = deque()
+CHANNEL_EDIT_BUCKET_LIMIT = 5
+CHANNEL_EDIT_BUCKET_WINDOW = 60.0
 last_midnight_reset_dates: dict[int, date] = {}
 weather_cache: dict[int, dict] = {}
 background_refresh_tasks: dict[int, asyncio.Task] = {}
@@ -118,6 +122,9 @@ last_weather_payloads: dict[int, dict[str, str]] = {}
 last_clock_payloads: dict[int, dict[str, str]] = {}
 last_stats_payloads: dict[int, dict[str, str]] = {}
 last_status_panel_signatures: dict[int, str] = {}
+
+startup_full_refresh_done: set[int] = set()
+
 
 
 class KosmicznyBot(commands.Bot):
@@ -950,11 +957,29 @@ async def wait_for_global_channel_edit_slot() -> None:
     global next_global_channel_edit_time
 
     async with global_channel_edit_lock:
-        now = monotonic()
-        wait_for = max(0.0, next_global_channel_edit_time - now)
-        if wait_for > 0:
+        while True:
+            now = monotonic()
+
+            while channel_edit_recent_timestamps and (now - channel_edit_recent_timestamps[0]) >= CHANNEL_EDIT_BUCKET_WINDOW:
+                channel_edit_recent_timestamps.popleft()
+
+            spacing_wait = max(0.0, next_global_channel_edit_time - now)
+
+            bucket_wait = 0.0
+            if len(channel_edit_recent_timestamps) >= CHANNEL_EDIT_BUCKET_LIMIT:
+                oldest = channel_edit_recent_timestamps[0]
+                bucket_wait = max(0.0, CHANNEL_EDIT_BUCKET_WINDOW - (now - oldest))
+
+            wait_for = max(spacing_wait, bucket_wait)
+
+            if wait_for <= 0:
+                now2 = monotonic()
+                next_global_channel_edit_time = now2 + CHANNEL_EDIT_DELAY
+                channel_edit_recent_timestamps.append(now2)
+                return
+
+            logging.info("[QUEUE] Globalny limiter kanałów aktywny. Czekam %.1fs przed następną zmianą.", wait_for)
             await asyncio.sleep(wait_for)
-        next_global_channel_edit_time = monotonic() + CHANNEL_EDIT_DELAY
 
 
 async def channel_edit_worker() -> None:
@@ -1030,6 +1055,7 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
         loop = asyncio.get_running_loop()
         result_future = loop.create_future()
         await channel_edit_queue.put((channel, new_name, result_future))
+        logging.info("[QUEUE] Dodano zmianę kanału %s do kolejki. Aktualny rozmiar kolejki: %s", channel.id, channel_edit_queue.qsize())
         return await result_future
 
 def _payload_changed(cache: dict[int, dict[str, str]], guild_id: int, new_payload: dict[str, str]) -> bool:
@@ -1124,24 +1150,35 @@ async def ensure_guild_members_cached(guild: discord.Guild):
         logging.warning("Nie udało się dochunkować członków dla serwera %s: %s", guild.id, e)
 
 
-async def schedule_background_refresh(guild: discord.Guild):
+async def schedule_background_refresh(guild: discord.Guild, *, force_full: bool = False):
     existing = background_refresh_tasks.get(guild.id)
     if existing and not existing.done():
+        await existing
         return
 
     async def runner():
         try:
-            logging.info("[REFRESH] Start pełnego odświeżenia dla serwera %s", guild.name)
+            logging.info(
+                "[REFRESH] Start %sodświeżenia dla serwera %s",
+                "pełnego " if force_full else "",
+                guild.name,
+            )
             await ensure_guild_members_cached(guild)
-            await refresh_existing_panel(guild)
+            await refresh_existing_panel(guild, force_full=force_full)
             await refresh_status_panel_message(guild)
-            logging.info("[REFRESH] Koniec pełnego odświeżenia dla serwera %s", guild.name)
+            logging.info(
+                "[REFRESH] Koniec %sodświeżenia dla serwera %s",
+                "pełnego " if force_full else "",
+                guild.name,
+            )
         except Exception as e:
             logging.warning("Błąd background refresh dla serwera %s: %s", guild.id, e)
         finally:
             background_refresh_tasks.pop(guild.id, None)
 
-    background_refresh_tasks[guild.id] = asyncio.create_task(runner())
+    task = asyncio.create_task(runner())
+    background_refresh_tasks[guild.id] = task
+    await task
 
 
 # ================================
@@ -1589,7 +1626,7 @@ async def update_weather_channels(guild: discord.Guild, cfg: dict, weather: dict
     await apply_channel_name_updates_sequentially(guild, cfg, payload, log_prefix="[POGODA]")
 
 
-async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict | None = None):
+async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict | None = None, *, force_full: bool = False):
     lang = get_lang_code(cfg)
     timezone_obj = get_timezone_object(cfg.get("timezone", DEFAULT_TIMEZONE))
     now = datetime.now(timezone_obj)
@@ -1614,7 +1651,7 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict |
     await apply_channel_name_updates_sequentially(guild, cfg, payload, log_prefix="[ZEGAR]")
 
 
-async def update_stats_channels(guild: discord.Guild, cfg: dict):
+async def update_stats_channels(guild: discord.Guild, cfg: dict, *, force_full: bool = False):
     await ensure_guild_members_cached(guild)
 
     lang = get_lang_code(cfg)
@@ -1680,7 +1717,7 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
     await apply_channel_name_updates_sequentially(guild, cfg, payload, log_prefix="[STATYSTYKI]")
 
 
-async def refresh_existing_panel(guild: discord.Guild) -> bool:
+async def refresh_existing_panel(guild: discord.Guild, *, force_full: bool = False) -> bool:
     cfg = get_guild_config(guild.id)
     if not cfg:
         return False
@@ -2124,7 +2161,12 @@ async def setup_command(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     try:
         await setup_categories_and_channels(guild)
-        await schedule_background_refresh(guild)
+        last_weather_payloads.pop(guild.id, None)
+        last_clock_payloads.pop(guild.id, None)
+        last_stats_payloads.pop(guild.id, None)
+        weather_cache.pop(guild.id, None)
+        await schedule_background_refresh(guild, force_full=True)
+        startup_full_refresh_done.add(guild.id)
         await interaction.followup.send(tr(lang, "setup_ok"), ephemeral=True)
     except Exception as e:
         await interaction.followup.send(tr(lang, "setup_error", error=e), ephemeral=True)
@@ -2146,7 +2188,7 @@ async def refresh_command(interaction: discord.Interaction):
         if not cfg.get("channels"):
             await interaction.followup.send(tr(lang, "refresh_no_config"), ephemeral=True)
             return
-        await schedule_background_refresh(guild)
+        await schedule_background_refresh(guild, force_full=False)
         await interaction.followup.send(tr(lang, "refresh_ok"), ephemeral=True)
     except Exception as e:
         await interaction.followup.send(tr(lang, "refresh_error", error=e), ephemeral=True)
@@ -2366,7 +2408,7 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
         weather_cache.pop(guild.id, None)
         last_weather_payloads.pop(guild.id, None)
         last_clock_payloads.pop(guild.id, None)
-        await schedule_background_refresh(guild)
+        await schedule_background_refresh(guild, force_full=True)
 
         extra = f", {city['admin1']}" if city.get("admin1") else ""
         await interaction.followup.send(
@@ -2398,7 +2440,7 @@ async def language_command(interaction: discord.Interaction, code: str):
 
     await interaction.response.defer(ephemeral=True)
     try:
-        await schedule_background_refresh(guild)
+        await schedule_background_refresh(guild, force_full=True)
     except Exception as e:
         logging.error("Błąd odświeżania po zmianie języka: %s", e)
 
@@ -2834,9 +2876,11 @@ async def on_ready():
             await ensure_guild_members_cached(guild)
             cfg = get_guild_config(guild.id)
             if cfg and cfg.get("channels"):
-                await update_stats_channels(guild, cfg)
+                force_full = guild.id not in startup_full_refresh_done
+                await schedule_background_refresh(guild, force_full=force_full)
+                startup_full_refresh_done.add(guild.id)
         except Exception as e:
-            logging.warning("Nie udało się zrobić początkowego odświeżenia statystyk dla %s: %s", guild.id, e)
+            logging.warning("Nie udało się zrobić początkowego odświeżenia dla %s: %s", guild.id, e)
 
     if not auto_refresh.is_running():
         auto_refresh.start()
