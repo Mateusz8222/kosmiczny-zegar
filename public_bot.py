@@ -977,6 +977,23 @@ def _payload_changed(cache: dict[int, dict[str, str]], guild_id: int, new_payloa
     return True
 
 
+def _get_changed_payload_items(
+    cache: dict[int, dict[str, str]], guild_id: int, new_payload: dict[str, str]
+) -> list[tuple[str, str]]:
+    old_payload = cache.get(guild_id) or {}
+    changed_items = [
+        (key, value)
+        for key, value in new_payload.items()
+        if old_payload.get(key) != value
+    ]
+    cache[guild_id] = dict(new_payload)
+    return changed_items
+
+
+def _embed_signature(embed: discord.Embed) -> str:
+    return json.dumps(embed.to_dict(), ensure_ascii=False, sort_keys=True)
+
+
 async def create_or_get_category(guild: discord.Guild, name: str) -> discord.CategoryChannel:
     for category in guild.categories:
         if category.name == name:
@@ -1492,15 +1509,14 @@ async def update_weather_channels(guild: discord.Guild, cfg: dict, weather: dict
         for key in ["temperature", "feels", "clouds", "air", "pollen", "rain", "wind", "pressure", "alerts"]
     }
 
-    if not _payload_changed(last_weather_payloads, guild.id, payload):
+    changed_items = _get_changed_payload_items(last_weather_payloads, guild.id, payload)
+    if not changed_items:
         return
 
     logging.info("[POGODA] Wykryto zmianę danych pogody dla serwera %s", guild.name)
-    tasks_to_run = []
-    for key, new_name in payload.items():
+    for key, new_name in changed_items:
         channel = get_channel_from_config(guild, cfg, key)
-        tasks_to_run.append(safe_edit_channel_name(channel, new_name))
-    await asyncio.gather(*tasks_to_run)
+        await safe_edit_channel_name(channel, new_name)
 
 
 async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict | None = None):
@@ -1521,16 +1537,13 @@ async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict |
         "moon": moon_phase_name(now, lang),
     }
 
-    if not _payload_changed(last_clock_payloads, guild.id, payload):
+    changed_items = _get_changed_payload_items(last_clock_payloads, guild.id, payload)
+    if not changed_items:
         return
 
     logging.info("[ZEGAR] Wykryto zmianę kanałów zegara dla serwera %s", guild.name)
-    tasks_to_run = [
-        safe_edit_channel_name(get_channel_from_config(guild, cfg, key), new_name)
-        for key, new_name in payload.items()
-    ]
-
-    await asyncio.gather(*tasks_to_run)
+    for key, new_name in changed_items:
+        await safe_edit_channel_name(get_channel_from_config(guild, cfg, key), new_name)
 
 
 async def update_stats_channels(guild: discord.Guild, cfg: dict):
@@ -1581,7 +1594,8 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
         "bans": tr(lang, "stats_bans", count=bans_count),
     }
 
-    if not _payload_changed(last_stats_payloads, guild.id, payload):
+    changed_items = _get_changed_payload_items(last_stats_payloads, guild.id, payload)
+    if not changed_items:
         return
 
     logging.info(
@@ -1596,12 +1610,8 @@ async def update_stats_channels(guild: discord.Guild, cfg: dict):
         bans_count,
     )
 
-    tasks_to_run = [
-        safe_edit_channel_name(get_channel_from_config(guild, cfg, key), new_name)
-        for key, new_name in payload.items()
-    ]
-
-    await asyncio.gather(*tasks_to_run)
+    for key, new_name in changed_items:
+        await safe_edit_channel_name(get_channel_from_config(guild, cfg, key), new_name)
 
 
 async def refresh_existing_panel(guild: discord.Guild) -> bool:
@@ -1620,11 +1630,9 @@ async def refresh_existing_panel(guild: discord.Guild) -> bool:
 
     weather_cache[guild.id] = weather
 
-    await asyncio.gather(
-        update_weather_channels(guild, cfg, weather),
-        update_clock_channels(guild, cfg, weather),
-        update_stats_channels(guild, cfg),
-    )
+    await update_weather_channels(guild, cfg, weather)
+    await update_clock_channels(guild, cfg, weather)
+    await update_stats_channels(guild, cfg)
     return True
 
 
@@ -1943,11 +1951,15 @@ async def refresh_status_panel_message(guild: discord.Guild):
         return
 
     embed = build_panel_embed(guild)
+    signature = _embed_signature(embed)
+    if last_status_panel_signatures.get(guild.id) == signature:
+        return
 
     for channel in guild.text_channels:
         try:
             message = await channel.fetch_message(message_id)
             await message.edit(embed=embed, view=PublicStatusPanelLauncherView())
+            last_status_panel_signatures[guild.id] = signature
             return
         except discord.NotFound:
             continue
@@ -1955,6 +1967,15 @@ async def refresh_status_panel_message(guild: discord.Guild):
             continue
         except discord.HTTPException:
             continue
+
+    cfg["status_panel_message_id"] = None
+    save_guild_config(guild.id, cfg)
+    last_status_panel_signatures.pop(guild.id, None)
+    logging.warning(
+        "Nie udało się odświeżyć panelu statusów na serwerze %s: zapisane ID wiadomości %s jest nieaktualne.",
+        guild.name,
+        message_id,
+    )
 
 
 # ================================
