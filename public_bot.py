@@ -134,6 +134,7 @@ intents.guilds = True
 intents.members = True
 intents.voice_states = True
 intents.presences = True
+intents.message_content = True
 
 bot = KosmicznyBot(command_prefix="!", intents=intents)
 
