@@ -4,6 +4,7 @@ import logging
 import os
 import re
 from datetime import UTC, date, datetime
+from time import monotonic
 from typing import Any
 
 import aiohttp
@@ -43,6 +44,8 @@ EDIT_QUEUE: asyncio.Queue[tuple[int, int | None, str]] = asyncio.Queue()
 LAST_DESIRED_NAMES: dict[int, str] = {}
 LAST_EDIT_AT: dict[int, float] = {}
 EDIT_WORKER: asyncio.Task | None = None
+CITY_AUTOCOMPLETE_CACHE: dict[str, tuple[float, list[dict[str, Any]]]] = {}
+CITY_AUTOCOMPLETE_TTL_SECONDS = 90.0
 
 
 logging.basicConfig(
@@ -561,20 +564,46 @@ async def api_get_json(url: str) -> dict[str, Any]:
         return await resp.json()
 
 
+def _normalize_city_text(value: str) -> str:
+    return re.sub(r"\s+", " ", (value or "").strip()).casefold()
+
+
 async def geocode_city(city: str) -> dict[str, Any] | None:
-    q = aiohttp.helpers.quote(city, safe="")
+    raw_query = (city or "").strip()
+    if not raw_query:
+        return None
+
+    # Jeśli komenda dostaje pełną etykietę z autocomplete typu
+    # "Warszawa, Województwo mazowieckie, Polska", wyszukujemy po samej nazwie,
+    # a potem dopasowujemy pełną etykietę do wyników.
+    base_query = raw_query.split(",", 1)[0].strip() or raw_query
+    q = aiohttp.helpers.quote(base_query, safe="")
     url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count=25&language=pl&format=json"
     data = await api_get_json(url)
     results = data.get("results") or []
     if not results:
         return None
-    city_lower = city.strip().lower()
-    for item in results:
-        name = str(item.get("name", "")).strip().lower()
-        if name == city_lower:
-            return item
-    return results[0]
 
+    wanted_full = _normalize_city_text(raw_query)
+    wanted_name = _normalize_city_text(base_query)
+
+    def build_display(item: dict[str, Any]) -> str:
+        name = str(item.get("name", "")).strip()
+        admin1 = str(item.get("admin1", "")).strip()
+        country = str(item.get("country", "")).strip()
+        return ", ".join(part for part in [name, admin1, country] if part)
+
+    # Najpierw próbujemy idealnie dopasować pełną etykietę z autocomplete.
+    for item in results:
+        if _normalize_city_text(build_display(item)) == wanted_full:
+            return item
+
+    # Potem próbujemy po samej nazwie miasta.
+    for item in results:
+        if _normalize_city_text(str(item.get("name", ""))) == wanted_name:
+            return item
+
+    return results[0]
 
 def weather_code_text(code: int) -> str:
     mapping = {
@@ -1146,30 +1175,44 @@ async def city_autocomplete(interaction: discord.Interaction, current: str) -> l
     query = current.strip()
     if len(query) < 2:
         return []
-    try:
-        q = aiohttp.helpers.quote(query, safe="")
-        url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count=25&language=pl&format=json"
-        data = await api_get_json(url)
-        results = data.get("results") or []
-        seen: set[str] = set()
-        choices: list[app_commands.Choice[str]] = []
-        for item in results:
-            name = str(item.get("name", "")).strip()
-            country = str(item.get("country", "")).strip()
-            admin1 = str(item.get("admin1", "")).strip()
-            display = ", ".join(part for part in [name, admin1, country] if part)
-            if not display or display in seen:
-                continue
-            seen.add(display)
-            value = display[:100]
-            choices.append(app_commands.Choice(name=display[:100], value=value))
-            if len(choices) >= 25:
-                break
-        return choices
-    except Exception:
-        logger.exception("Błąd autocomplete /miasto")
-        return []
 
+    query_key = _normalize_city_text(query)
+    now = monotonic()
+    cached = CITY_AUTOCOMPLETE_CACHE.get(query_key)
+    if cached and now - cached[0] <= CITY_AUTOCOMPLETE_TTL_SECONDS:
+        results = cached[1]
+    else:
+        try:
+            q = aiohttp.helpers.quote(query, safe="")
+            url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count=10&language=pl&format=json"
+            if not bot.http_session:
+                return []
+            timeout = aiohttp.ClientTimeout(total=2.0)
+            async with bot.http_session.get(url, timeout=timeout) as resp:
+                if resp.status >= 400:
+                    return []
+                data = await resp.json()
+            results = data.get("results") or []
+            CITY_AUTOCOMPLETE_CACHE[query_key] = (now, results)
+        except Exception:
+            # W autocomplete wolimy zwrócić pustą listę niż spamować logi i łapać
+            # Unknown interaction przy spóźnionej odpowiedzi.
+            return []
+
+    seen: set[str] = set()
+    choices: list[app_commands.Choice[str]] = []
+    for item in results:
+        name = str(item.get("name", "")).strip()
+        country = str(item.get("country", "")).strip()
+        admin1 = str(item.get("admin1", "")).strip()
+        display = ", ".join(part for part in [name, admin1, country] if part)
+        if not display or display in seen:
+            continue
+        seen.add(display)
+        choices.append(app_commands.Choice(name=display[:100], value=display[:100]))
+        if len(choices) >= 25:
+            break
+    return choices
 
 @bot.tree.command(name="language", description="Ustawia język bota")
 @app_commands.describe(kod="pl albo en")
