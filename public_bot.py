@@ -2,1391 +2,2716 @@ import asyncio
 import json
 import logging
 import os
-import re
-from datetime import UTC, date, datetime
-from time import monotonic
-from typing import Any
+import sqlite3
+from datetime import UTC, date, datetime, timedelta
+from urllib.parse import quote
 
 import aiohttp
 import discord
 import pytz
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 
+# ================================
+# KOSMICZNY ZEGAR PUBLIC - BOT v25
+# MULTILANGUAGE: PL / EN
+# FULL + SYSTEM STATUSÓW
+# ================================
 
-# =========================================================
-# KOSMICZNY ZEGAR PUBLIC - CLEAN PRO REWRITE
-# Stabilna wersja: pogoda, zegar, alergie, statystyki
-# =========================================================
-
-TOKEN = os.getenv("DISCORD_TOKEN")
-CONFIG_FILE = os.getenv("CONFIG_FILE", "bot_config_public.json")
 LOG_FILE = os.getenv("LOG_FILE", "bot.log")
 
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+logger.handlers.clear()
+
+formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+
+file_handler = logging.FileHandler(LOG_FILE, encoding="utf-8")
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
+TOKEN = os.getenv("DISCORD_TOKEN")
+DB_FILE = os.getenv("DB_FILE", "bot_data_public.db")
+
 DEFAULT_CITY_NAME = "Rzeszów"
-DEFAULT_COUNTRY = "Polska"
 DEFAULT_LATITUDE = 50.0413
 DEFAULT_LONGITUDE = 21.9990
+DEFAULT_COUNTRY = "Polska"
 DEFAULT_TIMEZONE = "Europe/Warsaw"
 DEFAULT_LANGUAGE = "pl"
 
-WEATHER_REFRESH_SECONDS = 180
-CLOCK_REFRESH_SECONDS = 30
-STATS_REFRESH_SECONDS = 90
-PRESENCE_REFRESH_SECONDS = 5
-CHANNEL_EDIT_DELAY = 1.25
-CHANNEL_CREATE_DELAY = 0.22
-CHANNEL_DELETE_DELAY = 0.35
+WEATHER_REFRESH_MINUTES = 5
+CLOCK_REFRESH_SECONDS = 300
+STATS_FALLBACK_REFRESH_SECONDS = 300
+STATUS_CLOCK_REFRESH_SECONDS = 60
+CHANNEL_EDIT_DELAY = 0.25
+STATS_REFRESH_DEBOUNCE_SECONDS = 3
 MAX_CHANNEL_NAME_LENGTH = 100
 
-CONFIG_LOCK = asyncio.Lock()
-EDIT_QUEUE: asyncio.Queue[tuple[int, int | None, str]] = asyncio.Queue()
-LAST_DESIRED_NAMES: dict[int, str] = {}
-LAST_EDIT_AT: dict[int, float] = {}
-EDIT_WORKER: asyncio.Task | None = None
-CITY_AUTOCOMPLETE_CACHE: dict[str, tuple[float, list[dict[str, Any]]]] = {}
-CITY_AUTOCOMPLETE_TTL_SECONDS = 90.0
+DEFAULT_BANS_CHANNEL_ID = int(os.getenv("DEFAULT_BANS_CHANNEL_ID", "1487577447540195444"))
 
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler(LOG_FILE, encoding="utf-8"),
-    ],
-)
-logger = logging.getLogger("kosmiczny_zegar")
-
-
-LANG = {
-    "pl": {
-        "cat_weather": "🌤️ Pogoda",
-        "cat_clock": "🪐 Kosmiczny Zegar",
-        "cat_stats": "📊 Statystyki",
-        "cat_allergy": "⚠️ Ostrzeżenia dla alergików",
-        "only_server": "❌ Tej komendy można użyć tylko na serwerze.",
-        "setup_ok": "✅ Utworzono lub odświeżono wszystkie kategorie i kanały.",
-        "refresh_ok": "✅ Wszystkie kanały zostały odświeżone.",
-        "refresh_err": "❌ Nie udało się odświeżyć: {error}",
-        "status_title": "📋 Status bota",
-        "city_updated": "✅ Ustawiono miasto: {city}. Rozpoczynam odświeżanie.",
-        "city_not_found": "❌ Nie udało się znaleźć miasta: {city}",
-        "city_error": "❌ Błąd ustawiania miasta: {error}",
-        "lang_set": "✅ Ustawiono język: polski.",
-        "lang_invalid": "❌ Dostępne języki: pl, en",
-        "reset_ok": "✅ Usunięto kategorie bota i wyczyszczono konfigurację. Użyj /setup.",
-        "weather_title": "🌤️ Pogoda",
-        "time_title": "🕒 Aktualny czas",
-    },
-    "en": {
-        "cat_weather": "🌤️ Weather",
-        "cat_clock": "🪐 Cosmic Clock",
-        "cat_stats": "📊 Statistics",
-        "cat_allergy": "⚠️ Allergy warnings",
-        "only_server": "❌ This command can only be used in a server.",
-        "setup_ok": "✅ Categories and channels were created or refreshed.",
-        "refresh_ok": "✅ All channels were refreshed.",
-        "refresh_err": "❌ Refresh failed: {error}",
-        "status_title": "📋 Bot status",
-        "city_updated": "✅ City set to: {city}. Refresh started.",
-        "city_not_found": "❌ City not found: {city}",
-        "city_error": "❌ City update error: {error}",
-        "lang_set": "✅ Language set to: English.",
-        "lang_invalid": "❌ Available languages: pl, en",
-        "reset_ok": "✅ Bot categories removed and configuration cleared. Use /setup.",
-        "weather_title": "🌤️ Weather",
-        "time_title": "🕒 Current time",
-    },
-}
-
-CATEGORY_KEYS = ("weather", "clock", "stats", "allergy")
-
-WEATHER_CHANNEL_ORDER = [
-    "city",
-    "temperature",
-    "feels",
-    "clouds",
-    "rain",
-    "wind",
-    "pressure",
-    "air",
-    "alerts",
-]
-CLOCK_CHANNEL_ORDER = [
-    "date",
-    "sunrise",
-    "sunset",
-    "day_length",
-    "part_of_day",
-    "moon",
-]
-STATS_CHANNEL_ORDER = [
-    "members",
-    "humans",
-    "online",
-    "bots",
-    "vc",
-    "joined_today",
-    "bans",
-]
-ALLERGY_CHANNEL_ORDER = [
-    "allergy_alert",
-    "allergy_live",
-    "allergy_advice",
-]
-
-CHANNEL_SPECS = {
-    "weather": {
-        "city": "🏙️ Miasto Rzeszów",
-        "temperature": "🌡️ Temperatura --°C",
-        "feels": "🥵 Odczuwalna --°C",
-        "clouds": "☁️ Zachmurzenie --%",
-        "rain": "🌧️ Opady --",
-        "wind": "🌬️ Wiatr -- km/h",
-        "pressure": "🧭 Ciśnienie ---- hPa",
-        "air": "🟡 Powietrze --",
-        "alerts": "🟢 ALERT brak",
-    },
-    "clock": {
-        "date": "📅 Data --.--.----",
-        "sunrise": "🌅 Wschód --:--",
-        "sunset": "🌇 Zachód --:--",
-        "day_length": "☀️ Dzień --h --m",
-        "part_of_day": "🌓 Pora dnia --",
-        "moon": "🌕 Faza księżyca --",
-    },
-    "stats": {
-        "members": "👥 Wszyscy 0",
-        "humans": "🧑 Ludzie 0",
-        "online": "🟢 Online 0",
-        "bots": "🤖 Boty 0",
-        "vc": "🔊 Na VC 0",
-        "joined_today": "📥 Dzisiaj weszło 0",
-        "bans": "🔨 Bany 0",
-    },
-    "allergy": {
-        "allergy_alert": "🟢 Alert brak",
-        "allergy_live": "🌿 Pylenie live",
-        "allergy_advice": "💊 Brak specjalnych zaleceń",
-    },
-}
-
-STATUS_ROLE_GROUPS = {
-    "status": [
-        "Dostępny",
-        "Zaraz wracam",
-        "AFK",
-        "Nocny tryb",
-        "Nie przeszkadzać",
-        "Poza kompem",
-        "Poza domem",
-        "W pracy",
-        "W szkole",
-        "Idę spać",
-        "Nowy tutaj",
-        "Chcę poznać nowych ludzi",
-    ],
-    "mood": [
-        "Na luzie",
-        "Full energia",
-        "W dobrym humorze",
-        "Wkurzony",
-        "Chory",
-        "Zmęczony",
-    ],
-    "activity": [
-        "Słucham muzyki",
-        "Czatuję",
-        "Gram",
-        "Uczę się",
-        "Na VC",
-        "Streamuję",
-        "Oglądam streama",
-    ],
-}
-
-STATUS_GROUP_LABELS = {
-    "status": "🟢 Status",
-    "mood": "😎 Nastrój",
-    "activity": "🎮 Aktywność",
-}
-
-STATUS_GROUP_EMOJIS = {
-    "status": "🟢",
-    "mood": "😎",
-    "activity": "🎮",
-}
-
-
-def sanitize_channel_name(name: str) -> str:
-    name = unicodedata_normalize(name)
-    name = re.sub(r"\s+", " ", name).strip()
-    if len(name) > MAX_CHANNEL_NAME_LENGTH:
-        name = name[:MAX_CHANNEL_NAME_LENGTH].rstrip()
-    return name
-
-
-def unicodedata_normalize(value: str) -> str:
-    import unicodedata
-
-    return unicodedata.normalize("NFKC", value)
-
-
-def load_config() -> dict[str, Any]:
-    if not os.path.exists(CONFIG_FILE):
-        return {"guilds": {}}
-    try:
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if "guilds" not in data:
-            data["guilds"] = {}
-        return data
-    except Exception:
-        logger.exception("Nie udało się wczytać konfiguracji")
-        return {"guilds": {}}
-
-
-def save_config(data: dict[str, Any]) -> None:
-    tmp = CONFIG_FILE + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, CONFIG_FILE)
-
-
-async def get_guild_config(guild_id: int) -> dict[str, Any]:
-    async with CONFIG_LOCK:
-        data = load_config()
-        gkey = str(guild_id)
-        if gkey not in data["guilds"]:
-            data["guilds"][gkey] = {
-                "language": DEFAULT_LANGUAGE,
-                "city_name": DEFAULT_CITY_NAME,
-                "country": DEFAULT_COUNTRY,
-                "latitude": DEFAULT_LATITUDE,
-                "longitude": DEFAULT_LONGITUDE,
-                "timezone": DEFAULT_TIMEZONE,
-                "categories": {},
-                "channels": {},
-                "status_panel": {},
-            }
-            save_config(data)
-        return data["guilds"][gkey]
-
-
-async def update_guild_config(guild_id: int, updater: dict[str, Any]) -> dict[str, Any]:
-    async with CONFIG_LOCK:
-        data = load_config()
-        gkey = str(guild_id)
-        current = data["guilds"].setdefault(
-            gkey,
-            {
-                "language": DEFAULT_LANGUAGE,
-                "city_name": DEFAULT_CITY_NAME,
-                "country": DEFAULT_COUNTRY,
-                "latitude": DEFAULT_LATITUDE,
-                "longitude": DEFAULT_LONGITUDE,
-                "timezone": DEFAULT_TIMEZONE,
-                "categories": {},
-                "channels": {},
-            },
-        )
-        current.update(updater)
-        save_config(data)
-        return current
-
-
-async def clear_guild_config(guild_id: int) -> None:
-    async with CONFIG_LOCK:
-        data = load_config()
-        data["guilds"].pop(str(guild_id), None)
-        save_config(data)
-
-
-def get_lang(cfg: dict[str, Any]) -> dict[str, str]:
-    return LANG.get(cfg.get("language", DEFAULT_LANGUAGE), LANG["pl"])
-
-
-
-def get_weather_category_name(cfg: dict[str, Any]) -> str:
-    lang = get_lang(cfg)
-    city = str(cfg.get("city_name", DEFAULT_CITY_NAME)).strip() or DEFAULT_CITY_NAME
-    return sanitize_channel_name(f"{lang['cat_weather']} • {city}")
-
-
-
-def get_status_group_for_role_name(role_name: str) -> str | None:
-    for group, names in STATUS_ROLE_GROUPS.items():
-        if role_name in names:
-            return group
-    return None
-
-
-def build_status_stats_embed(guild: discord.Guild) -> discord.Embed:
-    embed = discord.Embed(
-        title="📊 Ile osób ma jakie role",
-        description="Poniżej widzisz dokładnie, ile osób ma każdą rolę statusową, nastroju i aktywności.",
-        color=discord.Color.green(),
-    )
-    for group, names in STATUS_ROLE_GROUPS.items():
-        lines = []
-        total = 0
-        for role_name in names:
-            role = discord.utils.get(guild.roles, name=role_name)
-            count = len(role.members) if role else 0
-            total += count
-            lines.append(f"• {role_name} — **{count}**")
-        embed.add_field(
-            name=f"{STATUS_GROUP_LABELS[group]} · razem przypisań: {total}",
-            value="\n".join(lines),
-            inline=False,
-        )
-    embed.set_footer(text="Kosmiczny Zegar 24 • Statystyki ról")
-    return embed
-
-
-async def ensure_status_roles(guild: discord.Guild) -> None:
-    me = guild.me
-    for names in STATUS_ROLE_GROUPS.values():
-        for role_name in names:
-            role = discord.utils.get(guild.roles, name=role_name)
-            if role is None:
-                try:
-                    await guild.create_role(name=role_name, mentionable=False, reason="Role statusów bota")
-                    await asyncio.sleep(0.25)
-                except discord.HTTPException:
-                    logger.exception("Nie udało się utworzyć roli %s", role_name)
-    if me and me.guild_permissions.manage_roles:
-        try:
-            status_roles = [r for names in STATUS_ROLE_GROUPS.values() for r in (discord.utils.get(guild.roles, name=n) for n in names) if r]
-            status_roles.sort(key=lambda r: r.position)
-        except Exception:
-            pass
-
-
-async def refresh_status_panel(guild: discord.Guild) -> None:
-    cfg = await get_guild_config(guild.id)
-    panel = cfg.get("status_panel") or {}
-    channel_id = panel.get("channel_id")
-    message_id = panel.get("message_id")
-    if not channel_id or not message_id:
-        return
-    channel = guild.get_channel(channel_id)
-    if not isinstance(channel, discord.TextChannel):
-        return
-    try:
-        message = await channel.fetch_message(message_id)
-    except discord.HTTPException:
-        return
-    embed = build_status_stats_embed(guild)
-    try:
-        await message.edit(embed=embed)
-    except discord.HTTPException:
-        logger.exception("Nie udało się odświeżyć panelu statusów")
-
-
-async def apply_single_status_role(member: discord.Member, selected_role_name: str) -> tuple[str, str]:
-    group = get_status_group_for_role_name(selected_role_name)
-    if not group:
-        raise ValueError("Nieznana rola statusowa")
-    selected_role = discord.utils.get(member.guild.roles, name=selected_role_name)
-    if not selected_role:
-        raise ValueError(f"Brak roli: {selected_role_name}")
-    to_remove = []
-    for role_name in STATUS_ROLE_GROUPS[group]:
-        role = discord.utils.get(member.guild.roles, name=role_name)
-        if role and role in member.roles and role != selected_role:
-            to_remove.append(role)
-    if to_remove:
-        await member.remove_roles(*to_remove, reason="Zmiana statusu przez bota")
-    if selected_role not in member.roles:
-        await member.add_roles(selected_role, reason="Ustawienie statusu przez bota")
-    await refresh_status_panel(member.guild)
-    return group, selected_role.name
-
-
-class StatusSelect(discord.ui.Select):
-    def __init__(self, group: str):
-        options = [discord.SelectOption(label=name, value=name, emoji=STATUS_GROUP_EMOJIS[group]) for name in STATUS_ROLE_GROUPS[group]]
-        super().__init__(placeholder=f"Wybierz: {STATUS_GROUP_LABELS[group]}", min_values=1, max_values=1, options=options)
-        self.group = group
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        if not isinstance(interaction.user, discord.Member):
-            await interaction.response.send_message("❌ Tej komendy można użyć tylko na serwerze.", ephemeral=True)
-            return
-        try:
-            _, role_name = await apply_single_status_role(interaction.user, self.values[0])
-            await interaction.response.send_message(f"✅ Ustawiono {STATUS_GROUP_LABELS[self.group]}: **{role_name}**", ephemeral=True)
-        except Exception as e:
-            logger.exception("Błąd ustawiania statusu")
-            await interaction.response.send_message(f"❌ Nie udało się ustawić statusu: {e}", ephemeral=True)
-
-
-class ClearStatusesButton(discord.ui.Button):
-    def __init__(self):
-        super().__init__(label="Wyczyść wszystko", style=discord.ButtonStyle.danger, emoji="🧹")
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        if not isinstance(interaction.user, discord.Member):
-            await interaction.response.send_message("❌ Tej komendy można użyć tylko na serwerze.", ephemeral=True)
-            return
-        roles_to_remove = []
-        for names in STATUS_ROLE_GROUPS.values():
-            for role_name in names:
-                role = discord.utils.get(interaction.guild.roles, name=role_name) if interaction.guild else None
-                if role and role in interaction.user.roles:
-                    roles_to_remove.append(role)
-        if roles_to_remove:
-            try:
-                await interaction.user.remove_roles(*roles_to_remove, reason="Wyczyszczenie statusów przez bota")
-                await refresh_status_panel(interaction.guild)
-            except Exception as e:
-                await interaction.response.send_message(f"❌ Nie udało się wyczyścić statusów: {e}", ephemeral=True)
-                return
-        await interaction.response.send_message("✅ Wyczyszczono wszystkie Twoje statusy.", ephemeral=True)
-
-
-class StatusPanelView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=300)
-        self.add_item(StatusSelect("status"))
-        self.add_item(StatusSelect("mood"))
-        self.add_item(StatusSelect("activity"))
-        self.add_item(ClearStatusesButton())
+bot_start_time = datetime.now(UTC)
+stats_update_tasks: dict[int, asyncio.Task] = {}
+channel_edit_locks: dict[int, asyncio.Lock] = {}
+last_midnight_reset_dates: dict[int, date] = {}
+weather_cache: dict[int, dict] = {}
+background_refresh_tasks: dict[int, asyncio.Task] = {}
+last_presence_text: str | None = None
 
 
 class KosmicznyBot(commands.Bot):
-    def __init__(self) -> None:
-        intents = discord.Intents.default()
-        intents.guilds = True
-        intents.members = True
-        intents.presences = True
-        intents.voice_states = True
-        super().__init__(command_prefix="!", intents=intents)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.http_session: aiohttp.ClientSession | None = None
+        self.synced_once = False
 
-    async def setup_hook(self) -> None:
-        self.http_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=25))
-        await ensure_edit_worker()
-        self.loop.create_task(weather_loop())
-        self.loop.create_task(clock_loop())
-        self.loop.create_task(stats_loop())
-        self.loop.create_task(presence_loop())
+    async def setup_hook(self):
+        timeout = aiohttp.ClientTimeout(total=20)
+        self.http_session = aiohttp.ClientSession(timeout=timeout)
+        try:
+            self.add_view(PublicStatusPanelLauncherView())
+        except Exception as e:
+            logging.warning("Nie udało się dodać persistent view w setup_hook: %s", e)
 
-    async def close(self) -> None:
+    async def close(self):
         if self.http_session and not self.http_session.closed:
             await self.http_session.close()
         await super().close()
 
 
-bot = KosmicznyBot()
+intents = discord.Intents.default()
+intents.guilds = True
+intents.members = True
+intents.voice_states = True
+intents.presences = True
+
+bot = KosmicznyBot(command_prefix="!", intents=intents)
+
+# ================================
+# SYSTEM STATUSÓW / PANEL RÓL
+# ================================
+
+STATUS_ROLES = {
+    "dostepny": 1475627194582831184,
+    "zaraz_wracam": 1475595615055511747,
+    "afk": 1475592478286676160,
+    "nocny_tryb": 1475626089597374680,
+    "nie_przeszkadzac": 1475627340494278727,
+    "poza_kompem": 1475627428217884764,
+    "poza_domem": 1475627463865270404,
+    "w_pracy": 1475627537022582804,
+    "w_szkole": 1475627641582391457,
+    "ide_spac": 1475627705188880547,
+    "nowy_tutaj": 1475592165227761704,
+    "chce_poznac_nowych_ludzi": 1475595483899494492,
+}
+
+MOOD_ROLES = {
+    "na_luzie": 1475616916348604618,
+    "full_energia": 1475625987914858677,
+    "w_dobrym_humorze": 1475625302641086504,
+    "wkurzony": 1475625886886662324,
+    "chory": 1475645832702328884,
+    "zmeczony": 1475625667075768395,
+}
+
+ACTIVITY_ROLES = {
+    "slucham_muzyki": 1475586115569324043,
+    "czatuje": 1475591441085366273,
+    "gram": 1475591583314477278,
+    "ucze_sie": 1475594865860542554,
+    "na_vc": 1475595019770396932,
+    "streamuje": 1475595081200304259,
+    "ogladam_streama": 1475596164026859745,
+}
+
+ROLE_GROUPS = {
+    "status": STATUS_ROLES,
+    "mood": MOOD_ROLES,
+    "activity": ACTIVITY_ROLES,
+}
+
+ROLE_DISPLAY_NAMES = {
+    "dostepny": "Dostępny",
+    "zaraz_wracam": "Zaraz wracam",
+    "afk": "AFK",
+    "nocny_tryb": "Nocny tryb",
+    "nie_przeszkadzac": "Nie przeszkadzać",
+    "poza_kompem": "Poza kompem",
+    "poza_domem": "Poza domem",
+    "w_pracy": "W pracy",
+    "w_szkole": "W szkole",
+    "ide_spac": "Idę spać",
+    "nowy_tutaj": "Nowy tutaj",
+    "chce_poznac_nowych_ludzi": "Chcę poznać nowych ludzi",
+    "na_luzie": "Na luzie",
+    "full_energia": "Full energia",
+    "w_dobrym_humorze": "W dobrym humorze",
+    "wkurzony": "Wkurzony",
+    "chory": "Chory",
+    "zmeczony": "Zmęczony",
+    "slucham_muzyki": "Słucham muzyki",
+    "czatuje": "Czatuję",
+    "gram": "Gram",
+    "ucze_sie": "Uczę się",
+    "na_vc": "Na VC",
+    "streamuje": "Streamuję",
+    "ogladam_streama": "Oglądam streama",
+}
+
+ROLE_EMOJIS = {
+    "dostepny": "🟢",
+    "zaraz_wracam": "⏳",
+    "afk": "😴",
+    "nocny_tryb": "🌙",
+    "nie_przeszkadzac": "🚫",
+    "poza_kompem": "📵",
+    "poza_domem": "🚗",
+    "w_pracy": "💼",
+    "w_szkole": "🏫",
+    "ide_spac": "🛌",
+    "nowy_tutaj": "🆕",
+    "chce_poznac_nowych_ludzi": "🤝",
+    "na_luzie": "😎",
+    "full_energia": "⚡",
+    "w_dobrym_humorze": "😄",
+    "wkurzony": "😤",
+    "chory": "🤒",
+    "zmeczony": "🥶",
+    "slucham_muzyki": "🎧",
+    "czatuje": "💬",
+    "gram": "🎮",
+    "ucze_sie": "📚",
+    "na_vc": "🗣️",
+    "streamuje": "🎥",
+    "ogladam_streama": "👀",
+}
+
+# ================================
+# MAPA KANAŁÓW
+# ================================
+
+CHANNEL_TEMPLATE_KEYS = {
+    "temperature": ("weather", "ch_temperature"),
+    "feels": ("weather", "ch_feels"),
+    "clouds": ("weather", "ch_clouds"),
+    "air": ("weather", "ch_air"),
+    "pollen": ("weather", "ch_pollen"),
+    "rain": ("weather", "ch_rain"),
+    "wind": ("weather", "ch_wind"),
+    "pressure": ("weather", "ch_pressure"),
+    "alerts": ("weather", "ch_alerts"),
+    "date": ("clock", "ch_date"),
+    "part_of_day": ("clock", "ch_part_of_day"),
+    "sunrise": ("clock", "ch_sunrise"),
+    "sunset": ("clock", "ch_sunset"),
+    "day_length": ("clock", "ch_day_length"),
+    "moon": ("clock", "ch_moon"),
+    "members": ("stats", "ch_members"),
+    "humans": ("stats", "ch_humans"),
+    "online": ("stats", "ch_online"),
+    "bots": ("stats", "ch_bots"),
+    "vc": ("stats", "ch_vc"),
+    "joined_today": ("stats", "ch_joined_today"),
+    "bans": ("stats", "ch_bans"),
+}
+
+LANGUAGES = {
+    "pl": {
+        "lang_name": "Polski",
+        "creator": "Mati",
+        "bot_version": "v25",
+        "cat_weather": "🌤️ Pogoda",
+        "cat_clock": "🛰️ Kosmiczny Zegar",
+        "cat_stats": "📊 Statystyki",
+        "ch_temperature": "🌡 Temperatura",
+        "ch_feels": "🥵 Odczuwalna",
+        "ch_clouds": "☁ Zachmurzenie",
+        "ch_air": "🌫 Powietrze",
+        "ch_pollen": "🌿 Pylenie",
+        "ch_rain": "🌧 Opady",
+        "ch_wind": "💨 Wiatr",
+        "ch_pressure": "⏱ Ciśnienie",
+        "ch_alerts": "🟢 ALERT brak",
+        "ch_date": "📅 Data",
+        "ch_part_of_day": "🌓 Pora dnia",
+        "ch_sunrise": "🌅 Wschód",
+        "ch_sunset": "🌇 Zachód",
+        "ch_day_length": "☀️ Dzień",
+        "ch_moon": "🌙 Faza księżyca",
+        "ch_members": "👥 Wszyscy",
+        "ch_humans": "👤 Ludzie",
+        "ch_online": "🟢 Online",
+        "ch_bots": "🤖 Boty",
+        "ch_vc": "🔊 Na VC",
+        "ch_joined_today": "📥 Dzisiaj weszło 0",
+        "ch_bans": "🔨 Bany 0",
+        "only_server": "❌ Tej komendy można użyć tylko na serwerze.",
+        "setup_ok": "✅ Utworzono i odświeżono wszystkie kategorie oraz kanały.",
+        "setup_error": "❌ Błąd setupu: {error}",
+        "refresh_no_config": "ℹ️ Brak konfiguracji. Najpierw użyj `/setup`.",
+        "refresh_ok": "✅ Wszystkie kanały zostały odświeżone.",
+        "refresh_error": "❌ Błąd refreshu: {error}",
+        "no_config": "ℹ️ Brak konfiguracji. Użyj `/setup`.",
+        "city_setup_first": "ℹ️ Najpierw użyj `/setup`, aby utworzyć kategorie i kanały.",
+        "city_not_found": "❌ Nie znaleziono miasta: `{city}`",
+        "city_updated": "✅ Ustawiono miasto: **{city}** i rozpoczęto aktualizację pogody oraz zegara.",
+        "city_error": "❌ Błąd ustawiania miasta: {error}",
+        "weather_error": "❌ Błąd pobierania pogody: {error}",
+        "delete_only_server": "❌ Tylko na serwerze.",
+        "delete_no_config": "ℹ️ Brak konfiguracji.",
+        "delete_weather_ok": "✅ Usunięto kategorię Pogoda.",
+        "delete_clock_ok": "✅ Usunięto kategorię Kosmiczny Zegar.",
+        "delete_stats_ok": "✅ Usunięto kategorię Statystyki.",
+        "delete_all_ok": "✅ Usunięto wszystkie kategorie bota.",
+        "language_set": "✅ Ustawiono język bota na: **Polski**",
+        "language_invalid": "❌ Nieobsługiwany język. Dostępne: `pl`, `en`",
+        "help_title": "📘 Pomoc • Kosmiczny Zegar 24",
+        "help_desc": "Lista dostępnych komend slash. Bot tworzy kanały z czasem, pogodą, fazą księżyca, statystykami i panelem statusów.",
+        "help_general": "🌍 Komendy ogólne",
+        "help_admin": "🛠️ Komendy administracyjne",
+        "help_delete": "🗑️ Komendy usuwania",
+        "help_start": "ℹ️ Jak zacząć",
+        "help_footer": "Kosmiczny Zegar 24 • Pomoc",
+        "help_general_value": (
+            "`/help` — pokazuje pomoc\n"
+            "`/info` — informacje o bocie\n"
+            "`/pogoda` — aktualna pogoda\n"
+            "`/czas` — aktualny czas\n"
+            "`/ksiezyc` — aktualna faza księżyca\n"
+            "`/pokaz_statusy` — statystyki ról statusowych\n"
+            "`/ustaw_status_swoj` — ustaw ręcznie swój status\n"
+            "`/moj_panel_statusu` — otwiera prywatny panel statusów"
+        ),
+        "help_admin_value": (
+            "`/setup` — tworzy kategorie i kanały bota\n"
+            "`/refresh` — odświeża wszystkie kanały bota\n"
+            "`/status` — pokazuje status konfiguracji\n"
+            "`/miasto` — ustawia miasto dla pogody i zegara\n"
+            "`/language` — zmienia język bota\n"
+            "`/panel_statusow` — wysyła panel statusów"
+        ),
+        "help_delete_value": (
+            "`/usun_pogoda` — usuwa kategorię Pogoda\n"
+            "`/usun_kosmiczny_zegar` — usuwa kategorię Kosmiczny Zegar\n"
+            "`/usun_statystyki` — usuwa kategorię Statystyki\n"
+            "`/usun_wszystko` — usuwa wszystkie kategorie bota"
+        ),
+        "help_start_value": (
+            "1. Użyj `/setup`\n"
+            "2. Ustaw `/miasto` dla swojego serwera\n"
+            "3. Użyj `/refresh`, aby ręcznie odświeżyć dane\n"
+            "4. Wyślij `/panel_statusow`, jeśli chcesz panel ról"
+        ),
+        "status_title": "📊 Status Kosmicznego Zegara",
+        "status_weather_cat": "Kategoria Pogoda",
+        "status_clock_cat": "Kategoria Kosmiczny Zegar",
+        "status_stats_cat": "Kategoria Statystyki",
+        "status_saved_channels": "Zapisane kanały",
+        "status_city": "Miasto",
+        "status_lat": "Szerokość",
+        "status_lon": "Długość",
+        "status_timezone": "Strefa czasowa",
+        "status_language": "Język",
+        "info_title": "🌌 Kosmiczny Zegar 24",
+        "info_desc": "Nowoczesny bot Discord 24/7 do automatycznej prezentacji czasu, pogody, fazy księżyca, statystyk serwera i panelu statusów.",
+        "info_features": "✨ Najważniejsze funkcje",
+        "info_status": "📈 Status bota",
+        "info_modules": "🧩 Dostępne moduły",
+        "info_author": "👨‍💻 Twórca",
+        "info_version": "🤖 Wersja",
+        "info_stability": "🛡️ Stabilność",
+        "info_footer": "Kosmiczny Zegar 24 • Bot Discord działający 24/7",
+        "info_features_value": (
+            "• 🛰️ Kosmiczny zegar w kanałach\n"
+            "• 🌤️ Pogoda dla wybranego miasta\n"
+            "• 🌙 Faza księżyca i długość dnia\n"
+            "• 📊 Statystyki członków serwera\n"
+            "• 🧩 Panel statusów, nastroju i aktywności\n"
+            "• 🔒 Prywatny panel wyboru z pamięcią wyboru\n"
+            "• ⚡ Automatyczne aktualizacje 24/7"
+        ),
+        "info_status_value": (
+            "**Uptime:** `{uptime}`\n"
+            "**Serwery:** `{guilds}`\n"
+            "**Użytkownicy:** `{users}`\n"
+            "**Tryb pracy:** `Online 24/7`"
+        ),
+        "info_modules_value": (
+            "`/help` `/setup` `/refresh` `/status` `/info`\n"
+            "`/pogoda` `/czas` `/ksiezyc` `/miasto` `/language`\n"
+            "`/panel_statusow` `/pokaz_statusy` `/ustaw_status_swoj` `/moj_panel_statusu`\n"
+            "`/usun_pogoda` `/usun_kosmiczny_zegar` `/usun_statystyki` `/usun_wszystko`"
+        ),
+        "info_stability_value": "Zoptymalizowany pod Railway i limity Discord API",
+        "weather_title": "🌤️ Pogoda - {city}, {country}",
+        "field_temperature": "Temperatura",
+        "field_feels": "Odczuwalna",
+        "field_clouds": "Zachmurzenie",
+        "field_air": "Powietrze",
+        "field_pollen": "Pylenie",
+        "field_rain": "Opady",
+        "field_wind": "Wiatr",
+        "field_pressure": "Ciśnienie",
+        "field_alerts": "Alerty",
+        "field_alert_level": "Poziom alertu",
+        "field_sunrise": "Wschód",
+        "field_sunset": "Zachód",
+        "field_day_length": "Długość dnia",
+        "none": "brak",
+        "time_title": "🕐 Aktualny czas",
+        "time_city": "Miasto",
+        "time_clock": "Godzina",
+        "time_date": "Data",
+        "time_part_of_day": "Pora dnia",
+        "time_timezone": "Strefa czasowa",
+        "moon_new": "🌑 Faza księżyca nów",
+        "moon_waxing_crescent": "🌒 Faza księżyca sierp przybywający",
+        "moon_first_quarter": "🌓 Faza księżyca pierwsza kwadra",
+        "moon_waxing_gibbous": "🌔 Faza księżyca garb przybywający",
+        "moon_full": "🌕 Faza księżyca pełnia",
+        "moon_waning_gibbous": "🌖 Faza księżyca garb ubywający",
+        "moon_last_quarter": "🌗 Faza księżyca ostatnia kwadra",
+        "moon_waning_crescent": "🌘 Faza księżyca sierp ubywający",
+        "moon_unknown": "🌙 Faza księżyca --",
+        "air_no_data": "⚪ Powietrze brak danych",
+        "air_very_good": "🟢 Powietrze bardzo dobre",
+        "air_good": "🟡 Powietrze dobre",
+        "air_moderate": "🟠 Powietrze umiarkowane",
+        "air_fair": "🔴 Powietrze dostateczne",
+        "air_bad": "🟣 Powietrze złe",
+        "air_very_bad": "⚫ Powietrze bardzo złe",
+        "pollen_none": "brak",
+        "pollen_low": "niskie",
+        "pollen_medium": "średnie",
+        "pollen_high": "wysokie",
+        "pollen_very_high": "bardzo wysokie",
+        "pollen_alder": "Olsza",
+        "pollen_birch": "Brzoza",
+        "pollen_grass": "Trawy",
+        "pollen_mugwort": "Bylica",
+        "pollen_ragweed": "Ambrozja",
+        "weather_rain_none": "🌧 Opady brak",
+        "weather_rain_text": "Opady",
+        "weather_rain": "deszcz",
+        "weather_snow": "śnieg",
+        "weather_hail": "grad",
+        "weather_precip": "opad",
+        "part_dawn": "🌓 Pora dnia świt",
+        "part_before_noon": "🌓 Pora dnia przed południem",
+        "part_noon": "🌓 Pora dnia południe",
+        "part_afternoon": "🌓 Pora dnia po południu",
+        "part_dusk": "🌓 Pora dnia zmierzch",
+        "part_night": "🌓 Pora dnia noc",
+        "day_length_prefix": "☀️ Dzień",
+        "alert_none": "🟢 ALERT brak",
+        "alert_l1": "🟡 ALERT 1° ",
+        "alert_l2": "🟠 ALERT 2° ",
+        "alert_l3": "🔴 ALERT 3° ",
+        "weekday_short": ["pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz."],
+        "stats_members": "👥 Wszyscy {count}",
+        "stats_humans": "👤 Ludzie {count}",
+        "stats_online": "🟢 Online {count}",
+        "stats_bots": "🤖 Boty {count}",
+        "stats_vc": "🔊 Na VC {count}",
+        "stats_joined_today": "📥 Dzisiaj weszło {count}",
+        "stats_bans": "🔨 Bany {count}",
+        "role_panel_server_only": "Ta komenda działa tylko na serwerze.",
+        "role_bad_option": "Nieprawidłowa opcja roli.",
+        "role_not_found": "Nie znaleziono roli na serwerze. Sprawdź ID roli w kodzie.",
+        "role_no_manage": "Bot nie ma uprawnienia **Zarządzanie rolami**.",
+        "role_hierarchy": "Bot nie może nadać roli **{role}**. Przesuń rolę bota wyżej niż role statusowe.",
+        "role_forbidden": "Bot nie ma uprawnień do nadania lub usunięcia tej roli.",
+        "role_http_error": "Wystąpił błąd Discord API: `{error}`",
+        "role_set_ok": "{emoji} Ustawiono: **{label}**",
+        "role_panel_title": "🛠️ Panel statusów • Kosmiczny Zegar",
+        "role_panel_desc": (
+            "Kliknij przycisk poniżej i otwórz swój **prywatny panel statusów**.\n\n"
+            "• w każdej grupie możesz mieć tylko **jedną rolę**\n"
+            "• nowy wybór usuwa poprzednią rolę z tej samej grupy\n"
+            "• prywatny panel zapamiętuje Twój aktualny wybór\n"
+            "• możesz też użyć komendy **/ustaw_status_swoj** lub **/moj_panel_statusu**"
+        ),
+        "role_panel_footer": "Kosmiczny Zegar 24 • Panel ról",
+        "role_stats_title": "📊 Ile osób ma jakie role",
+        "role_stats_desc": "Poniżej widzisz dokładnie, ile osób ma każdą rolę statusową, nastroju i aktywności.",
+        "open_private_panel": "Otwórz mój panel statusów",
+        "private_panel_title": "🛠️ Twój prywatny panel statusów",
+        "private_panel_desc": "Tutaj możesz ustawić swój status, nastrój i aktywność. Ten widok jest widoczny tylko dla Ciebie.",
+        "current_status": "Aktualny status",
+        "current_mood": "Aktualny nastrój",
+        "current_activity": "Aktualna aktywność",
+        "no_role_selected": "brak",
+        "select_status_placeholder": "🟢 Wybierz swój status...",
+        "select_mood_placeholder": "😎 Wybierz swój nastrój...",
+        "select_activity_placeholder": "🎮 Wybierz swoją aktywność...",
+        "private_panel_footer": "Kosmiczny Zegar 24 • Prywatny panel",
+    },
+    "en": {
+        "lang_name": "English",
+        "creator": "Mati",
+        "bot_version": "v25",
+        "cat_weather": "🌤️ Weather",
+        "cat_clock": "🛰️ Cosmic Clock",
+        "cat_stats": "📊 Statistics",
+        "ch_temperature": "🌡 Temperature",
+        "ch_feels": "🥵 Feels like",
+        "ch_clouds": "☁ Clouds",
+        "ch_air": "🌫 Air quality",
+        "ch_pollen": "🌿 Pollen",
+        "ch_rain": "🌧 Precipitation",
+        "ch_wind": "💨 Wind",
+        "ch_pressure": "⏱ Pressure",
+        "ch_alerts": "🟢 ALERT none",
+        "ch_date": "📅 Date",
+        "ch_part_of_day": "🌓 Part of day",
+        "ch_sunrise": "🌅 Sunrise",
+        "ch_sunset": "🌇 Sunset",
+        "ch_day_length": "☀️ Day length",
+        "ch_moon": "🌙 Moon phase",
+        "ch_members": "👥 Members",
+        "ch_humans": "👤 Humans",
+        "ch_online": "🟢 Online",
+        "ch_bots": "🤖 Bots",
+        "ch_vc": "🔊 In VC",
+        "ch_joined_today": "📥 Joined today 0",
+        "ch_bans": "🔨 Bans 0",
+        "only_server": "❌ This command can only be used in a server.",
+        "setup_ok": "✅ All categories and channels have been created and refreshed.",
+        "setup_error": "❌ Setup error: {error}",
+        "refresh_no_config": "ℹ️ No configuration found. Use `/setup` first.",
+        "refresh_ok": "✅ All channels have been refreshed.",
+        "refresh_error": "❌ Refresh error: {error}",
+        "no_config": "ℹ️ No configuration found. Use `/setup`.",
+        "city_setup_first": "ℹ️ Use `/setup` first to create categories and channels.",
+        "city_not_found": "❌ City not found: `{city}`",
+        "city_updated": "✅ City set to: **{city}** and background refresh started.",
+        "city_error": "❌ Error while setting city: {error}",
+        "weather_error": "❌ Weather fetch error: {error}",
+        "delete_only_server": "❌ Server only.",
+        "delete_no_config": "ℹ️ No configuration found.",
+        "delete_weather_ok": "✅ Weather category deleted.",
+        "delete_clock_ok": "✅ Cosmic Clock category deleted.",
+        "delete_stats_ok": "✅ Statistics category deleted.",
+        "delete_all_ok": "✅ All bot categories deleted.",
+        "language_set": "✅ Bot language set to: **English**",
+        "language_invalid": "❌ Unsupported language. Available: `pl`, `en`",
+        "help_title": "📘 Help • Cosmic Clock 24",
+        "help_desc": "List of available slash commands.",
+        "help_general": "🌍 General commands",
+        "help_admin": "🛠️ Admin commands",
+        "help_delete": "🗑️ Delete commands",
+        "help_start": "ℹ️ Getting started",
+        "help_footer": "Cosmic Clock 24 • Help",
+        "help_general_value": (
+            "`/help` — shows help\n"
+            "`/info` — bot information\n"
+            "`/pogoda` — current weather\n"
+            "`/czas` — current time\n"
+            "`/ksiezyc` — current moon phase\n"
+            "`/pokaz_statusy` — role statistics\n"
+            "`/ustaw_status_swoj` — set your status manually\n"
+            "`/moj_panel_statusu` — opens your private status panel"
+        ),
+        "help_admin_value": (
+            "`/setup` — create bot categories and channels\n"
+            "`/refresh` — refresh all bot channels\n"
+            "`/status` — show bot configuration status\n"
+            "`/miasto` — set city for weather and clock\n"
+            "`/language` — change bot language\n"
+            "`/panel_statusow` — send status panel"
+        ),
+        "help_delete_value": (
+            "`/usun_pogoda` — delete Weather category\n"
+            "`/usun_kosmiczny_zegar` — delete Cosmic Clock category\n"
+            "`/usun_statystyki` — delete Statistics category\n"
+            "`/usun_wszystko` — delete all bot categories"
+        ),
+        "help_start_value": (
+            "1. Use `/setup`\n"
+            "2. Set `/miasto`\n"
+            "3. Use `/refresh`\n"
+            "4. Send `/panel_statusow`"
+        ),
+        "status_title": "📊 Cosmic Clock Status",
+        "status_weather_cat": "Weather category",
+        "status_clock_cat": "Cosmic Clock category",
+        "status_stats_cat": "Statistics category",
+        "status_saved_channels": "Saved channels",
+        "status_city": "City",
+        "status_lat": "Latitude",
+        "status_lon": "Longitude",
+        "status_timezone": "Timezone",
+        "status_language": "Language",
+        "info_title": "🌌 Cosmic Clock 24",
+        "info_desc": "Modern Discord bot with weather, clock, stats and status panel.",
+        "info_features": "✨ Main features",
+        "info_status": "📈 Bot status",
+        "info_modules": "🧩 Available modules",
+        "info_author": "👨‍💻 Author",
+        "info_version": "🤖 Version",
+        "info_stability": "🛡️ Stability",
+        "info_footer": "Cosmic Clock 24 • Discord bot running 24/7",
+        "info_features_value": (
+            "• Weather\n"
+            "• Clock\n"
+            "• Moon phase\n"
+            "• Server stats\n"
+            "• Status panel\n"
+            "• Private panel with remembered selection\n"
+            "• 24/7 updates"
+        ),
+        "info_status_value": (
+            "**Uptime:** `{uptime}`\n"
+            "**Servers:** `{guilds}`\n"
+            "**Users:** `{users}`\n"
+            "**Mode:** `Online 24/7`"
+        ),
+        "info_modules_value": (
+            "`/help` `/setup` `/refresh` `/status` `/info`\n"
+            "`/pogoda` `/czas` `/ksiezyc` `/miasto` `/language`\n"
+            "`/panel_statusow` `/pokaz_statusy` `/ustaw_status_swoj` `/moj_panel_statusu`\n"
+            "`/usun_pogoda` `/usun_kosmiczny_zegar` `/usun_statystyki` `/usun_wszystko`"
+        ),
+        "info_stability_value": "Optimized for Railway and Discord API limits",
+        "weather_title": "🌤️ Weather - {city}, {country}",
+        "field_temperature": "Temperature",
+        "field_feels": "Feels like",
+        "field_clouds": "Cloud cover",
+        "field_air": "Air quality",
+        "field_pollen": "Pollen",
+        "field_rain": "Precipitation",
+        "field_wind": "Wind",
+        "field_pressure": "Pressure",
+        "field_alerts": "Alerts",
+        "field_alert_level": "Alert level",
+        "field_sunrise": "Sunrise",
+        "field_sunset": "Sunset",
+        "field_day_length": "Day length",
+        "none": "none",
+        "time_title": "🕐 Current time",
+        "time_city": "City",
+        "time_clock": "Time",
+        "time_date": "Date",
+        "time_part_of_day": "Part of day",
+        "time_timezone": "Timezone",
+        "moon_new": "🌑 Moon phase new moon",
+        "moon_waxing_crescent": "🌒 Moon phase waxing crescent",
+        "moon_first_quarter": "🌓 Moon phase first quarter",
+        "moon_waxing_gibbous": "🌔 Moon phase waxing gibbous",
+        "moon_full": "🌕 Moon phase full moon",
+        "moon_waning_gibbous": "🌖 Moon phase waning gibbous",
+        "moon_last_quarter": "🌗 Moon phase last quarter",
+        "moon_waning_crescent": "🌘 Moon phase waning crescent",
+        "moon_unknown": "🌙 Moon phase --",
+        "air_no_data": "⚪ Air quality no data",
+        "air_very_good": "🟢 Air quality very good",
+        "air_good": "🟡 Air quality good",
+        "air_moderate": "🟠 Air quality moderate",
+        "air_fair": "🔴 Air quality fair",
+        "air_bad": "🟣 Air quality bad",
+        "air_very_bad": "⚫ Air quality very bad",
+        "pollen_none": "none",
+        "pollen_low": "low",
+        "pollen_medium": "medium",
+        "pollen_high": "high",
+        "pollen_very_high": "very high",
+        "pollen_alder": "Alder",
+        "pollen_birch": "Birch",
+        "pollen_grass": "Grass",
+        "pollen_mugwort": "Mugwort",
+        "pollen_ragweed": "Ragweed",
+        "weather_rain_none": "🌧 Precipitation none",
+        "weather_rain_text": "Precipitation",
+        "weather_rain": "rain",
+        "weather_snow": "snow",
+        "weather_hail": "hail",
+        "weather_precip": "precip",
+        "part_dawn": "🌓 Part of day dawn",
+        "part_before_noon": "🌓 Part of day morning",
+        "part_noon": "🌓 Part of day noon",
+        "part_afternoon": "🌓 Part of day afternoon",
+        "part_dusk": "🌓 Part of day dusk",
+        "part_night": "🌓 Part of day night",
+        "day_length_prefix": "☀️ Day",
+        "alert_none": "🟢 ALERT none",
+        "alert_l1": "🟡 ALERT 1° ",
+        "alert_l2": "🟠 ALERT 2° ",
+        "alert_l3": "🔴 ALERT 3° ",
+        "weekday_short": ["Mon.", "Tue.", "Wed.", "Thu.", "Fri.", "Sat.", "Sun."],
+        "stats_members": "👥 Members {count}",
+        "stats_humans": "👤 Humans {count}",
+        "stats_online": "🟢 Online {count}",
+        "stats_bots": "🤖 Bots {count}",
+        "stats_vc": "🔊 In VC {count}",
+        "stats_joined_today": "📥 Joined today {count}",
+        "stats_bans": "🔨 Bans {count}",
+        "role_panel_server_only": "This command works only in a server.",
+        "role_bad_option": "Invalid role option.",
+        "role_not_found": "Role not found on the server. Check role IDs in code.",
+        "role_no_manage": "Bot does not have **Manage Roles** permission.",
+        "role_hierarchy": "Bot cannot assign **{role}**. Move bot role above status roles.",
+        "role_forbidden": "Bot does not have permission to add or remove this role.",
+        "role_http_error": "Discord API error: `{error}`",
+        "role_set_ok": "{emoji} Set: **{label}**",
+        "role_panel_title": "🛠️ Status panel • Cosmic Clock",
+        "role_panel_desc": (
+            "Click the button below and open your **private status panel**.\n\n"
+            "• you can have only **one role** per group\n"
+            "• a new choice removes the previous role from the same group\n"
+            "• the private panel remembers your current selection\n"
+            "• you can also use **/ustaw_status_swoj** or **/moj_panel_statusu**"
+        ),
+        "role_panel_footer": "Cosmic Clock 24 • Role panel",
+        "role_stats_title": "📊 How many people have which roles",
+        "role_stats_desc": "Below you can see exactly how many people have each status, mood and activity role.",
+        "open_private_panel": "Open my status panel",
+        "private_panel_title": "🛠️ Your private status panel",
+        "private_panel_desc": "Here you can set your status, mood and activity. This view is visible only to you.",
+        "current_status": "Current status",
+        "current_mood": "Current mood",
+        "current_activity": "Current activity",
+        "no_role_selected": "none",
+        "select_status_placeholder": "🟢 Choose your status...",
+        "select_mood_placeholder": "😎 Choose your mood...",
+        "select_activity_placeholder": "🎮 Choose your activity...",
+        "private_panel_footer": "Cosmic Clock 24 • Private panel",
+    },
+}
+
+# ================================
+# BAZA DANYCH
+# ================================
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute(
+        """
+        CREATE TABLE IF NOT EXISTS guild_config (
+            guild_id INTEGER PRIMARY KEY,
+            weather_category_id INTEGER,
+            clock_category_id INTEGER,
+            stats_category_id INTEGER,
+            channels_json TEXT,
+            city_name TEXT,
+            latitude REAL,
+            longitude REAL,
+            country TEXT,
+            timezone TEXT,
+            language TEXT
+        )
+        """
+    )
+    conn.commit()
+
+    c.execute("PRAGMA table_info(guild_config)")
+    columns = [row[1] for row in c.fetchall()]
+
+    if "country" not in columns:
+        c.execute("ALTER TABLE guild_config ADD COLUMN country TEXT")
+    if "timezone" not in columns:
+        c.execute("ALTER TABLE guild_config ADD COLUMN timezone TEXT")
+    if "language" not in columns:
+        c.execute("ALTER TABLE guild_config ADD COLUMN language TEXT")
+    if "status_panel_message_id" not in columns:
+        c.execute("ALTER TABLE guild_config ADD COLUMN status_panel_message_id INTEGER")
+
+    conn.commit()
+    conn.close()
 
 
-async def ensure_edit_worker() -> None:
-    global EDIT_WORKER
-    if EDIT_WORKER and not EDIT_WORKER.done():
-        return
-    EDIT_WORKER = asyncio.create_task(channel_edit_worker())
-
-
-async def channel_edit_worker() -> None:
-    await bot.wait_until_ready()
-    while not bot.is_closed():
-        try:
-            channel_id, position, desired_name = await EDIT_QUEUE.get()
-            pending: dict[int, tuple[int | None, str]] = {channel_id: (position, sanitize_channel_name(desired_name))}
-            await asyncio.sleep(0.20)
-
-            while True:
-                try:
-                    next_id, next_pos, next_name = EDIT_QUEUE.get_nowait()
-                    pending[next_id] = (next_pos, sanitize_channel_name(next_name))
-                except asyncio.QueueEmpty:
-                    break
-
-            for current_id, (current_pos, current_name) in pending.items():
-                LAST_DESIRED_NAMES[current_id] = current_name
-                channel = bot.get_channel(current_id)
-                if not isinstance(channel, discord.abc.GuildChannel):
-                    continue
-
-                edits: dict[str, Any] = {}
-                safe_name = sanitize_channel_name(current_name)
-                if sanitize_channel_name(channel.name) != safe_name:
-                    edits["name"] = safe_name
-                # Pozycje zmieniamy tylko wtedy, gdy zostały wyraźnie podane.
-                if current_pos is not None and channel.position != current_pos:
-                    edits["position"] = current_pos
-
-                if not edits:
-                    continue
-
-                try:
-                    await channel.edit(**edits)
-                    await asyncio.sleep(CHANNEL_EDIT_DELAY)
-                except discord.HTTPException as e:
-                    logger.warning("Błąd edycji kanału %s: %s", current_id, e)
-                    await asyncio.sleep(max(CHANNEL_EDIT_DELAY, 2.0))
-        except Exception:
-            logger.exception("Błąd worker edycji kanałów")
-            await asyncio.sleep(1)
-
-
-async def queue_channel_update(channel: discord.abc.GuildChannel, name: str, position: int | None = None) -> None:
-    await EDIT_QUEUE.put((channel.id, position, sanitize_channel_name(name)))
-
-
-async def wait_for_edit_queue_idle(timeout: float = 45.0) -> None:
-    loop = asyncio.get_running_loop()
-    deadline = loop.time() + timeout
-    while loop.time() < deadline:
-        if EDIT_QUEUE.empty():
-            await asyncio.sleep(0.3)
-            if EDIT_QUEUE.empty():
-                return
-        await asyncio.sleep(0.3)
-
-
-async def api_get_json(url: str) -> dict[str, Any]:
-    if not bot.http_session:
-        raise RuntimeError("Brak sesji HTTP")
-    async with bot.http_session.get(url) as resp:
-        if resp.status >= 400:
-            body = await resp.text()
-            raise aiohttp.ClientResponseError(
-                request_info=resp.request_info,
-                history=resp.history,
-                status=resp.status,
-                message=body[:300],
-                headers=resp.headers,
-            )
-        return await resp.json()
-
-
-def _normalize_city_text(value: str) -> str:
-    return re.sub(r"\s+", " ", (value or "").strip()).casefold()
-
-
-async def geocode_city(city: str) -> dict[str, Any] | None:
-    raw_query = (city or "").strip()
-    if not raw_query:
+def get_guild_config(guild_id: int) -> dict | None:
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute(
+        """
+        SELECT guild_id, weather_category_id, clock_category_id, stats_category_id,
+               channels_json, city_name, latitude, longitude, country, timezone, language,
+               status_panel_message_id
+        FROM guild_config
+        WHERE guild_id=?
+        """,
+        (guild_id,),
+    )
+    row = c.fetchone()
+    conn.close()
+    if not row:
         return None
 
-    # Jeśli komenda dostaje pełną etykietę z autocomplete typu
-    # "Warszawa, Województwo mazowieckie, Polska", wyszukujemy po samej nazwie,
-    # a potem dopasowujemy pełną etykietę do wyników.
-    base_query = raw_query.split(",", 1)[0].strip() or raw_query
-    q = aiohttp.helpers.quote(base_query, safe="")
-    url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count=25&language=pl&format=json"
-    data = await api_get_json(url)
-    results = data.get("results") or []
-    if not results:
-        return None
-
-    wanted_full = _normalize_city_text(raw_query)
-    wanted_name = _normalize_city_text(base_query)
-
-    def build_display(item: dict[str, Any]) -> str:
-        name = str(item.get("name", "")).strip()
-        admin1 = str(item.get("admin1", "")).strip()
-        country = str(item.get("country", "")).strip()
-        return ", ".join(part for part in [name, admin1, country] if part)
-
-    # Najpierw próbujemy idealnie dopasować pełną etykietę z autocomplete.
-    for item in results:
-        if _normalize_city_text(build_display(item)) == wanted_full:
-            return item
-
-    # Potem próbujemy po samej nazwie miasta.
-    for item in results:
-        if _normalize_city_text(str(item.get("name", ""))) == wanted_name:
-            return item
-
-    return results[0]
-
-def weather_code_text(code: int) -> str:
-    mapping = {
-        0: "bezchmurnie",
-        1: "prawie bezchmurnie",
-        2: "małe zachmurzenie",
-        3: "pochmurno",
-        45: "mgła",
-        48: "osadzająca się mgła",
-        51: "mżawka",
-        53: "mżawka",
-        55: "silna mżawka",
-        61: "lekki deszcz",
-        63: "deszcz",
-        65: "silny deszcz",
-        71: "lekki śnieg",
-        73: "śnieg",
-        75: "silny śnieg",
-        80: "przelotne opady",
-        81: "przelotny deszcz",
-        82: "silne przelotne opady",
-        95: "burza",
-        96: "burza z gradem",
-        99: "silna burza z gradem",
-    }
-    return mapping.get(code, f"kod {code}")
-
-
-def part_of_day(now_hour: int) -> str:
-    if 5 <= now_hour < 12:
-        return "rano"
-    if 12 <= now_hour < 18:
-        return "po południu"
-    if 18 <= now_hour < 22:
-        return "wieczór"
-    return "noc"
-
-
-def moon_phase_name(phase: float) -> str:
-    phases = [
-        (0.03, "nów"),
-        (0.22, "przybywający sierp"),
-        (0.28, "pierwsza kwadra"),
-        (0.47, "przybywający garb"),
-        (0.53, "pełnia"),
-        (0.72, "ubywający garb"),
-        (0.78, "ostatnia kwadra"),
-        (0.97, "ubywający sierp"),
-        (1.01, "nów"),
-    ]
-    for limit, name in phases:
-        if phase <= limit:
-            return name
-    return "nów"
-
-
-def moon_phase_fraction_for_date(day: date) -> float:
-    # Przybliżenie wieku Księżyca w cyklu synodycznym (29.53058867 dnia).
-    # Wystarczy do nazwy fazy w kanale Discord.
-    reference_new_moon = datetime(2000, 1, 6, 18, 14, tzinfo=UTC)
-    current = datetime(day.year, day.month, day.day, 12, 0, tzinfo=UTC)
-    synodic_month = 29.53058867
-    days_since = (current - reference_new_moon).total_seconds() / 86400.0
-    fraction = (days_since % synodic_month) / synodic_month
-    return max(0.0, min(1.0, fraction))
-
-
-def pollen_level_name(value: float) -> str:
-    if value <= 0:
-        return "brak"
-    if value < 10:
-        return "niskie"
-    if value < 30:
-        return "umiarkowane"
-    if value < 60:
-        return "wysokie"
-    return "bardzo wysokie"
-
-
-def pollen_alert_rank(level: str) -> int:
-    order = {
-        "brak": 0,
-        "niskie": 1,
-        "umiarkowane": 2,
-        "wysokie": 3,
-        "bardzo wysokie": 4,
-    }
-    return order.get(level, 0)
-
-
-def build_allergy_channels(current: dict[str, float]) -> tuple[str, str, str]:
-    plants = [
-        ("olsza", current.get("alder_pollen", 0)),
-        ("brzoza", current.get("birch_pollen", 0)),
-        ("trawy", current.get("grass_pollen", 0)),
-        ("bylica", current.get("mugwort_pollen", 0)),
-        ("oliwka", current.get("olive_pollen", 0)),
-        ("ambrozja", current.get("ragweed_pollen", 0)),
-    ]
-    classified = [(name, pollen_level_name(value)) for name, value in plants]
-    active = [(name, lvl) for name, lvl in classified if lvl != "brak"]
-    active.sort(key=lambda x: pollen_alert_rank(x[1]), reverse=True)
-
-    if active:
-        top = active[:2]
-        live_text = " | ".join(f"{n} {lvl}" for n, lvl in top)
-        live_channel = f"🌿 {live_text}"
-        top_name, top_level = active[0]
-        if pollen_alert_rank(top_level) >= 3:
-            alert_channel = f"🚨 alert {top_name} {top_level}"
-            advice = "💊 unikaj spacerów rano"
-        elif pollen_alert_rank(top_level) == 2:
-            alert_channel = "🟡 alert umiarkowane pylenie"
-            advice = "💊 warto zamknąć okna"
-        else:
-            alert_channel = "🟢 alert niski"
-            advice = "💊 brak specjalnych zaleceń"
-    else:
-        live_channel = "🌿 pylenie brak"
-        alert_channel = "🟢 alert brak"
-        advice = "💊 brak specjalnych zaleceń"
-
-    return (
-        sanitize_channel_name(alert_channel),
-        sanitize_channel_name(live_channel),
-        sanitize_channel_name(advice),
-    )
-
-
-async def fetch_weather_bundle(cfg: dict[str, Any]) -> dict[str, Any]:
-    lat = cfg["latitude"]
-    lon = cfg["longitude"]
-    tz = aiohttp.helpers.quote(cfg.get("timezone", DEFAULT_TIMEZONE), safe="")
-
-    weather_url = (
-        "https://api.open-meteo.com/v1/forecast"
-        f"?latitude={lat}&longitude={lon}&timezone={tz}"
-        "&current=temperature_2m,relative_humidity_2m,apparent_temperature,pressure_msl,cloud_cover,wind_speed_10m,weather_code"
-        "&daily=sunrise,sunset,daylight_duration,precipitation_sum"
-        "&forecast_days=1"
-    )
-    air_url = (
-        "https://air-quality-api.open-meteo.com/v1/air-quality"
-        f"?latitude={lat}&longitude={lon}&timezone={tz}"
-        "&current=european_aqi,alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen"
-    )
-
-    weather, air = await asyncio.gather(api_get_json(weather_url), api_get_json(air_url))
-    return {"weather": weather, "air": air}
-
-
-def aqi_text(aqi: float | int | None) -> str:
-    if aqi is None:
-        return "brak danych"
     try:
-        value = float(aqi)
+        channels = json.loads(row[4]) if row[4] else {}
     except Exception:
-        return "brak danych"
-    if value < 20:
-        return "dobre"
-    if value < 40:
-        return "umiarkowane"
-    if value < 60:
-        return "średnie"
-    if value < 80:
-        return "słabe"
-    return "bardzo słabe"
+        channels = {}
+
+    return {
+        "guild_id": row[0],
+        "weather_category_id": row[1],
+        "clock_category_id": row[2],
+        "stats_category_id": row[3],
+        "channels": channels,
+        "city_name": row[5] or DEFAULT_CITY_NAME,
+        "latitude": row[6] if row[6] is not None else DEFAULT_LATITUDE,
+        "longitude": row[7] if row[7] is not None else DEFAULT_LONGITUDE,
+        "country": row[8] or DEFAULT_COUNTRY,
+        "timezone": row[9] or DEFAULT_TIMEZONE,
+        "language": row[10] or DEFAULT_LANGUAGE,
+        "status_panel_message_id": row[11],
+    }
 
 
-async def ensure_category(guild: discord.Guild, name: str, saved_id: int | None) -> discord.CategoryChannel:
-    category = guild.get_channel(saved_id) if saved_id else None
-    if not isinstance(category, discord.CategoryChannel):
-        category = discord.utils.get(guild.categories, name=name)
-    if not category:
-        category = await guild.create_category(name)
-        await asyncio.sleep(CHANNEL_CREATE_DELAY)
-    elif category.name != name:
-        await category.edit(name=name)
-        await asyncio.sleep(CHANNEL_EDIT_DELAY)
+def save_guild_config(guild_id: int, cfg: dict):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute(
+        """
+        INSERT OR REPLACE INTO guild_config (
+            guild_id, weather_category_id, clock_category_id, stats_category_id,
+            channels_json, city_name, latitude, longitude, country, timezone, language,
+            status_panel_message_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            guild_id,
+            cfg.get("weather_category_id"),
+            cfg.get("clock_category_id"),
+            cfg.get("stats_category_id"),
+            json.dumps(cfg.get("channels", {}), ensure_ascii=False),
+            cfg.get("city_name", DEFAULT_CITY_NAME),
+            cfg.get("latitude", DEFAULT_LATITUDE),
+            cfg.get("longitude", DEFAULT_LONGITUDE),
+            cfg.get("country", DEFAULT_COUNTRY),
+            cfg.get("timezone", DEFAULT_TIMEZONE),
+            cfg.get("language", DEFAULT_LANGUAGE),
+            cfg.get("status_panel_message_id"),
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+
+# ================================
+# POMOCNICZE
+# ================================
+
+def build_default_guild_config(guild_id: int) -> dict:
+    return {
+        "guild_id": guild_id,
+        "weather_category_id": None,
+        "clock_category_id": None,
+        "stats_category_id": None,
+        "channels": {},
+        "city_name": DEFAULT_CITY_NAME,
+        "latitude": DEFAULT_LATITUDE,
+        "longitude": DEFAULT_LONGITUDE,
+        "country": DEFAULT_COUNTRY,
+        "timezone": DEFAULT_TIMEZONE,
+        "language": DEFAULT_LANGUAGE,
+        "status_panel_message_id": None,
+    }
+
+
+def get_lang_code(cfg: dict | None) -> str:
+    if not cfg:
+        return DEFAULT_LANGUAGE
+    lang = cfg.get("language", DEFAULT_LANGUAGE)
+    return lang if lang in LANGUAGES else DEFAULT_LANGUAGE
+
+
+def tr(lang: str, key: str, **kwargs) -> str:
+    lang = lang if lang in LANGUAGES else DEFAULT_LANGUAGE
+    text = LANGUAGES[lang].get(key, LANGUAGES[DEFAULT_LANGUAGE].get(key, key))
+    if kwargs:
+        try:
+            return text.format(**kwargs)
+        except Exception:
+            return text
+    return text
+
+
+def get_timezone_object(timezone_name: str):
+    try:
+        return pytz.timezone(timezone_name)
+    except Exception:
+        return pytz.timezone(DEFAULT_TIMEZONE)
+
+
+def trim_channel_name(text: str) -> str:
+    text = " ".join(str(text).split())
+    return text[:MAX_CHANNEL_NAME_LENGTH].strip()
+
+
+def get_category_name(lang: str, group_name: str) -> str:
+    mapping = {
+        "weather": tr(lang, "cat_weather"),
+        "clock": tr(lang, "cat_clock"),
+        "stats": tr(lang, "cat_stats"),
+    }
+    return mapping[group_name]
+
+
+def get_channel_fallback_name(lang: str, key: str) -> str:
+    _, translation_key = CHANNEL_TEMPLATE_KEYS[key]
+    return tr(lang, translation_key)
+
+
+def get_channel_from_config(guild: discord.Guild, cfg: dict, key: str):
+    channel_id = cfg.get("channels", {}).get(key)
+    if not channel_id:
+        return None
+    ch = guild.get_channel(channel_id)
+    return ch if isinstance(ch, discord.VoiceChannel) else None
+
+
+def find_voice_channel_in_category_by_name(
+    category: discord.CategoryChannel | None, name: str
+) -> discord.VoiceChannel | None:
+    if category is None:
+        return None
+    for channel in category.voice_channels:
+        if channel.name == name:
+            return channel
+    return None
+
+
+def format_uptime(delta: timedelta) -> str:
+    total_seconds = int(delta.total_seconds())
+    days, rem = divmod(total_seconds, 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes, seconds = divmod(rem, 60)
+    if days > 0:
+        return f"{days}d {hours}h {minutes}m {seconds}s"
+    return f"{hours}h {minutes}m {seconds}s"
+
+
+def get_channel_lock(channel_id: int) -> asyncio.Lock:
+    if channel_id not in channel_edit_locks:
+        channel_edit_locks[channel_id] = asyncio.Lock()
+    return channel_edit_locks[channel_id]
+
+
+async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_name: str):
+    if channel is None:
+        return
+
+    new_name = trim_channel_name(new_name)
+    if channel.name == new_name:
+        return
+
+    lock = get_channel_lock(channel.id)
+    async with lock:
+        if channel.name == new_name:
+            return
+        old_name = channel.name
+        try:
+            await channel.edit(name=new_name)
+            logging.info("[KANAŁ] %s -> %s (id=%s)", old_name, new_name, channel.id)
+            if CHANNEL_EDIT_DELAY > 0:
+                await asyncio.sleep(CHANNEL_EDIT_DELAY)
+        except discord.Forbidden:
+            logging.warning("Brak uprawnień do zmiany nazwy kanału %s", channel.id)
+        except discord.HTTPException as e:
+            logging.warning("Nie udało się zmienić nazwy kanału %s: %s", channel.id, e)
+
+
+async def create_or_get_category(guild: discord.Guild, name: str) -> discord.CategoryChannel:
+    for category in guild.categories:
+        if category.name == name:
+            return category
+    category = await guild.create_category(name)
+    logging.info("[SETUP] Utworzono kategorię %s na serwerze %s", name, guild.name)
     return category
 
 
-async def ensure_voice_channel(
-    guild: discord.Guild,
-    category: discord.CategoryChannel,
-    saved_id: int | None,
-    fallback_name: str,
+async def create_or_get_voice_channel(
+    category: discord.CategoryChannel, name: str
 ) -> discord.VoiceChannel:
-    channel = guild.get_channel(saved_id) if saved_id else None
-    if not isinstance(channel, discord.VoiceChannel):
-        channel = discord.utils.get(category.channels, name=fallback_name)
-        if channel and not isinstance(channel, discord.VoiceChannel):
-            channel = None
-    if not channel:
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(connect=False, speak=False),
-            guild.me: discord.PermissionOverwrite(connect=True, manage_channels=True, view_channel=True),
-        }
-        channel = await guild.create_voice_channel(fallback_name, category=category, overwrites=overwrites)
-        await asyncio.sleep(CHANNEL_CREATE_DELAY)
-    elif channel.category_id != category.id:
-        await channel.edit(category=category)
-        await asyncio.sleep(CHANNEL_EDIT_DELAY)
+    existing = find_voice_channel_in_category_by_name(category, name)
+    if existing:
+        return existing
+    channel = await category.create_voice_channel(name)
+    logging.info("[SETUP] Utworzono kanał %s w kategorii %s", name, category.name)
     return channel
 
 
-async def create_or_sync_structure(guild: discord.Guild) -> dict[str, Any]:
-    cfg = await get_guild_config(guild.id)
-    lang = get_lang(cfg)
+def parse_hhmm_to_today(now: datetime, hhmm: str | None) -> datetime | None:
+    if not hhmm:
+        return None
+    try:
+        hour, minute = map(int, hhmm.split(":"))
+        return now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    except Exception:
+        return None
 
-    categories = dict(cfg.get("categories", {}))
-    channels = dict(cfg.get("channels", {}))
 
-    weather_cat = await ensure_category(guild, get_weather_category_name(cfg), categories.get("weather"))
-    clock_cat = await ensure_category(guild, lang["cat_clock"], categories.get("clock"))
-    stats_cat = await ensure_category(guild, lang["cat_stats"], categories.get("stats"))
-    allergy_cat = await ensure_category(guild, lang["cat_allergy"], categories.get("allergy"))
+def localized_alert_name(name: str, lang: str) -> str:
+    if lang == "pl":
+        mapping = {
+            "fog": "mgła",
+            "snow drift": "zawieja śnieżna",
+            "ice": "gołoledź",
+            "heavy rain": "ulewa",
+            "heavy snow": "intensywny śnieg",
+            "blizzard": "zamieć śnieżna",
+            "strong wind": "silny wiatr",
+            "storm": "burza",
+            "hail": "grad",
+            "hurricane": "orkan",
+        }
+        return mapping.get(name, name)
+    return name
 
-    categories = {
-        "weather": weather_cat.id,
-        "clock": clock_cat.id,
-        "stats": stats_cat.id,
-        "allergy": allergy_cat.id,
+
+async def ensure_guild_members_cached(guild: discord.Guild):
+    try:
+        if not guild.chunked:
+            logging.info("[STATYSTYKI] Chunkowanie członków dla serwera %s...", guild.name)
+            await guild.chunk(cache=True)
+    except Exception as e:
+        logging.warning("Nie udało się dochunkować członków dla serwera %s: %s", guild.id, e)
+
+
+async def schedule_background_refresh(guild: discord.Guild):
+    existing = background_refresh_tasks.get(guild.id)
+    if existing and not existing.done():
+        return
+
+    async def runner():
+        try:
+            logging.info("[REFRESH] Start pełnego odświeżenia dla serwera %s", guild.name)
+            await ensure_guild_members_cached(guild)
+            await refresh_existing_panel(guild)
+            await refresh_status_panel_message(guild)
+            logging.info("[REFRESH] Koniec pełnego odświeżenia dla serwera %s", guild.name)
+        except Exception as e:
+            logging.warning("Błąd background refresh dla serwera %s: %s", guild.id, e)
+        finally:
+            background_refresh_tasks.pop(guild.id, None)
+
+    background_refresh_tasks[guild.id] = asyncio.create_task(runner())
+
+
+# ================================
+# API / POGODA
+# ================================
+
+async def fetch_json(url: str):
+    if bot.http_session is None or bot.http_session.closed:
+        timeout = aiohttp.ClientTimeout(total=20)
+        bot.http_session = aiohttp.ClientSession(timeout=timeout)
+
+    async with bot.http_session.get(
+        url,
+        headers={"User-Agent": "KosmicznyZegar/25"},
+    ) as response:
+        text = await response.text()
+        lowered = text.lower()
+        if text.startswith("<!DOCTYPE") or "<html" in lowered:
+            raise RuntimeError("API returned HTML instead of JSON")
+        try:
+            return json.loads(text)
+        except Exception as e:
+            raise RuntimeError(f"Failed to parse JSON: {e}")
+
+
+async def geocode_city(city_query: str, count: int = 10):
+    city_query = city_query.strip()
+    if not city_query:
+        return []
+    url = (
+        "https://geocoding-api.open-meteo.com/v1/search"
+        f"?name={quote(city_query)}&count={count}&language=pl&format=json"
+    )
+    data = await fetch_json(url)
+    results = data.get("results", []) or []
+    parsed = []
+    for item in results:
+        parsed.append(
+            {
+                "name": item.get("name"),
+                "country": item.get("country", "Unknown country"),
+                "admin1": item.get("admin1"),
+                "latitude": item.get("latitude"),
+                "longitude": item.get("longitude"),
+                "timezone": item.get("timezone") or DEFAULT_TIMEZONE,
+            }
+        )
+    return parsed
+
+
+def air_quality_text(eaqi, lang: str):
+    if eaqi is None:
+        return tr(lang, "air_no_data")
+    value = float(eaqi)
+    if value <= 20:
+        return tr(lang, "air_very_good")
+    if value <= 40:
+        return tr(lang, "air_good")
+    if value <= 60:
+        return tr(lang, "air_moderate")
+    if value <= 80:
+        return tr(lang, "air_fair")
+    if value <= 100:
+        return tr(lang, "air_bad")
+    return tr(lang, "air_very_bad")
+
+
+def pollen_level_name(value: float, lang: str) -> str:
+    if value <= 0:
+        return tr(lang, "pollen_none")
+    if value <= 10:
+        return tr(lang, "pollen_low")
+    if value <= 50:
+        return tr(lang, "pollen_medium")
+    if value <= 100:
+        return tr(lang, "pollen_high")
+    return tr(lang, "pollen_very_high")
+
+
+def build_pollen_channel_text(alder, birch, grass, mugwort, ragweed, lang: str) -> str:
+    pollens = [
+        (tr(lang, "pollen_alder"), float(alder or 0)),
+        (tr(lang, "pollen_birch"), float(birch or 0)),
+        (tr(lang, "pollen_grass"), float(grass or 0)),
+        (tr(lang, "pollen_mugwort"), float(mugwort or 0)),
+        (tr(lang, "pollen_ragweed"), float(ragweed or 0)),
+    ]
+    active = [(name, value) for name, value in pollens if value > 0]
+    if not active:
+        return trim_channel_name(f"🌿 {tr(lang, 'field_pollen')} {tr(lang, 'none')}")
+    active.sort(key=lambda x: x[1], reverse=True)
+    formatted_items = [f"{name} {pollen_level_name(value, lang)}" for name, value in active]
+    return trim_channel_name(f"🌿 {tr(lang, 'field_pollen')} " + " • ".join(formatted_items))
+
+
+def format_precipitation_channel(current: dict, lang: str) -> str:
+    weather_code = int(current.get("weather_code", -1)) if current.get("weather_code") is not None else -1
+    precipitation = float(current.get("precipitation", 0) or 0)
+    rain = float(current.get("rain", 0) or 0)
+    showers = float(current.get("showers", 0) or 0)
+    snowfall = float(current.get("snowfall", 0) or 0)
+    rain_total = rain + showers
+
+    rain_codes = {51, 53, 55, 61, 63, 65, 80, 81, 82}
+    snow_codes = {71, 73, 75, 77, 85, 86}
+    hail_codes = {96, 99}
+
+    has_hail = weather_code in hail_codes
+    has_snow = snowfall > 0 or weather_code in snow_codes
+    has_rain = rain_total > 0 or (precipitation > 0 and weather_code in rain_codes)
+
+    if not has_rain and not has_snow and not has_hail and precipitation <= 0:
+        return tr(lang, "weather_rain_none")
+
+    parts = []
+    if has_hail:
+        parts.append(tr(lang, "weather_hail"))
+    if has_rain:
+        parts.append(f"{tr(lang, 'weather_rain')} {round(rain_total, 1)} mm")
+    if has_snow:
+        parts.append(f"{tr(lang, 'weather_snow')} {round(snowfall, 1)} cm")
+    if not parts and precipitation > 0:
+        parts.append(f"{tr(lang, 'weather_precip')} {round(precipitation, 1)} mm")
+
+    text = f"{tr(lang, 'weather_rain_text')} " + " / ".join(parts)
+    if has_hail and has_rain and has_snow:
+        text = f"⛈🌧🌨 {text}"
+    elif has_hail and has_rain:
+        text = f"⛈🌧 {text}"
+    elif has_snow and has_rain:
+        text = f"🌧🌨 {text}"
+    elif has_hail:
+        text = f"⛈ {text}"
+    elif has_snow:
+        text = f"🌨 {text}"
+    else:
+        text = f"🌧 {text}"
+    return trim_channel_name(text)
+
+
+def build_weather_alerts(current: dict) -> dict:
+    alerts: list[str] = []
+    level = 0
+
+    weather_code = int(current.get("weather_code", -1)) if current.get("weather_code") is not None else -1
+    temperature = float(current.get("temperature_2m", 999) or 999)
+    precipitation = float(current.get("precipitation", 0) or 0)
+    rain = float(current.get("rain", 0) or 0)
+    showers = float(current.get("showers", 0) or 0)
+    snowfall = float(current.get("snowfall", 0) or 0)
+    gusts = float(current.get("wind_gusts_10m", 0) or 0)
+    visibility = float(current.get("visibility", 999999) or 999999)
+
+    if weather_code in {45, 48} or visibility <= 1000:
+        alerts.append("fog")
+        level = max(level, 1)
+    if snowfall > 0 and gusts >= 40:
+        alerts.append("snow drift")
+        level = max(level, 1)
+    if weather_code in {56, 57, 66, 67} or (temperature <= 1 and precipitation > 0):
+        alerts.append("ice")
+        level = max(level, 2)
+    if weather_code in {65, 82} or precipitation >= 10 or rain >= 10 or showers >= 10:
+        alerts.append("heavy rain")
+        level = max(level, 2)
+    if weather_code in {75, 86} or snowfall >= 1.0:
+        alerts.append("heavy snow")
+        level = max(level, 2)
+    if snowfall > 0 and gusts >= 55:
+        alerts.append("blizzard")
+        level = max(level, 2)
+    if gusts >= 70:
+        alerts.append("strong wind")
+        level = max(level, 2)
+    if weather_code in {95, 96, 99}:
+        alerts.append("storm")
+        level = max(level, 3)
+    if weather_code in {96, 99}:
+        alerts.append("hail")
+        level = max(level, 3)
+    if gusts >= 118:
+        alerts.append("hurricane")
+        level = max(level, 3)
+
+    unique_alerts: list[str] = []
+    for alert in alerts:
+        if alert not in unique_alerts:
+            unique_alerts.append(alert)
+    return {"alerts": unique_alerts, "level": level}
+
+
+def format_alerts_channel(alerts: list[str], level: int, lang: str) -> str:
+    if not alerts or level == 0:
+        return tr(lang, "alert_none")
+    translated_alerts = [f"❗{localized_alert_name(alert, lang)}" for alert in alerts]
+    if level == 1:
+        base = tr(lang, "alert_l1")
+    elif level == 2:
+        base = tr(lang, "alert_l2")
+    else:
+        base = tr(lang, "alert_l3")
+    return trim_channel_name(base + " ".join(translated_alerts))
+
+
+def fallback_part_of_day(hour: int, minute: int, lang: str) -> str:
+    total_minutes = hour * 60 + minute
+    if 4 * 60 <= total_minutes < 6 * 60:
+        return tr(lang, "part_dawn")
+    if 6 * 60 <= total_minutes < 11 * 60:
+        return tr(lang, "part_before_noon")
+    if 11 * 60 <= total_minutes < 13 * 60:
+        return tr(lang, "part_noon")
+    if 13 * 60 <= total_minutes < 18 * 60:
+        return tr(lang, "part_afternoon")
+    if 18 * 60 <= total_minutes < 20 * 60:
+        return tr(lang, "part_dusk")
+    return tr(lang, "part_night")
+
+
+def format_part_of_day(
+    now: datetime, lang: str, sunrise_str: str | None = None, sunset_str: str | None = None
+) -> str:
+    sunrise = parse_hhmm_to_today(now, sunrise_str) if sunrise_str else None
+    sunset = parse_hhmm_to_today(now, sunset_str) if sunset_str else None
+    if sunrise is None or sunset is None or sunrise >= sunset:
+        return fallback_part_of_day(now.hour, now.minute, lang)
+
+    dawn_start = sunrise - timedelta(minutes=45)
+    dawn_end = sunrise + timedelta(minutes=30)
+    noon_start = now.replace(hour=11, minute=0, second=0, microsecond=0)
+    noon_end = now.replace(hour=13, minute=0, second=0, microsecond=0)
+    dusk_start = sunset - timedelta(minutes=40)
+    dusk_end = sunset + timedelta(minutes=35)
+
+    if now < dawn_start:
+        return tr(lang, "part_night")
+    if dawn_start <= now < dawn_end:
+        return tr(lang, "part_dawn")
+    if dawn_end <= now < noon_start:
+        return tr(lang, "part_before_noon")
+    if noon_start <= now < noon_end:
+        return tr(lang, "part_noon")
+    if noon_end <= now < dusk_start:
+        return tr(lang, "part_afternoon")
+    if dusk_start <= now < dusk_end:
+        return tr(lang, "part_dusk")
+    return tr(lang, "part_night")
+
+
+def day_length_text(sunrise_str, sunset_str, lang: str):
+    try:
+        sunrise = datetime.strptime(sunrise_str, "%H:%M")
+        sunset = datetime.strptime(sunset_str, "%H:%M")
+        diff = sunset - sunrise
+        minutes = int(diff.total_seconds() // 60)
+        hours = minutes // 60
+        mins = minutes % 60
+        return f"{tr(lang, 'day_length_prefix')} {hours}h {mins}m"
+    except Exception:
+        return f"{tr(lang, 'day_length_prefix')} --"
+
+
+def moon_phase_name(now: datetime, lang: str) -> str:
+    diff = now - datetime(2001, 1, 1, tzinfo=now.tzinfo)
+    days = diff.total_seconds() / 86400
+    lunations = 0.20439731 + (days * 0.03386319269)
+    phase_index = int((lunations % 1) * 8 + 0.5) & 7
+    phases = {
+        0: tr(lang, "moon_new"),
+        1: tr(lang, "moon_waxing_crescent"),
+        2: tr(lang, "moon_first_quarter"),
+        3: tr(lang, "moon_waxing_gibbous"),
+        4: tr(lang, "moon_full"),
+        5: tr(lang, "moon_waning_gibbous"),
+        6: tr(lang, "moon_last_quarter"),
+        7: tr(lang, "moon_waning_crescent"),
+    }
+    return phases.get(phase_index, tr(lang, "moon_unknown"))
+
+
+async def get_weather_data(
+    city_name: str,
+    latitude: float,
+    longitude: float,
+    timezone_name: str = DEFAULT_TIMEZONE,
+    lang: str = DEFAULT_LANGUAGE,
+):
+    encoded_timezone = quote(timezone_name)
+
+    weather_url = (
+        "https://api.open-meteo.com/v1/forecast"
+        f"?latitude={latitude}&longitude={longitude}"
+        "&current=temperature_2m,apparent_temperature,cloud_cover,precipitation,rain,showers,snowfall,weather_code,wind_speed_10m,wind_gusts_10m,pressure_msl,visibility,is_day"
+        "&daily=sunrise,sunset"
+        f"&timezone={encoded_timezone}"
+    )
+    air_url = (
+        "https://air-quality-api.open-meteo.com/v1/air-quality"
+        f"?latitude={latitude}&longitude={longitude}"
+        "&current=european_aqi"
+        f"&timezone={encoded_timezone}"
+    )
+    pollen_url = (
+        "https://air-quality-api.open-meteo.com/v1/air-quality"
+        f"?latitude={latitude}&longitude={longitude}"
+        "&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen"
+        f"&timezone={encoded_timezone}"
+    )
+
+    weather_data, air_data, pollen_data = await asyncio.gather(
+        fetch_json(weather_url), fetch_json(air_url), fetch_json(pollen_url)
+    )
+
+    current = weather_data.get("current") or {}
+    daily = weather_data.get("daily") or {}
+    air_current = air_data.get("current") or {}
+    hourly = pollen_data.get("hourly") or {}
+    hourly_time = hourly.get("time") or []
+    current_time = current.get("time")
+
+    pollen_index = 0
+    if current_time and current_time in hourly_time:
+        pollen_index = hourly_time.index(current_time)
+
+    def pollen_value(name: str):
+        values = hourly.get(name) or []
+        if 0 <= pollen_index < len(values):
+            return values[pollen_index]
+        return 0
+
+    alder = pollen_value("alder_pollen")
+    birch = pollen_value("birch_pollen")
+    grass = pollen_value("grass_pollen")
+    mugwort = pollen_value("mugwort_pollen")
+    ragweed = pollen_value("ragweed_pollen")
+
+    alerts_info = build_weather_alerts(current)
+    alerts = alerts_info["alerts"]
+    alert_level = alerts_info["level"]
+
+    temp = current.get("temperature_2m")
+    feels = current.get("apparent_temperature")
+    clouds = current.get("cloud_cover")
+    wind = current.get("wind_speed_10m")
+    pressure = current.get("pressure_msl")
+
+    sunrise_raw_list = daily.get("sunrise") or []
+    sunset_raw_list = daily.get("sunset") or []
+    sunrise_raw = sunrise_raw_list[0] if sunrise_raw_list else None
+    sunset_raw = sunset_raw_list[0] if sunset_raw_list else None
+
+    sunrise_time = "--:--"
+    sunset_time = "--:--"
+
+    if isinstance(sunrise_raw, str) and len(sunrise_raw) >= 16:
+        sunrise_time = sunrise_raw[11:16]
+    if isinstance(sunset_raw, str) and len(sunset_raw) >= 16:
+        sunset_time = sunset_raw[11:16]
+
+    return {
+        "temperature": f"🌡 {city_name.upper()} {round(float(temp))}°C"
+        if temp is not None else f"🌡 {city_name.upper()} --°C",
+        "feels": f"🥵 {tr(lang, 'field_feels')} {round(float(feels))}°C"
+        if feels is not None else f"🥵 {tr(lang, 'field_feels')} --°C",
+        "clouds": f"☁ {tr(lang, 'field_clouds')} {round(float(clouds))}%"
+        if clouds is not None else f"☁ {tr(lang, 'field_clouds')} --%",
+        "air": air_quality_text(air_current.get("european_aqi"), lang),
+        "pollen": build_pollen_channel_text(alder, birch, grass, mugwort, ragweed, lang),
+        "rain": format_precipitation_channel(current, lang),
+        "wind": f"💨 {tr(lang, 'field_wind')} {round(float(wind))} km/h"
+        if wind is not None else f"💨 {tr(lang, 'field_wind')} -- km/h",
+        "pressure": f"⏱ {tr(lang, 'field_pressure')} {round(float(pressure))} hPa"
+        if pressure is not None else f"⏱ {tr(lang, 'field_pressure')} -- hPa",
+        "alerts": format_alerts_channel(alerts, alert_level, lang),
+        "alerts_list": [localized_alert_name(a, lang) for a in alerts],
+        "alert_level": alert_level,
+        "sunrise": f"🌅 {tr(lang, 'field_sunrise')} {sunrise_time}",
+        "sunset": f"🌇 {tr(lang, 'field_sunset')} {sunset_time}",
+        "sunrise_time": sunrise_time,
+        "sunset_time": sunset_time,
+        "day_length": day_length_text(sunrise_time, sunset_time, lang),
     }
 
-    # weather
-    for key in WEATHER_CHANNEL_ORDER:
-        ch = await ensure_voice_channel(guild, weather_cat, channels.get(key), CHANNEL_SPECS["weather"][key])
-        channels[key] = ch.id
+# ================================
+# PANEL KANAŁÓW
+# ================================
 
-    # clock
-    for key in CLOCK_CHANNEL_ORDER:
-        ch = await ensure_voice_channel(guild, clock_cat, channels.get(key), CHANNEL_SPECS["clock"][key])
-        channels[key] = ch.id
+async def setup_categories_and_channels(guild: discord.Guild):
+    cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
+    lang = get_lang_code(cfg)
 
-    # stats
-    for key in STATS_CHANNEL_ORDER:
-        ch = await ensure_voice_channel(guild, stats_cat, channels.get(key), CHANNEL_SPECS["stats"][key])
-        channels[key] = ch.id
+    weather_category = guild.get_channel(cfg.get("weather_category_id")) if cfg.get("weather_category_id") else None
+    clock_category = guild.get_channel(cfg.get("clock_category_id")) if cfg.get("clock_category_id") else None
+    stats_category = guild.get_channel(cfg.get("stats_category_id")) if cfg.get("stats_category_id") else None
 
-    # allergy
-    for key in ALLERGY_CHANNEL_ORDER:
-        ch = await ensure_voice_channel(guild, allergy_cat, channels.get(key), CHANNEL_SPECS["allergy"][key])
-        channels[key] = ch.id
+    if not isinstance(weather_category, discord.CategoryChannel):
+        weather_category = await create_or_get_category(guild, get_category_name(lang, "weather"))
+        cfg["weather_category_id"] = weather_category.id
 
-    # remove old weather pollen channel if exists from older versions
-    old_pollen_channel_id = channels.pop("pollen", None)
-    if old_pollen_channel_id:
-        old_channel = guild.get_channel(old_pollen_channel_id)
-        if old_channel:
-            try:
-                await old_channel.delete()
-                await asyncio.sleep(CHANNEL_DELETE_DELAY)
-            except discord.HTTPException:
-                logger.exception("Nie udało się usunąć starego kanału pylenia")
+    if not isinstance(clock_category, discord.CategoryChannel):
+        clock_category = await create_or_get_category(guild, get_category_name(lang, "clock"))
+        cfg["clock_category_id"] = clock_category.id
 
-    cfg = await update_guild_config(
-        guild.id,
-        {
-            "categories": categories,
-            "channels": channels,
-        },
-    )
+    if not isinstance(stats_category, discord.CategoryChannel):
+        stats_category = await create_or_get_category(guild, get_category_name(lang, "stats"))
+        cfg["stats_category_id"] = stats_category.id
+
+    category_map = {
+        "weather": weather_category,
+        "clock": clock_category,
+        "stats": stats_category,
+    }
+
+    channels = dict(cfg.get("channels", {}))
+    for key, (group_name, _) in CHANNEL_TEMPLATE_KEYS.items():
+        target_category = category_map[group_name]
+        fallback_name = get_channel_fallback_name(lang, key)
+        current_channel = None
+        channel_id = channels.get(key)
+
+        if channel_id:
+            current_channel = guild.get_channel(channel_id)
+        if current_channel is None:
+            current_channel = find_voice_channel_in_category_by_name(target_category, fallback_name)
+        if current_channel is None:
+            current_channel = await create_or_get_voice_channel(target_category, fallback_name)
+
+        channels[key] = current_channel.id
+
+    cfg["channels"] = channels
+    save_guild_config(guild.id, cfg)
     return cfg
 
 
-async def sort_channels(guild: discord.Guild, cfg: dict[str, Any]) -> None:
-    channels = cfg.get("channels", {})
+async def update_weather_channels(guild: discord.Guild, cfg: dict, weather: dict):
+    logging.info("[POGODA] Odświeżanie kanałów pogody dla serwera %s", guild.name)
+    tasks_to_run = []
+    for key in ["temperature", "feels", "clouds", "air", "pollen", "rain", "wind", "pressure", "alerts"]:
+        channel = get_channel_from_config(guild, cfg, key)
+        new_name = weather.get(key, get_channel_fallback_name(get_lang_code(cfg), key))
+        tasks_to_run.append(safe_edit_channel_name(channel, new_name))
+    await asyncio.gather(*tasks_to_run)
 
-    groups = [
-        WEATHER_CHANNEL_ORDER,
-        CLOCK_CHANNEL_ORDER,
-        STATS_CHANNEL_ORDER,
-        ALLERGY_CHANNEL_ORDER,
+
+async def update_clock_channels(guild: discord.Guild, cfg: dict, weather: dict | None = None):
+    lang = get_lang_code(cfg)
+    timezone_obj = get_timezone_object(cfg.get("timezone", DEFAULT_TIMEZONE))
+    now = datetime.now(timezone_obj)
+    weekdays = LANGUAGES[lang]["weekday_short"]
+
+    cached_weather = weather or weather_cache.get(guild.id, {})
+    sunrise_time = cached_weather.get("sunrise_time")
+    sunset_time = cached_weather.get("sunset_time")
+    sunrise_label = cached_weather.get("sunrise", f"🌅 {tr(lang, 'field_sunrise')} --:--")
+    sunset_label = cached_weather.get("sunset", f"🌇 {tr(lang, 'field_sunset')} --:--")
+    day_length_label = cached_weather.get("day_length", f"{tr(lang, 'day_length_prefix')} --")
+
+    logging.info("[ZEGAR] Odświeżanie kanałów zegara dla serwera %s", guild.name)
+
+    tasks_to_run = [
+        safe_edit_channel_name(
+            get_channel_from_config(guild, cfg, "date"),
+            f"{tr(lang, 'ch_date')} {weekdays[now.weekday()]} {now.strftime('%d.%m.%Y')}",
+        ),
+        safe_edit_channel_name(
+            get_channel_from_config(guild, cfg, "part_of_day"),
+            format_part_of_day(now, lang, sunrise_time, sunset_time),
+        ),
+        safe_edit_channel_name(
+            get_channel_from_config(guild, cfg, "sunrise"),
+            sunrise_label,
+        ),
+        safe_edit_channel_name(
+            get_channel_from_config(guild, cfg, "sunset"),
+            sunset_label,
+        ),
+        safe_edit_channel_name(
+            get_channel_from_config(guild, cfg, "day_length"),
+            day_length_label,
+        ),
+        safe_edit_channel_name(
+            get_channel_from_config(guild, cfg, "moon"),
+            moon_phase_name(now, lang),
+        ),
     ]
 
-    for order in groups:
-        for idx, key in enumerate(order):
-            ch_id = channels.get(key)
-            ch = guild.get_channel(ch_id) if ch_id else None
-            if not isinstance(ch, discord.VoiceChannel):
-                continue
-            # Sortowanie robimy tylko przy /setup, żeby nie generować 429 przy każdym refreshu.
-            await queue_channel_update(ch, ch.name, idx)
-
-    await wait_for_edit_queue_idle()
+    await asyncio.gather(*tasks_to_run)
 
 
-async def refresh_weather_channels(guild: discord.Guild, cfg: dict[str, Any]) -> None:
-    channels = cfg.get("channels", {})
-    bundle = await fetch_weather_bundle(cfg)
-    current = bundle["weather"].get("current", {})
-    daily = bundle["weather"].get("daily", {})
-    air = bundle["air"].get("current", {})
+async def update_stats_channels(guild: discord.Guild, cfg: dict):
+    await ensure_guild_members_cached(guild)
 
-    temp_v = current.get("temperature_2m")
-    feels_v = current.get("apparent_temperature")
-    clouds_v = current.get("cloud_cover")
-    wind_v = current.get("wind_speed_10m")
-    pressure_v = current.get("pressure_msl")
-    weather_code = int(current.get("weather_code", 0) or 0)
-    rain_sum = daily.get("precipitation_sum", [0])[0]
-    aqi = air.get("european_aqi")
+    lang = get_lang_code(cfg)
+    members = list(guild.members)
+    human_members = [m for m in members if not m.bot]
+    bot_members = [m for m in members if m.bot]
 
-    city_name = str(cfg.get("city_name", DEFAULT_CITY_NAME)).strip() or DEFAULT_CITY_NAME
-    country_name = str(cfg.get("country", "")).strip()
-    city_label = f"{city_name}, {country_name}" if country_name else city_name
+    members_count = guild.member_count or len(members)
+    humans_count = len(human_members)
+    bots_count = len(bot_members)
 
-    names = {
-        "city": f"🏙️ Miasto {city_label}",
-        "temperature": f"🌡️ Temperatura {round(temp_v)}°C" if temp_v is not None else "🌡️ Temperatura --°C",
-        "feels": f"🥵 Odczuwalna {round(feels_v)}°C" if feels_v is not None else "🥵 Odczuwalna --°C",
-        "clouds": f"☁️ Zachmurzenie {round(clouds_v)}%" if clouds_v is not None else "☁️ Zachmurzenie --%",
-        "rain": f"🌧️ Opady {round(float(rain_sum), 1)} mm" if rain_sum not in (None, 0, 0.0, "0", "0.0") else "🌧️ Opady brak",
-        "wind": f"🌬️ Wiatr {round(wind_v)} km/h" if wind_v is not None else "🌬️ Wiatr -- km/h",
-        "pressure": f"🧭 Ciśnienie {round(pressure_v)} hPa" if pressure_v is not None else "🧭 Ciśnienie ---- hPa",
-        "air": f"🟡 Powietrze {aqi_text(aqi)}",
-        "alerts": "🟢 ALERT brak" if weather_code in {0,1,2,3} else f"⚠️ ALERT {weather_code_text(weather_code)}",
-    }
-
-    allergy_alert, allergy_live, allergy_advice = build_allergy_channels(air)
-    names["allergy_alert"] = allergy_alert
-    names["allergy_live"] = allergy_live
-    names["allergy_advice"] = allergy_advice
-
-    for key in WEATHER_CHANNEL_ORDER + ALLERGY_CHANNEL_ORDER:
-        ch_id = channels.get(key)
-        ch = guild.get_channel(ch_id) if ch_id else None
-        if isinstance(ch, discord.VoiceChannel):
-            await queue_channel_update(ch, names[key])
-
-
-async def refresh_clock_channels(guild: discord.Guild, cfg: dict[str, Any]) -> None:
-    channels = cfg.get("channels", {})
-    tz_name = cfg.get("timezone", DEFAULT_TIMEZONE)
-    tz = pytz.timezone(tz_name)
-    now = datetime.now(tz)
-
-    bundle = await fetch_weather_bundle(cfg)
-    daily = bundle["weather"].get("daily", {})
-    sunrise_raw = daily.get("sunrise", ["--:--"])[0]
-    sunset_raw = daily.get("sunset", ["--:--"])[0]
-    sunrise = sunrise_raw[-5:]
-    sunset = sunset_raw[-5:]
-    daylight_seconds = int(float(daily.get("daylight_duration", [0])[0] or 0))
-    hours = daylight_seconds // 3600
-    minutes = (daylight_seconds % 3600) // 60
-    moon = moon_phase_name(moon_phase_fraction_for_date(now.date()))
-
-    names = {
-        "date": f"📅 Data {now.strftime('%d.%m.%Y')}",
-        "sunrise": f"🌅 Wschód {sunrise}",
-        "sunset": f"🌇 Zachód {sunset}",
-        "day_length": f"☀️ Dzień {hours}h {minutes}m",
-        "part_of_day": f"🌓 Pora dnia {part_of_day(now.hour)}",
-        "moon": f"🌕 Faza księżyca {moon}",
-    }
-
-    for key in CLOCK_CHANNEL_ORDER:
-        ch_id = channels.get(key)
-        ch = guild.get_channel(ch_id) if ch_id else None
-        if isinstance(ch, discord.VoiceChannel):
-            await queue_channel_update(ch, names[key])
-
-
-async def refresh_stats_channels(guild: discord.Guild, cfg: dict[str, Any]) -> None:
-    channels = cfg.get("channels", {})
-    members = guild.member_count or len(guild.members)
-    bots_count = len([m for m in guild.members if m.bot])
-    humans = max(0, members - bots_count)
-    online = len([m for m in guild.members if m.status != discord.Status.offline])
-    vc = len([m for m in guild.members if getattr(m.voice, "channel", None)])
-    today = datetime.now().date()
-    joined_today = len([m for m in guild.members if m.joined_at and m.joined_at.date() == today])
-    try:
-        bans = len([b async for b in guild.bans(limit=None)])
-    except discord.Forbidden:
-        bans = 0
-
-    names = {
-        "members": f"👥 Wszyscy {members}",
-        "humans": f"🧑 Ludzie {humans}",
-        "online": f"🟢 Online {online}",
-        "bots": f"🤖 Boty {bots_count}",
-        "vc": f"🔊 Na VC {vc}",
-        "joined_today": f"📥 Dzisiaj weszło {joined_today}",
-        "bans": f"🔨 Bany {bans}",
-    }
-
-    for key in STATS_CHANNEL_ORDER:
-        ch_id = channels.get(key)
-        ch = guild.get_channel(ch_id) if ch_id else None
-        if isinstance(ch, discord.VoiceChannel):
-            await queue_channel_update(ch, names[key])
-
-
-async def full_refresh_guild(guild: discord.Guild, *, sort_after: bool = False) -> None:
-    await ensure_status_roles(guild)
-    cfg = await create_or_sync_structure(guild)
-    await asyncio.gather(
-        refresh_weather_channels(guild, cfg),
-        refresh_clock_channels(guild, cfg),
-        refresh_stats_channels(guild, cfg),
+    online_count = sum(
+        1 for m in members
+        if m.status in {discord.Status.online, discord.Status.idle, discord.Status.dnd}
     )
-    if sort_after:
-        await sort_channels(guild, cfg)
-    await wait_for_edit_queue_idle()
-    await refresh_status_panel(guild)
 
+    vc_count = sum(1 for m in members if m.voice and m.voice.channel)
 
-async def weather_loop() -> None:
-    await bot.wait_until_ready()
-    while not bot.is_closed():
-        for guild in bot.guilds:
-            try:
-                cfg = await get_guild_config(guild.id)
-                if cfg.get("categories"):
-                    await refresh_weather_channels(guild, cfg)
-            except Exception:
-                logger.exception("Błąd pętli pogody dla %s", guild.id)
-        await asyncio.sleep(WEATHER_REFRESH_SECONDS)
+    timezone_obj = get_timezone_object(cfg.get("timezone", DEFAULT_TIMEZONE))
+    today = datetime.now(timezone_obj).date()
 
+    joined_today_count = sum(
+        1 for m in human_members
+        if m.joined_at and m.joined_at.astimezone(timezone_obj).date() == today
+    )
 
-async def clock_loop() -> None:
-    await bot.wait_until_ready()
-    while not bot.is_closed():
-        for guild in bot.guilds:
-            try:
-                cfg = await get_guild_config(guild.id)
-                if cfg.get("categories"):
-                    await refresh_clock_channels(guild, cfg)
-            except Exception:
-                logger.exception("Błąd pętli zegara dla %s", guild.id)
-        await asyncio.sleep(CLOCK_REFRESH_SECONDS)
-
-
-async def stats_loop() -> None:
-    await bot.wait_until_ready()
-    while not bot.is_closed():
-        for guild in bot.guilds:
-            try:
-                cfg = await get_guild_config(guild.id)
-                if cfg.get("categories"):
-                    await refresh_stats_channels(guild, cfg)
-            except Exception:
-                logger.exception("Błąd pętli statystyk dla %s", guild.id)
-        await asyncio.sleep(STATS_REFRESH_SECONDS)
-
-
-async def presence_loop() -> None:
-    await bot.wait_until_ready()
-    while not bot.is_closed():
-        try:
-            now = datetime.now(pytz.timezone(DEFAULT_TIMEZONE))
-            text = f"🕒 {now.strftime('%H:%M:%S')}"
-            await bot.change_presence(activity=discord.CustomActivity(name=text))
-        except Exception:
-            logger.exception("Błąd ustawiania presence")
-        await asyncio.sleep(PRESENCE_REFRESH_SECONDS)
-
-
-
-
-@bot.event
-async def on_member_update(before: discord.Member, after: discord.Member) -> None:
     try:
-        before_names = {r.name for r in before.roles}
-        after_names = {r.name for r in after.roles}
-        tracked = {name for names in STATUS_ROLE_GROUPS.values() for name in names}
-        if (before_names & tracked) != (after_names & tracked):
-            await refresh_status_panel(after.guild)
-    except Exception:
-        logger.exception("Błąd on_member_update dla panelu statusów")
-
-@bot.event
-async def on_ready() -> None:
-    try:
-        synced = await bot.tree.sync()
-        logger.info("Zsynchronizowano %s komend", len(synced))
-    except Exception:
-        logger.exception("Błąd synchronizacji komend")
-    logger.info("Zalogowano jako %s (%s)", bot.user, bot.user.id if bot.user else "?")
-
-
-def require_guild(interaction: discord.Interaction) -> discord.Guild | None:
-    return interaction.guild
-
-
-@bot.tree.command(name="setup", description="Tworzy lub odświeża wszystkie kategorie i kanały bota")
-async def setup_cmd(interaction: discord.Interaction) -> None:
-    guild = require_guild(interaction)
-    if not guild:
-        await interaction.response.send_message("❌ Tylko na serwerze.", ephemeral=True)
-        return
-    await interaction.response.defer(ephemeral=True, thinking=True)
-    cfg = await get_guild_config(guild.id)
-    lang = get_lang(cfg)
-    try:
-        await full_refresh_guild(guild, sort_after=True)
-        await interaction.followup.send(lang["setup_ok"], ephemeral=True)
+        bans_count = 0
+        async for _ in guild.bans(limit=None):
+            bans_count += 1
+    except discord.Forbidden:
+        logging.warning("[STATYSTYKI] Brak uprawnień do odczytu banów na serwerze %s", guild.name)
+        bans_count = 0
     except Exception as e:
-        logger.exception("Błąd /setup")
-        await interaction.followup.send(lang["refresh_err"].format(error=str(e)), ephemeral=True)
+        logging.warning("[STATYSTYKI] Nie udało się pobrać banów na serwerze %s: %s", guild.name, e)
+        bans_count = 0
+
+    logging.info(
+        "[STATYSTYKI] %s | wszyscy=%s ludzie=%s boty=%s online=%s vc=%s today=%s bany=%s",
+        guild.name,
+        members_count,
+        humans_count,
+        bots_count,
+        online_count,
+        vc_count,
+        joined_today_count,
+        bans_count,
+    )
+
+    tasks_to_run = [
+        safe_edit_channel_name(
+            get_channel_from_config(guild, cfg, "members"),
+            tr(lang, "stats_members", count=members_count),
+        ),
+        safe_edit_channel_name(
+            get_channel_from_config(guild, cfg, "humans"),
+            tr(lang, "stats_humans", count=humans_count),
+        ),
+        safe_edit_channel_name(
+            get_channel_from_config(guild, cfg, "online"),
+            tr(lang, "stats_online", count=online_count),
+        ),
+        safe_edit_channel_name(
+            get_channel_from_config(guild, cfg, "bots"),
+            tr(lang, "stats_bots", count=bots_count),
+        ),
+        safe_edit_channel_name(
+            get_channel_from_config(guild, cfg, "vc"),
+            tr(lang, "stats_vc", count=vc_count),
+        ),
+        safe_edit_channel_name(
+            get_channel_from_config(guild, cfg, "joined_today"),
+            tr(lang, "stats_joined_today", count=joined_today_count),
+        ),
+        safe_edit_channel_name(
+            get_channel_from_config(guild, cfg, "bans"),
+            tr(lang, "stats_bans", count=bans_count),
+        ),
+    ]
+
+    await asyncio.gather(*tasks_to_run)
 
 
-@bot.tree.command(name="refresh", description="Ręcznie odświeża kanały bota")
-async def refresh_cmd(interaction: discord.Interaction) -> None:
-    guild = require_guild(interaction)
-    if not guild:
-        await interaction.response.send_message("❌ Tylko na serwerze.", ephemeral=True)
-        return
-    await interaction.response.defer(ephemeral=True, thinking=True)
-    cfg = await get_guild_config(guild.id)
-    lang = get_lang(cfg)
+async def refresh_existing_panel(guild: discord.Guild) -> bool:
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        return False
+
+    lang = get_lang_code(cfg)
+    weather = await get_weather_data(
+        cfg["city_name"],
+        cfg["latitude"],
+        cfg["longitude"],
+        cfg.get("timezone", DEFAULT_TIMEZONE),
+        lang,
+    )
+
+    weather_cache[guild.id] = weather
+
+    await asyncio.gather(
+        update_weather_channels(guild, cfg, weather),
+        update_clock_channels(guild, cfg, weather),
+        update_stats_channels(guild, cfg),
+    )
+    return True
+
+
+# ================================
+# SYSTEM STATUSÓW / PANEL RÓL
+# ================================
+
+def get_panel_role(guild: discord.Guild, role_id: int) -> discord.Role | None:
+    if not role_id:
+        return None
+    return guild.get_role(role_id)
+
+
+def get_role_lang(guild_id: int | None) -> str:
+    if guild_id is None:
+        return DEFAULT_LANGUAGE
+    cfg = get_guild_config(guild_id)
+    return get_lang_code(cfg)
+
+
+def get_member_selected_role_key(member: discord.Member, group_name: str) -> str | None:
+    mapping = ROLE_GROUPS[group_name]
+    for role_key, role_id in mapping.items():
+        role = member.guild.get_role(role_id)
+        if role and role in member.roles:
+            return role_key
+    return None
+
+
+def get_member_selected_role_label(member: discord.Member, group_name: str) -> str:
+    lang = get_role_lang(member.guild.id)
+    role_key = get_member_selected_role_key(member, group_name)
+    if not role_key:
+        return tr(lang, "no_role_selected")
+    return f"{ROLE_EMOJIS.get(role_key, '•')} {ROLE_DISPLAY_NAMES.get(role_key, role_key)}"
+
+
+async def set_single_role_in_group(member: discord.Member, group_name: str, role_key: str) -> tuple[bool, str]:
+    guild = member.guild
+    lang = get_role_lang(guild.id)
+    mapping = ROLE_GROUPS[group_name]
+
+    if role_key not in mapping:
+        return False, tr(lang, "role_bad_option")
+
+    selected_role = get_panel_role(guild, mapping[role_key])
+    if selected_role is None:
+        return False, tr(lang, "role_not_found")
+
+    me = guild.get_member(bot.user.id) if bot.user else None
+    if me is None or not me.guild_permissions.manage_roles:
+        return False, tr(lang, "role_no_manage")
+
+    if selected_role >= me.top_role:
+        return False, tr(lang, "role_hierarchy", role=selected_role.name)
+
+    roles_to_remove = []
+    for other_key, other_role_id in mapping.items():
+        other_role = get_panel_role(guild, other_role_id)
+        if other_role and other_role in member.roles and other_key != role_key:
+            roles_to_remove.append(other_role)
+
     try:
-        await full_refresh_guild(guild)
-        await interaction.followup.send(lang["refresh_ok"], ephemeral=True)
-    except Exception as e:
-        logger.exception("Błąd /refresh")
-        await interaction.followup.send(lang["refresh_err"].format(error=str(e)), ephemeral=True)
+        if roles_to_remove:
+            await member.remove_roles(*roles_to_remove, reason=f"Zmiana roli z grupy {group_name}")
+        if selected_role not in member.roles:
+            await member.add_roles(selected_role, reason=f"Ustawienie roli z grupy {group_name}")
+
+        label = ROLE_DISPLAY_NAMES.get(role_key, selected_role.name)
+        emoji = ROLE_EMOJIS.get(role_key, "✅")
+        return True, tr(lang, "role_set_ok", emoji=emoji, label=label)
+    except discord.Forbidden:
+        return False, tr(lang, "role_forbidden")
+    except discord.HTTPException as e:
+        return False, tr(lang, "role_http_error", error=e)
 
 
-@bot.tree.command(name="miasto", description="Ustawia miasto dla pogody, alergii i zegara")
-@app_commands.describe(nazwa="Np. Warszawa")
-async def city_cmd(interaction: discord.Interaction, nazwa: str) -> None:
-    guild = require_guild(interaction)
-    if not guild:
-        await interaction.response.send_message("❌ Tylko na serwerze.", ephemeral=True)
-        return
-    await interaction.response.defer(ephemeral=True, thinking=True)
-    cfg = await get_guild_config(guild.id)
-    lang = get_lang(cfg)
-    try:
-        result = await geocode_city(nazwa)
-        if not result:
-            await interaction.followup.send(lang["city_not_found"].format(city=nazwa), ephemeral=True)
+class GroupSelect(discord.ui.Select):
+    def __init__(self, group_name: str, placeholder: str, member: discord.Member | None = None, persistent: bool = False):
+        self.group_name = group_name
+        self.member = member
+        mapping = ROLE_GROUPS[group_name]
+        selected_key = get_member_selected_role_key(member, group_name) if member else None
+
+        options = []
+        for role_key, role_id in mapping.items():
+            if not role_id:
+                continue
+            label = ROLE_DISPLAY_NAMES.get(role_key, role_key)
+            emoji = ROLE_EMOJIS.get(role_key)
+            options.append(
+                discord.SelectOption(
+                    label=label[:100],
+                    value=role_key,
+                    emoji=emoji,
+                    default=(role_key == selected_key),
+                )
+            )
+
+        kwargs = {
+            "placeholder": placeholder,
+            "min_values": 1,
+            "max_values": 1,
+            "options": options,
+        }
+        if persistent:
+            kwargs["custom_id"] = f"status_panel_select_{group_name}"
+
+        super().__init__(**kwargs)
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.guild is None or not isinstance(interaction.user, discord.Member):
+            await interaction.response.send_message(
+                tr(DEFAULT_LANGUAGE, "role_panel_server_only"),
+                ephemeral=True,
+            )
             return
 
-        city_name = result.get("name", nazwa)
-        country = result.get("country", "")
-        latitude = result.get("latitude", DEFAULT_LATITUDE)
-        longitude = result.get("longitude", DEFAULT_LONGITUDE)
-        timezone = result.get("timezone", DEFAULT_TIMEZONE)
+        selected_key = self.values[0]
+        _ok, msg = await set_single_role_in_group(interaction.user, self.group_name, selected_key)
 
-        cfg = await update_guild_config(
-            guild.id,
-            {
-                "city_name": city_name,
-                "country": country,
-                "latitude": latitude,
-                "longitude": longitude,
-                "timezone": timezone,
-            },
-        )
-
-        await full_refresh_guild(guild)
-        await interaction.followup.send(
-            lang["city_updated"].format(city=f"{city_name}, {country}" if country else city_name),
-            ephemeral=True,
-        )
-    except Exception as e:
-        logger.exception("Błąd /miasto")
-        await interaction.followup.send(lang["city_error"].format(error=str(e)), ephemeral=True)
-
-
-
-@city_cmd.autocomplete("nazwa")
-async def city_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-    query = current.strip()
-    if len(query) < 2:
-        return []
-
-    query_key = _normalize_city_text(query)
-    now = monotonic()
-    cached = CITY_AUTOCOMPLETE_CACHE.get(query_key)
-    if cached and now - cached[0] <= CITY_AUTOCOMPLETE_TTL_SECONDS:
-        results = cached[1]
-    else:
         try:
-            q = aiohttp.helpers.quote(query, safe="")
-            url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count=10&language=pl&format=json"
-            if not bot.http_session:
-                return []
-            timeout = aiohttp.ClientTimeout(total=2.0)
-            async with bot.http_session.get(url, timeout=timeout) as resp:
-                if resp.status >= 400:
-                    return []
-                data = await resp.json()
-            results = data.get("results") or []
-            CITY_AUTOCOMPLETE_CACHE[query_key] = (now, results)
-        except Exception:
-            # W autocomplete wolimy zwrócić pustą listę niż spamować logi i łapać
-            # Unknown interaction przy spóźnionej odpowiedzi.
-            return []
+            await refresh_status_panel_message(interaction.guild)
+        except Exception as e:
+            logging.warning("Nie udało się odświeżyć panelu statusów: %s", e)
 
-    seen: set[str] = set()
-    choices: list[app_commands.Choice[str]] = []
-    for item in results:
-        name = str(item.get("name", "")).strip()
-        country = str(item.get("country", "")).strip()
-        admin1 = str(item.get("admin1", "")).strip()
-        display = ", ".join(part for part in [name, admin1, country] if part)
-        if not display or display in seen:
+        fresh_member = interaction.guild.get_member(interaction.user.id)
+        if fresh_member is None:
+            try:
+                fresh_member = await interaction.guild.fetch_member(interaction.user.id)
+            except Exception as e:
+                logging.warning("Nie udało się pobrać świeżych danych użytkownika %s: %s", interaction.user.id, e)
+                fresh_member = interaction.user
+
+        private_embed = build_private_panel_embed(fresh_member)
+        private_view = PrivateStatusPanelView(fresh_member)
+
+        await interaction.response.edit_message(embed=private_embed, view=private_view)
+        await interaction.followup.send(msg, ephemeral=True)
+
+
+class OpenPrivatePanelButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(
+            label="Otwórz mój panel statusów",
+            emoji="🛠️",
+            style=discord.ButtonStyle.primary,
+            custom_id="open_private_status_panel",
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.guild is None or not isinstance(interaction.user, discord.Member):
+            await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
+            return
+
+        lang = get_role_lang(interaction.guild.id)
+        self.label = tr(lang, "open_private_panel")
+
+        embed = build_private_panel_embed(interaction.user)
+        view = PrivateStatusPanelView(interaction.user)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+
+class PublicStatusPanelLauncherView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(OpenPrivatePanelButton())
+
+
+class PrivateStatusPanelView(discord.ui.View):
+    def __init__(self, member: discord.Member):
+        super().__init__(timeout=900)
+        lang = get_role_lang(member.guild.id)
+        self.add_item(GroupSelect("status", tr(lang, "select_status_placeholder"), member=member))
+        self.add_item(GroupSelect("mood", tr(lang, "select_mood_placeholder"), member=member))
+        self.add_item(GroupSelect("activity", tr(lang, "select_activity_placeholder"), member=member))
+
+
+def build_panel_embed(guild: discord.Guild) -> discord.Embed:
+    lang = get_role_lang(guild.id)
+
+    def build_group_lines(mapping: dict[str, int]) -> tuple[str, int]:
+        lines = []
+        total_roles = 0
+
+        for role_key, role_id in mapping.items():
+            role = guild.get_role(role_id)
+            emoji = ROLE_EMOJIS.get(role_key, "•")
+            label = ROLE_DISPLAY_NAMES.get(role_key, role_key)
+
+            if role is None:
+                lines.append(f"{emoji} {label} — `0`")
+                continue
+
+            count = len(role.members)
+            total_roles += 1
+            lines.append(f"{emoji} {label} — `{count}`")
+
+        return "\n".join(lines), total_roles
+
+    status_lines, status_count = build_group_lines(STATUS_ROLES)
+    mood_lines, mood_count = build_group_lines(MOOD_ROLES)
+    activity_lines, activity_count = build_group_lines(ACTIVITY_ROLES)
+
+    embed = discord.Embed(
+        title=tr(lang, "role_panel_title"),
+        description=tr(lang, "role_panel_desc"),
+        color=discord.Color.blurple(),
+    )
+
+    embed.add_field(
+        name=f"🟢 Status • dostępnych ról: {status_count}",
+        value=status_lines or "-",
+        inline=False,
+    )
+    embed.add_field(
+        name=f"😎 Nastrój • dostępnych ról: {mood_count}",
+        value=mood_lines or "-",
+        inline=False,
+    )
+    embed.add_field(
+        name=f"🎮 Aktywność • dostępnych ról: {activity_count}",
+        value=activity_lines or "-",
+        inline=False,
+    )
+
+    embed.set_footer(text=tr(lang, "role_panel_footer"))
+    return embed
+
+
+def build_private_panel_embed(member: discord.Member) -> discord.Embed:
+    lang = get_role_lang(member.guild.id)
+
+    embed = discord.Embed(
+        title=tr(lang, "private_panel_title"),
+        description=tr(lang, "private_panel_desc"),
+        color=discord.Color.blurple(),
+    )
+    embed.add_field(
+        name=tr(lang, "current_status"),
+        value=get_member_selected_role_label(member, "status"),
+        inline=False,
+    )
+    embed.add_field(
+        name=tr(lang, "current_mood"),
+        value=get_member_selected_role_label(member, "mood"),
+        inline=False,
+    )
+    embed.add_field(
+        name=tr(lang, "current_activity"),
+        value=get_member_selected_role_label(member, "activity"),
+        inline=False,
+    )
+    embed.set_footer(text=tr(lang, "private_panel_footer"))
+    return embed
+
+
+def build_role_stats_embed(guild: discord.Guild) -> discord.Embed:
+    lang = get_role_lang(guild.id)
+    embed = discord.Embed(
+        title=tr(lang, "role_stats_title"),
+        description=tr(lang, "role_stats_desc"),
+        color=discord.Color.green(),
+    )
+
+    for group_name, mapping in ROLE_GROUPS.items():
+        lines = []
+        total = 0
+
+        for role_key, role_id in mapping.items():
+            role = guild.get_role(role_id) if role_id else None
+            count = len(role.members) if role else 0
+            total += count
+
+            emoji = ROLE_EMOJIS.get(role_key, "•")
+            label = ROLE_DISPLAY_NAMES.get(role_key, role_key)
+
+            if role is None:
+                lines.append(f"{emoji} **{label}** — `0` ⚠️ brak roli na serwerze")
+            else:
+                lines.append(f"{emoji} **{label}** — `{count}`")
+
+        if group_name == "status":
+            field_name = f"🟢 Status • razem przypisań: {total}"
+        elif group_name == "mood":
+            field_name = f"😎 Nastrój • razem przypisań: {total}"
+        else:
+            field_name = f"🎮 Aktywność • razem przypisań: {total}"
+
+        embed.add_field(
+            name=field_name,
+            value="\n".join(lines) if lines else "Brak danych",
+            inline=False,
+        )
+
+    embed.set_footer(text="Kosmiczny Zegar 24 • Statystyki ról")
+    return embed
+
+
+async def refresh_status_panel_message(guild: discord.Guild):
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        return
+
+    message_id = cfg.get("status_panel_message_id")
+    if not message_id:
+        return
+
+    embed = build_panel_embed(guild)
+
+    for channel in guild.text_channels:
+        try:
+            message = await channel.fetch_message(message_id)
+            await message.edit(embed=embed, view=PublicStatusPanelLauncherView())
+            return
+        except discord.NotFound:
             continue
-        seen.add(display)
-        choices.append(app_commands.Choice(name=display[:100], value=display[:100]))
-        if len(choices) >= 25:
-            break
-    return choices
+        except discord.Forbidden:
+            continue
+        except discord.HTTPException:
+            continue
 
-@bot.tree.command(name="language", description="Ustawia język bota")
-@app_commands.describe(kod="pl albo en")
-async def language_cmd(interaction: discord.Interaction, kod: str) -> None:
-    guild = require_guild(interaction)
-    if not guild:
-        await interaction.response.send_message("❌ Tylko na serwerze.", ephemeral=True)
-        return
-    kod = kod.lower().strip()
-    cfg = await get_guild_config(guild.id)
-    lang = get_lang(cfg)
-    if kod not in LANG:
-        await interaction.response.send_message(lang["lang_invalid"], ephemeral=True)
+
+# ================================
+# KOMENDY / AUTOCOMPLETE
+# ================================
+
+async def city_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    static_choices = [
+        app_commands.Choice(name="Warszawa, Polska", value="Warszawa"),
+        app_commands.Choice(name="Rzeszów, Polska", value="Rzeszów"),
+        app_commands.Choice(name="Kraków, Polska", value="Kraków"),
+        app_commands.Choice(name="Wrocław, Polska", value="Wrocław"),
+        app_commands.Choice(name="Poznań, Polska", value="Poznań"),
+        app_commands.Choice(name="Gdańsk, Polska", value="Gdańsk"),
+        app_commands.Choice(name="London, United Kingdom", value="London"),
+        app_commands.Choice(name="New York, USA", value="New York"),
+    ]
+
+    if not current.strip():
+        return static_choices[:25]
+
+    lowered = current.lower()
+    filtered = [c for c in static_choices if lowered in c.name.lower() or lowered in c.value.lower()]
+
+    if len(current.strip()) < 2:
+        return filtered[:25] or static_choices[:25]
+
+    try:
+        results = await geocode_city(current, count=5)
+        dynamic = []
+        for item in results[:25]:
+            label = item["name"] or "Unknown city"
+            if item.get("admin1"):
+                label += f", {item['admin1']}"
+            if item.get("country"):
+                label += f", {item['country']}"
+            dynamic.append(app_commands.Choice(name=label[:100], value=item["name"] or current))
+
+        combined = filtered[:]
+        existing_values = {c.value for c in combined}
+        for choice in dynamic:
+            if choice.value not in existing_values:
+                combined.append(choice)
+                existing_values.add(choice.value)
+        return combined[:25]
+    except Exception:
+        return filtered[:25] or static_choices[:25]
+
+
+@bot.tree.command(name="help", description="Pokazuje pomoc bota")
+async def help_command(interaction: discord.Interaction):
+    guild = interaction.guild
+    cfg = get_guild_config(guild.id) if guild else None
+    lang = get_lang_code(cfg)
+
+    embed = discord.Embed(
+        title=tr(lang, "help_title"),
+        description=tr(lang, "help_desc"),
+        color=discord.Color.green(),
+    )
+    embed.add_field(name=tr(lang, "help_general"), value=tr(lang, "help_general_value"), inline=False)
+    embed.add_field(name=tr(lang, "help_admin"), value=tr(lang, "help_admin_value"), inline=False)
+    embed.add_field(name=tr(lang, "help_delete"), value=tr(lang, "help_delete_value"), inline=False)
+    embed.add_field(name=tr(lang, "help_start"), value=tr(lang, "help_start_value"), inline=False)
+    embed.set_footer(text=tr(lang, "help_footer"))
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@bot.tree.command(name="setup", description="Tworzy kategorie i kanały bota")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def setup_command(interaction: discord.Interaction):
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "only_server"), ephemeral=True)
         return
 
-    await update_guild_config(guild.id, {"language": kod})
-    await interaction.response.send_message(LANG[kod]["lang_set"], ephemeral=True)
-    await full_refresh_guild(guild)
+    cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
+    lang = get_lang_code(cfg)
+
+    await interaction.response.defer(ephemeral=True)
+    try:
+        await setup_categories_and_channels(guild)
+        await schedule_background_refresh(guild)
+        await interaction.followup.send(tr(lang, "setup_ok"), ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(tr(lang, "setup_error", error=e), ephemeral=True)
+
+
+@bot.tree.command(name="refresh", description="Odświeża wszystkie kanały bota")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def refresh_command(interaction: discord.Interaction):
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "only_server"), ephemeral=True)
+        return
+
+    cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
+    lang = get_lang_code(cfg)
+
+    await interaction.response.defer(ephemeral=True)
+    try:
+        if not cfg.get("channels"):
+            await interaction.followup.send(tr(lang, "refresh_no_config"), ephemeral=True)
+            return
+        await schedule_background_refresh(guild)
+        await interaction.followup.send(tr(lang, "refresh_ok"), ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(tr(lang, "refresh_error", error=e), ephemeral=True)
 
 
 @bot.tree.command(name="status", description="Pokazuje status konfiguracji bota")
-async def status_cmd(interaction: discord.Interaction) -> None:
-    guild = require_guild(interaction)
-    if not guild:
-        await interaction.response.send_message("❌ Tylko na serwerze.", ephemeral=True)
+async def status_command(interaction: discord.Interaction):
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "only_server"), ephemeral=True)
         return
-    cfg = await get_guild_config(guild.id)
-    lang = get_lang(cfg)
 
-    embed = discord.Embed(title=lang["status_title"], color=discord.Color.blurple())
-    embed.add_field(name="Miasto", value=cfg.get("city_name", DEFAULT_CITY_NAME), inline=True)
-    embed.add_field(name="Kraj", value=cfg.get("country", DEFAULT_COUNTRY), inline=True)
-    embed.add_field(name="Strefa", value=cfg.get("timezone", DEFAULT_TIMEZONE), inline=True)
-    embed.add_field(name="Szerokość", value=str(cfg.get("latitude", DEFAULT_LATITUDE)), inline=True)
-    embed.add_field(name="Długość", value=str(cfg.get("longitude", DEFAULT_LONGITUDE)), inline=True)
-    embed.add_field(name="Język", value=cfg.get("language", DEFAULT_LANGUAGE), inline=True)
-    embed.add_field(name="Kategorie", value="\n".join(CATEGORY_KEYS), inline=False)
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "no_config"), ephemeral=True)
+        return
+
+    lang = get_lang_code(cfg)
+    embed = discord.Embed(title=tr(lang, "status_title"), color=discord.Color.blue())
+    embed.add_field(name=tr(lang, "status_weather_cat"), value=str(cfg.get("weather_category_id")), inline=False)
+    embed.add_field(name=tr(lang, "status_clock_cat"), value=str(cfg.get("clock_category_id")), inline=False)
+    embed.add_field(name=tr(lang, "status_stats_cat"), value=str(cfg.get("stats_category_id")), inline=False)
+    embed.add_field(name=tr(lang, "status_saved_channels"), value=str(len(cfg.get("channels", {}))), inline=False)
+    embed.add_field(
+        name=tr(lang, "status_city"),
+        value=f"{cfg.get('city_name', DEFAULT_CITY_NAME)}, {cfg.get('country', DEFAULT_COUNTRY)}",
+        inline=False,
+    )
+    embed.add_field(name=tr(lang, "status_lat"), value=str(cfg.get("latitude", DEFAULT_LATITUDE)), inline=True)
+    embed.add_field(name=tr(lang, "status_lon"), value=str(cfg.get("longitude", DEFAULT_LONGITUDE)), inline=True)
+    embed.add_field(name=tr(lang, "status_timezone"), value=str(cfg.get("timezone", DEFAULT_TIMEZONE)), inline=False)
+    embed.add_field(name=tr(lang, "status_language"), value=tr(lang, "lang_name"), inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(name="pogoda", description="Pokazuje aktualną pogodę i alergeny")
-async def weather_cmd(interaction: discord.Interaction) -> None:
-    guild = require_guild(interaction)
-    if not guild:
-        await interaction.response.send_message("❌ Tylko na serwerze.", ephemeral=True)
-        return
-    await interaction.response.defer(ephemeral=True, thinking=True)
-    cfg = await get_guild_config(guild.id)
-    lang = get_lang(cfg)
-    bundle = await fetch_weather_bundle(cfg)
-    current = bundle["weather"].get("current", {})
-    daily = bundle["weather"].get("daily", {})
-    air = bundle["air"].get("current", {})
+@bot.tree.command(name="info", description="Pokazuje informacje o bocie")
+async def info_command(interaction: discord.Interaction):
+    guild = interaction.guild
+    cfg = get_guild_config(guild.id) if guild else None
+    lang = get_lang_code(cfg)
+    uptime = datetime.now(UTC) - bot_start_time
+    uptime_str = format_uptime(uptime)
+    guild_count = len(bot.guilds)
+    user_count = sum(g.member_count or 0 for g in bot.guilds)
 
     embed = discord.Embed(
-        title=f"{lang['weather_title']} — {cfg['city_name']}, {cfg['country']}",
-        color=discord.Color.orange(),
+        title=tr(lang, "info_title"),
+        description=tr(lang, "info_desc"),
+        color=discord.Color.blurple(),
     )
-    embed.add_field(name="Temperatura", value=f"{round(current.get('temperature_2m', 0))}°C", inline=True)
-    embed.add_field(name="Odczuwalna", value=f"{round(current.get('apparent_temperature', 0))}°C", inline=True)
-    embed.add_field(name="Zachmurzenie", value=f"{round(current.get('cloud_cover', 0))}%", inline=True)
-    embed.add_field(name="Wiatr", value=f"{round(current.get('wind_speed_10m', 0))} km/h", inline=True)
-    embed.add_field(name="Ciśnienie", value=f"{round(current.get('pressure_msl', 0))} hPa", inline=True)
-    embed.add_field(name="Powietrze", value=aqi_text(air.get("european_aqi")), inline=True)
+    if bot.user:
+        embed.set_thumbnail(url=bot.user.display_avatar.url)
 
-    plants = [
-        ("Olsza", pollen_level_name(air.get("alder_pollen", 0))),
-        ("Brzoza", pollen_level_name(air.get("birch_pollen", 0))),
-        ("Trawy", pollen_level_name(air.get("grass_pollen", 0))),
-        ("Bylica", pollen_level_name(air.get("mugwort_pollen", 0))),
-        ("Oliwka", pollen_level_name(air.get("olive_pollen", 0))),
-        ("Ambrozja", pollen_level_name(air.get("ragweed_pollen", 0))),
-    ]
-    embed.add_field(name="Pylenie", value="\n".join(f"• {n}: {lvl}" for n, lvl in plants), inline=False)
-    embed.add_field(name="Wschód", value=daily.get("sunrise", ["--"])[0][-5:], inline=True)
-    embed.add_field(name="Zachód", value=daily.get("sunset", ["--"])[0][-5:], inline=True)
+    embed.add_field(name=tr(lang, "info_features"), value=tr(lang, "info_features_value"), inline=False)
+    embed.add_field(
+        name=tr(lang, "info_status"),
+        value=tr(lang, "info_status_value", uptime=uptime_str, guilds=guild_count, users=user_count),
+        inline=False,
+    )
+    embed.add_field(name=tr(lang, "info_modules"), value=tr(lang, "info_modules_value"), inline=False)
+    embed.add_field(name=tr(lang, "info_author"), value=f"**{tr(lang, 'creator')}**", inline=True)
+    embed.add_field(name=tr(lang, "info_version"), value=f"**{tr(lang, 'bot_version')}**", inline=True)
+    embed.add_field(name=tr(lang, "info_stability"), value=tr(lang, "info_stability_value"), inline=False)
+    embed.set_footer(text=tr(lang, "info_footer"))
+    await interaction.response.send_message(embed=embed, ephemeral=False)
+
+
+@bot.tree.command(name="pogoda", description="Pokazuje aktualną pogodę")
+async def weather_command(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    try:
+        guild = interaction.guild
+        cfg = get_guild_config(guild.id) if guild else None
+        lang = get_lang_code(cfg)
+        city_name = cfg["city_name"] if cfg else DEFAULT_CITY_NAME
+        latitude = cfg["latitude"] if cfg else DEFAULT_LATITUDE
+        longitude = cfg["longitude"] if cfg else DEFAULT_LONGITUDE
+        country = cfg["country"] if cfg else DEFAULT_COUNTRY
+        timezone_name = cfg["timezone"] if cfg else DEFAULT_TIMEZONE
+
+        weather = await get_weather_data(city_name, latitude, longitude, timezone_name, lang)
+        if guild:
+            weather_cache[guild.id] = weather
+
+        embed = discord.Embed(
+            title=tr(lang, "weather_title", city=city_name, country=country),
+            color=discord.Color.teal(),
+        )
+        embed.add_field(name=tr(lang, "field_temperature"), value=weather["temperature"], inline=False)
+        embed.add_field(name=tr(lang, "field_feels"), value=weather["feels"], inline=False)
+        embed.add_field(name=tr(lang, "field_clouds"), value=weather["clouds"], inline=False)
+        embed.add_field(name=tr(lang, "field_air"), value=weather["air"], inline=False)
+        embed.add_field(name=tr(lang, "field_pollen"), value=weather["pollen"], inline=False)
+        embed.add_field(name=tr(lang, "field_rain"), value=weather["rain"], inline=False)
+        embed.add_field(name=tr(lang, "field_wind"), value=weather["wind"], inline=False)
+        embed.add_field(name=tr(lang, "field_pressure"), value=weather["pressure"], inline=False)
+        embed.add_field(
+            name=tr(lang, "field_alerts"),
+            value=", ".join(weather["alerts_list"]) if weather["alerts_list"] else tr(lang, "none"),
+            inline=False,
+        )
+        embed.add_field(
+            name=tr(lang, "field_alert_level"),
+            value=f"{weather['alert_level']}°" if weather["alert_level"] > 0 else tr(lang, "none"),
+            inline=False,
+        )
+        embed.add_field(name=tr(lang, "field_sunrise"), value=weather["sunrise"], inline=False)
+        embed.add_field(name=tr(lang, "field_sunset"), value=weather["sunset"], inline=False)
+        embed.add_field(name=tr(lang, "field_day_length"), value=weather["day_length"], inline=False)
+        await interaction.followup.send(embed=embed, ephemeral=True)
+    except Exception as e:
+        cfg = get_guild_config(interaction.guild.id) if interaction.guild else None
+        lang = get_lang_code(cfg)
+        await interaction.followup.send(tr(lang, "weather_error", error=e), ephemeral=True)
+
+
+@bot.tree.command(name="czas", description="Pokazuje aktualny czas")
+async def time_command(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+
+    guild = interaction.guild
+    cfg = get_guild_config(guild.id) if guild else None
+    lang = get_lang_code(cfg)
+    timezone_name = cfg["timezone"] if cfg else DEFAULT_TIMEZONE
+    city_name = cfg["city_name"] if cfg else DEFAULT_CITY_NAME
+    timezone_obj = get_timezone_object(timezone_name)
+    now = datetime.now(timezone_obj)
+
+    sunrise_time = None
+    sunset_time = None
+    try:
+        weather = await get_weather_data(
+            city_name,
+            cfg["latitude"] if cfg else DEFAULT_LATITUDE,
+            cfg["longitude"] if cfg else DEFAULT_LONGITUDE,
+            timezone_name,
+            lang,
+        )
+        if guild:
+            weather_cache[guild.id] = weather
+        sunrise_time = weather.get("sunrise_time")
+        sunset_time = weather.get("sunset_time")
+    except Exception:
+        pass
+
+    embed = discord.Embed(title=tr(lang, "time_title"), color=discord.Color.orange())
+    embed.add_field(name=tr(lang, "time_city"), value=city_name, inline=False)
+    embed.add_field(name=tr(lang, "time_clock"), value=now.strftime("%H:%M:%S"), inline=False)
+    embed.add_field(name=tr(lang, "time_date"), value=now.strftime("%d.%m.%Y"), inline=False)
+    embed.add_field(
+        name=tr(lang, "time_part_of_day"),
+        value=format_part_of_day(now, lang, sunrise_time, sunset_time),
+        inline=False,
+    )
+    embed.add_field(name=tr(lang, "time_timezone"), value=timezone_name, inline=False)
     await interaction.followup.send(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(name="czas", description="Pokazuje aktualny czas dla ustawionego miasta")
-async def time_cmd(interaction: discord.Interaction) -> None:
-    guild = require_guild(interaction)
-    if not guild:
-        await interaction.response.send_message("❌ Tylko na serwerze.", ephemeral=True)
+@bot.tree.command(name="ksiezyc", description="Pokazuje aktualną fazę księżyca")
+async def moon_command(interaction: discord.Interaction):
+    guild = interaction.guild
+    cfg = get_guild_config(guild.id) if guild else None
+    lang = get_lang_code(cfg)
+    timezone_name = cfg["timezone"] if cfg else DEFAULT_TIMEZONE
+    timezone_obj = get_timezone_object(timezone_name)
+    now = datetime.now(timezone_obj)
+    await interaction.response.send_message(moon_phase_name(now, lang), ephemeral=True)
+
+
+@bot.tree.command(name="miasto", description="Ustawia miasto dla pogody i zegara na tym serwerze")
+@app_commands.describe(nazwa="Miasto, np. Warszawa, Rzeszów, Kraków, London")
+@app_commands.checks.has_permissions(manage_guild=True)
+@app_commands.autocomplete(nazwa=city_autocomplete)
+async def city_command(interaction: discord.Interaction, nazwa: str):
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "only_server"), ephemeral=True)
         return
-    cfg = await get_guild_config(guild.id)
-    tz = pytz.timezone(cfg.get("timezone", DEFAULT_TIMEZONE))
-    now = datetime.now(tz)
 
-    embed = discord.Embed(title=LANG[cfg.get("language", "pl")]["time_title"], color=discord.Color.gold())
-    embed.add_field(name="Miasto", value=f"{cfg['city_name']}, {cfg['country']}", inline=False)
-    embed.add_field(name="Godzina", value=now.strftime("%H:%M:%S"), inline=True)
-    embed.add_field(name="Data", value=now.strftime("%d.%m.%Y"), inline=True)
-    embed.add_field(name="Pora dnia", value=part_of_day(now.hour), inline=True)
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-
-
-@bot.tree.command(name="statusy", description="Otwiera prywatne okienko do ustawiania statusów")
-async def statuses_cmd(interaction: discord.Interaction) -> None:
-    guild = require_guild(interaction)
-    if not guild:
-        await interaction.response.send_message("❌ Tylko na serwerze.", ephemeral=True)
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "city_setup_first"), ephemeral=True)
         return
-    await ensure_status_roles(guild)
-    embed = discord.Embed(
-        title="🎛️ Ustaw swoje statusy",
-        description="Wybierz po jednej roli z każdej kategorii: status, nastrój i aktywność.",
-        color=discord.Color.blurple(),
-    )
-    await interaction.response.send_message(embed=embed, view=StatusPanelView(), ephemeral=True)
 
+    lang = get_lang_code(cfg)
+    await interaction.response.defer(ephemeral=True)
 
-@bot.tree.command(name="panel_statusow", description="Tworzy lub odświeża publiczny panel statystyk ról")
-async def status_panel_cmd(interaction: discord.Interaction) -> None:
-    guild = require_guild(interaction)
-    if not guild:
-        await interaction.response.send_message("❌ Tylko na serwerze.", ephemeral=True)
-        return
-    if not interaction.user.guild_permissions.manage_guild:
-        await interaction.response.send_message("❌ Tylko administrator może utworzyć panel statusów.", ephemeral=True)
-        return
-    await ensure_status_roles(guild)
-    embed = build_status_stats_embed(guild)
-    cfg = await get_guild_config(guild.id)
-    panel = cfg.get("status_panel") or {}
-    old_channel_id = panel.get("channel_id")
-    old_message_id = panel.get("message_id")
-    if old_channel_id == interaction.channel_id and old_message_id:
-        try:
-            old_message = await interaction.channel.fetch_message(old_message_id)
-            await old_message.edit(embed=embed)
-            await interaction.response.send_message("✅ Panel statusów został odświeżony.", ephemeral=True)
+    try:
+        results = await geocode_city(nazwa, count=5)
+        if not results:
+            await interaction.followup.send(tr(lang, "city_not_found", city=nazwa), ephemeral=True)
             return
-        except discord.HTTPException:
-            pass
-    message = await interaction.channel.send(embed=embed)
-    await update_guild_config(guild.id, {"status_panel": {"channel_id": interaction.channel_id, "message_id": message.id}})
-    await interaction.response.send_message("✅ Panel statusów został utworzony.", ephemeral=True)
+
+        preferred = None
+        lowered = nazwa.strip().lower()
+        for item in results:
+            item_name = (item.get("name") or "").lower()
+            item_country = (item.get("country") or "").lower()
+            if item_name == lowered and item_country in {"polska", "poland"}:
+                preferred = item
+                break
+
+        city = preferred or results[0]
+        cfg["city_name"] = city["name"] or nazwa
+        cfg["latitude"] = city["latitude"]
+        cfg["longitude"] = city["longitude"]
+        cfg["country"] = city.get("country") or DEFAULT_COUNTRY
+        cfg["timezone"] = city.get("timezone") or DEFAULT_TIMEZONE
+        save_guild_config(guild.id, cfg)
+
+        weather_cache.pop(guild.id, None)
+        await schedule_background_refresh(guild)
+
+        extra = f", {city['admin1']}" if city.get("admin1") else ""
+        await interaction.followup.send(
+            tr(lang, "city_updated", city=f"{city['name']}{extra}, {city['country']}"),
+            ephemeral=True,
+        )
+    except Exception as e:
+        await interaction.followup.send(tr(lang, "city_error", error=e), ephemeral=True)
 
 
-@bot.tree.command(name="usun_wszystko", description="Usuwa kategorie bota i czyści konfigurację")
-async def reset_cmd(interaction: discord.Interaction) -> None:
-    guild = require_guild(interaction)
-    if not guild:
-        await interaction.response.send_message("❌ Tylko na serwerze.", ephemeral=True)
+@bot.tree.command(name="language", description="Zmienia język bota na tym serwerze")
+@app_commands.describe(code="Kod języka: pl lub en")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def language_command(interaction: discord.Interaction, code: str):
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "only_server"), ephemeral=True)
         return
-    await interaction.response.defer(ephemeral=True, thinking=True)
-    cfg = await get_guild_config(guild.id)
-    lang = get_lang(cfg)
 
-    # Usuń zapisane kategorie
-    for cat_key in CATEGORY_KEYS:
-        cat_id = cfg.get("categories", {}).get(cat_key)
-        category = guild.get_channel(cat_id) if cat_id else None
-        if isinstance(category, discord.CategoryChannel):
-            for ch in list(category.channels):
-                try:
-                    await ch.delete()
-                    await asyncio.sleep(CHANNEL_DELETE_DELAY)
-                except discord.HTTPException:
-                    logger.exception("Błąd usuwania kanału %s", ch.id)
-            try:
-                await category.delete()
-                await asyncio.sleep(CHANNEL_DELETE_DELAY)
-            except discord.HTTPException:
-                logger.exception("Błąd usuwania kategorii %s", category.id)
+    cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
+    code = code.lower().strip()
 
-    await clear_guild_config(guild.id)
-    await interaction.followup.send(lang["reset_ok"], ephemeral=True)
+    if code not in LANGUAGES:
+        await interaction.response.send_message(tr(get_lang_code(cfg), "language_invalid"), ephemeral=True)
+        return
+
+    cfg["language"] = code
+    save_guild_config(guild.id, cfg)
+
+    await interaction.response.defer(ephemeral=True)
+    try:
+        await schedule_background_refresh(guild)
+    except Exception as e:
+        logging.error("Błąd odświeżania po zmianie języka: %s", e)
+
+    await interaction.followup.send(tr(code, "language_set"), ephemeral=True)
+
+
+@bot.tree.command(name="panel_statusow", description="Tworzy panel statusów, nastroju i aktywności")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def panel_statusow(interaction: discord.Interaction):
+    if interaction.guild is None:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
+        return
+
+    lang = get_role_lang(interaction.guild.id)
+    view = PublicStatusPanelLauncherView()
+    button = next((item for item in view.children if isinstance(item, OpenPrivatePanelButton)), None)
+    if button:
+        button.label = tr(lang, "open_private_panel")
+
+    embed = build_panel_embed(interaction.guild)
+    await interaction.response.send_message(embed=embed, view=view)
+
+    try:
+        message = await interaction.original_response()
+        cfg = get_guild_config(interaction.guild.id) or build_default_guild_config(interaction.guild.id)
+        cfg["status_panel_message_id"] = message.id
+        save_guild_config(interaction.guild.id, cfg)
+    except Exception as e:
+        logging.warning("Nie udało się zapisać ID panelu statusów: %s", e)
+
+
+@bot.tree.command(name="moj_panel_statusu", description="Otwiera Twój prywatny panel statusów")
+async def moj_panel_statusu(interaction: discord.Interaction):
+    if interaction.guild is None or not isinstance(interaction.user, discord.Member):
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
+        return
+
+    embed = build_private_panel_embed(interaction.user)
+    view = PrivateStatusPanelView(interaction.user)
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+
+@bot.tree.command(name="pokaz_statusy", description="Pokazuje ile osób ma każdą rolę z panelu")
+async def pokaz_statusy(interaction: discord.Interaction):
+    if interaction.guild is None:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
+        return
+
+    embed = build_role_stats_embed(interaction.guild)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
+
+
+@bot.tree.command(name="ustaw_status_swoj", description="Ustawia ręcznie swój status, nastrój albo aktywność")
+@app_commands.describe(grupa="Wybierz grupę roli", opcja="Wybierz konkretną opcję z tej grupy")
+@app_commands.choices(
+    grupa=[
+        app_commands.Choice(name="Status", value="status"),
+        app_commands.Choice(name="Nastrój", value="mood"),
+        app_commands.Choice(name="Aktywność", value="activity"),
+    ]
+)
+async def ustaw_status_swoj(interaction: discord.Interaction, grupa: app_commands.Choice[str], opcja: str):
+    if interaction.guild is None or not isinstance(interaction.user, discord.Member):
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
+        return
+
+    _ok, msg = await set_single_role_in_group(interaction.user, grupa.value, opcja)
+
+    try:
+        await refresh_status_panel_message(interaction.guild)
+    except Exception as e:
+        logging.warning("Nie udało się odświeżyć panelu statusów: %s", e)
+
+    embed = build_private_panel_embed(interaction.user)
+    view = PrivateStatusPanelView(interaction.user)
+
+    await interaction.response.send_message(msg, ephemeral=True)
+    await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+
+
+@ustaw_status_swoj.autocomplete("opcja")
+async def ustaw_status_swoj_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    try:
+        namespace = interaction.namespace
+        grupa = getattr(namespace, "grupa", None)
+        if grupa is None:
+            return []
+
+        group_value = grupa.value if isinstance(grupa, app_commands.Choice) else str(grupa)
+        if group_value not in ROLE_GROUPS:
+            return []
+
+        choices = []
+        for role_key in ROLE_GROUPS[group_value].keys():
+            label = ROLE_DISPLAY_NAMES.get(role_key, role_key)
+            if current.lower() in label.lower() or current.lower() in role_key.lower():
+                choices.append(app_commands.Choice(name=label, value=role_key))
+        return choices[:25]
+    except Exception:
+        return []
+
+
+# ================================
+# USUWANIE KATEGORII
+# ================================
+
+async def delete_category_with_channels(guild: discord.Guild, category_id: int | None):
+    if not category_id:
+        return
+
+    category = guild.get_channel(category_id)
+    if not isinstance(category, discord.CategoryChannel):
+        return
+
+    for channel in list(category.channels):
+        try:
+            await channel.delete()
+        except Exception as e:
+            logging.warning("Nie udało się usunąć kanału %s: %s", channel.id, e)
+
+    try:
+        await category.delete()
+    except Exception as e:
+        logging.warning("Nie udało się usunąć kategorii %s: %s", category.id, e)
+
+
+def remove_channel_keys_by_group(cfg: dict, group_name: str) -> dict:
+    channels = dict(cfg.get("channels", {}))
+    keys_to_remove = [key for key, (category_key, _) in CHANNEL_TEMPLATE_KEYS.items() if category_key == group_name]
+    for key in keys_to_remove:
+        channels.pop(key, None)
+    cfg["channels"] = channels
+    return cfg
+
+
+@bot.tree.command(name="usun_pogoda", description="Usuwa kategorię Pogoda razem z kanałami")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def delete_weather_category_command(interaction: discord.Interaction):
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "delete_only_server"), ephemeral=True)
+        return
+
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "delete_no_config"), ephemeral=True)
+        return
+
+    lang = get_lang_code(cfg)
+    await interaction.response.defer(ephemeral=True)
+    await delete_category_with_channels(guild, cfg.get("weather_category_id"))
+    cfg["weather_category_id"] = None
+    cfg = remove_channel_keys_by_group(cfg, "weather")
+    save_guild_config(guild.id, cfg)
+    weather_cache.pop(guild.id, None)
+    await interaction.followup.send(tr(lang, "delete_weather_ok"), ephemeral=True)
+
+
+@bot.tree.command(name="usun_kosmiczny_zegar", description="Usuwa kategorię Kosmiczny Zegar razem z kanałami")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def delete_clock_category_command(interaction: discord.Interaction):
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "delete_only_server"), ephemeral=True)
+        return
+
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "delete_no_config"), ephemeral=True)
+        return
+
+    lang = get_lang_code(cfg)
+    await interaction.response.defer(ephemeral=True)
+    await delete_category_with_channels(guild, cfg.get("clock_category_id"))
+    cfg["clock_category_id"] = None
+    cfg = remove_channel_keys_by_group(cfg, "clock")
+    save_guild_config(guild.id, cfg)
+    await interaction.followup.send(tr(lang, "delete_clock_ok"), ephemeral=True)
+
+
+@bot.tree.command(name="usun_statystyki", description="Usuwa kategorię Statystyki razem z kanałami")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def delete_stats_category_command(interaction: discord.Interaction):
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "delete_only_server"), ephemeral=True)
+        return
+
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "delete_no_config"), ephemeral=True)
+        return
+
+    lang = get_lang_code(cfg)
+    await interaction.response.defer(ephemeral=True)
+    await delete_category_with_channels(guild, cfg.get("stats_category_id"))
+    cfg["stats_category_id"] = None
+    cfg = remove_channel_keys_by_group(cfg, "stats")
+    save_guild_config(guild.id, cfg)
+    await interaction.followup.send(tr(lang, "delete_stats_ok"), ephemeral=True)
+
+
+@bot.tree.command(name="usun_wszystko", description="Usuwa wszystkie kategorie bota")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def delete_all_command(interaction: discord.Interaction):
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "delete_only_server"), ephemeral=True)
+        return
+
+    cfg = get_guild_config(guild.id)
+    if not cfg:
+        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "delete_no_config"), ephemeral=True)
+        return
+
+    lang = get_lang_code(cfg)
+    await interaction.response.defer(ephemeral=True)
+    await delete_category_with_channels(guild, cfg.get("weather_category_id"))
+    await delete_category_with_channels(guild, cfg.get("clock_category_id"))
+    await delete_category_with_channels(guild, cfg.get("stats_category_id"))
+    cfg["weather_category_id"] = None
+    cfg["clock_category_id"] = None
+    cfg["stats_category_id"] = None
+    cfg["channels"] = {}
+    save_guild_config(guild.id, cfg)
+    weather_cache.pop(guild.id, None)
+    await interaction.followup.send(tr(lang, "delete_all_ok"), ephemeral=True)
+
+
+# ================================
+# EVENTY / LIVE
+# ================================
+
+def schedule_stats_refresh(guild: discord.Guild):
+    if guild.id in stats_update_tasks and not stats_update_tasks[guild.id].done():
+        return
+
+    async def delayed_refresh():
+        try:
+            await asyncio.sleep(STATS_REFRESH_DEBOUNCE_SECONDS)
+            cfg = get_guild_config(guild.id)
+            if cfg:
+                await update_stats_channels(guild, cfg)
+        except Exception as e:
+            logging.warning("Błąd odświeżania statystyk live dla %s: %s", guild.id, e)
+        finally:
+            stats_update_tasks.pop(guild.id, None)
+
+    stats_update_tasks[guild.id] = asyncio.create_task(delayed_refresh())
+
+
+@bot.event
+async def on_member_join(member: discord.Member):
+    schedule_stats_refresh(member.guild)
+
+
+@bot.event
+async def on_member_remove(member: discord.Member):
+    schedule_stats_refresh(member.guild)
+
+
+@bot.event
+async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+    if before.channel != after.channel:
+        schedule_stats_refresh(member.guild)
+
+
+@bot.event
+async def on_presence_update(before: discord.Member, after: discord.Member):
+    if before.status != after.status:
+        schedule_stats_refresh(after.guild)
+
+
+@bot.event
+async def on_member_update(before: discord.Member, after: discord.Member):
+    if before.roles != after.roles:
+        try:
+            await refresh_status_panel_message(after.guild)
+        except Exception as e:
+            logging.warning("Nie udało się odświeżyć panelu po zmianie ról: %s", e)
+
+
+@bot.event
+async def on_guild_join(guild: discord.Guild):
+    try:
+        synced = await bot.tree.sync(guild=guild)
+        logging.info("Zsynchronizowano %s komend slash dla nowego serwera %s", len(synced), guild.id)
+    except Exception as e:
+        logging.error("Błąd synchronizacji komend dla nowego serwera %s: %s", guild.id, e)
+
+
+# ================================
+# TASKI TŁA
+# ================================
+
+@tasks.loop(minutes=WEATHER_REFRESH_MINUTES)
+async def auto_refresh():
+    for guild in bot.guilds:
+        try:
+            cfg = get_guild_config(guild.id)
+            if cfg:
+                await refresh_existing_panel(guild)
+        except Exception as e:
+            logging.warning("Błąd auto_refresh dla serwera %s: %s", guild.id, e)
+
+
+@tasks.loop(seconds=CLOCK_REFRESH_SECONDS)
+async def auto_refresh_clock_only():
+    for guild in bot.guilds:
+        try:
+            cfg = get_guild_config(guild.id)
+            if cfg and cfg.get("channels"):
+                await update_clock_channels(guild, cfg)
+        except Exception as e:
+            logging.warning("Błąd auto_refresh_clock_only dla serwera %s: %s", guild.id, e)
+
+
+@tasks.loop(seconds=STATS_FALLBACK_REFRESH_SECONDS)
+async def auto_refresh_stats_only():
+    for guild in bot.guilds:
+        try:
+            cfg = get_guild_config(guild.id)
+            if cfg and cfg.get("channels"):
+                await update_stats_channels(guild, cfg)
+        except Exception as e:
+            logging.warning("Błąd auto_refresh_stats_only dla serwera %s: %s", guild.id, e)
+
+
+@tasks.loop(seconds=STATUS_CLOCK_REFRESH_SECONDS)
+async def update_status_clock():
+    global last_presence_text
+
+    timezone_obj = get_timezone_object(DEFAULT_TIMEZONE)
+    now = datetime.now(timezone_obj)
+    presence_text = f"🕒 {now.strftime('%H:%M:%S')}"
+
+    if last_presence_text == presence_text:
+        return
+
+    try:
+        await bot.change_presence(activity=discord.CustomActivity(name=presence_text))
+        last_presence_text = presence_text
+    except Exception as e:
+        logging.warning("Błąd update_status_clock: %s", e)
+
+
+@auto_refresh.before_loop
+async def before_auto_refresh():
+    await bot.wait_until_ready()
+
+
+@auto_refresh_clock_only.before_loop
+async def before_auto_refresh_clock_only():
+    await bot.wait_until_ready()
+
+
+@auto_refresh_stats_only.before_loop
+async def before_auto_refresh_stats_only():
+    await bot.wait_until_ready()
+
+
+@update_status_clock.before_loop
+async def before_update_status_clock():
+    await bot.wait_until_ready()
+
+
+async def sync_all_commands():
+    try:
+        global_synced = await bot.tree.sync()
+        logging.info("Globalnie zsynchronizowano %s komend slash", len(global_synced))
+    except Exception as e:
+        logging.error("Błąd globalnej synchronizacji komend: %s", e)
+
+    for guild in bot.guilds:
+        try:
+            guild_synced = await bot.tree.sync(guild=guild)
+            logging.info(
+                "Zsynchronizowano %s komend slash dla serwera %s (%s)",
+                len(guild_synced),
+                guild.name,
+                guild.id,
+            )
+        except Exception as e:
+            logging.error("Błąd synchronizacji komend dla serwera %s: %s", guild.id, e)
+
+
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    logging.error("Błąd komendy slash: %s", error)
+
+    if isinstance(error, app_commands.MissingPermissions):
+        msg = "❌ Nie masz uprawnień do użycia tej komendy."
+    elif isinstance(error, app_commands.CommandOnCooldown):
+        msg = f"⏳ Ta komenda ma cooldown. Spróbuj ponownie za {error.retry_after:.1f}s."
+    elif isinstance(error, app_commands.CheckFailure):
+        msg = "❌ Nie możesz użyć tej komendy."
+    else:
+        msg = f"❌ Wystąpił błąd komendy: {error}"
+
+    try:
+        if interaction.response.is_done():
+            await interaction.followup.send(msg, ephemeral=True)
+        else:
+            await interaction.response.send_message(msg, ephemeral=True)
+    except Exception as e:
+        logging.warning("Nie udało się wysłać błędu komendy do użytkownika: %s", e)
+
+
+@bot.event
+async def on_ready():
+    logging.info(
+        "Zalogowano jako %s (%s)",
+        bot.user,
+        bot.user.id if bot.user else "brak ID",
+    )
+
+    try:
+        bot.add_view(PublicStatusPanelLauncherView())
+    except Exception as e:
+        logging.warning("Nie udało się dodać persistent view: %s", e)
+
+    for guild in bot.guilds:
+        try:
+            await ensure_guild_members_cached(guild)
+            cfg = get_guild_config(guild.id)
+            if cfg and cfg.get("channels"):
+                await update_stats_channels(guild, cfg)
+        except Exception as e:
+            logging.warning("Nie udało się zrobić początkowego odświeżenia statystyk dla %s: %s", guild.id, e)
+
+    if not auto_refresh.is_running():
+        auto_refresh.start()
+
+    if not auto_refresh_clock_only.is_running():
+        auto_refresh_clock_only.start()
+
+    if not auto_refresh_stats_only.is_running():
+        auto_refresh_stats_only.start()
+
+    if not update_status_clock.is_running():
+        update_status_clock.start()
+
+    if not bot.synced_once:
+        await sync_all_commands()
+        bot.synced_once = True
+
+
+def main():
+    if not TOKEN:
+        raise RuntimeError("Brak DISCORD_TOKEN w zmiennych środowiskowych.")
+
+    init_db()
+    logging.info("Start bota. Logi zapisują się także do pliku: %s", LOG_FILE)
+    bot.run(TOKEN)
 
 
 if __name__ == "__main__":
-    if not TOKEN:
-        raise RuntimeError("Brak DISCORD_TOKEN w zmiennych środowiskowych")
-    bot.run(TOKEN)
+    main()
