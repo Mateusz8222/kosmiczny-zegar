@@ -1,7 +1,26 @@
+# Secrets
 .env
+
+# Python cache / virtualenv
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Runtime / lock / logs
 bot.lock
+*.log
 clock_log.txt
 clock_msg_log.txt
+
+# Runtime state created by the bot
 clock_state.txt
 panel_message_id.txt
-__pycache__/
+status_panel.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
