@@ -4,6 +4,7 @@ import logging
 import os
 import sqlite3
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 from urllib.parse import quote
 
 import aiohttp
@@ -11,6 +12,16 @@ import discord
 import pytz
 from discord import app_commands
 from discord.ext import commands, tasks
+
+try:
+    from dotenv import load_dotenv
+except ImportError as exc:
+    raise RuntimeError(
+        "Brakuje pakietu 'python-dotenv'. Zainstaluj go poleceniem: pip install python-dotenv"
+    ) from exc
+
+# Wczytaj .env z folderu skryptu, żeby bot działał także po uruchomieniu z innego katalogu.
+load_dotenv(dotenv_path=Path(__file__).with_name(".env"))
 
 # ================================
 # KOSMICZNY ZEGAR PUBLIC - BOT v25
@@ -2706,7 +2717,7 @@ async def on_ready():
 
 def main():
     if not TOKEN:
-        raise RuntimeError("Brak DISCORD_TOKEN w zmiennych środowiskowych.")
+        raise RuntimeError("Brak DISCORD_TOKEN w zmiennych środowiskowych lub w pliku .env.")
 
     init_db()
     logging.info("Start bota. Logi zapisują się także do pliku: %s", LOG_FILE)
