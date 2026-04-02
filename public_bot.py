@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 import aiohttp
@@ -597,6 +597,17 @@ def moon_phase_name(phase: float) -> str:
     return "nów"
 
 
+def moon_phase_fraction_for_date(day: date) -> float:
+    # Przybliżenie wieku Księżyca w cyklu synodycznym (29.53058867 dnia).
+    # Wystarczy do nazwy fazy w kanale Discord.
+    reference_new_moon = datetime(2000, 1, 6, 18, 14, tzinfo=UTC)
+    current = datetime(day.year, day.month, day.day, 12, 0, tzinfo=UTC)
+    synodic_month = 29.53058867
+    days_since = (current - reference_new_moon).total_seconds() / 86400.0
+    fraction = (days_since % synodic_month) / synodic_month
+    return max(0.0, min(1.0, fraction))
+
+
 def pollen_level_name(value: float) -> str:
     if value <= 0:
         return "brak"
@@ -668,7 +679,7 @@ async def fetch_weather_bundle(cfg: dict[str, Any]) -> dict[str, Any]:
         "https://api.open-meteo.com/v1/forecast"
         f"?latitude={lat}&longitude={lon}&timezone={tz}"
         "&current=temperature_2m,relative_humidity_2m,apparent_temperature,pressure_msl,cloud_cover,wind_speed_10m,weather_code"
-        "&daily=sunrise,sunset,daylight_duration,moon_phase,precipitation_sum"
+        "&daily=sunrise,sunset,daylight_duration,precipitation_sum"
         "&forecast_days=1"
     )
     air_url = (
@@ -875,7 +886,7 @@ async def refresh_clock_channels(guild: discord.Guild, cfg: dict[str, Any]) -> N
     daylight_seconds = int(float(daily.get("daylight_duration", [0])[0] or 0))
     hours = daylight_seconds // 3600
     minutes = (daylight_seconds % 3600) // 60
-    moon = moon_phase_name(float(daily.get("moon_phase", [0])[0] or 0))
+    moon = moon_phase_name(moon_phase_fraction_for_date(now.date()))
 
     names = {
         "date": f"📅 Data {now.strftime('%d.%m.%Y')}",
