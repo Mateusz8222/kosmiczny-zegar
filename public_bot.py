@@ -66,6 +66,41 @@ MAX_CHANNEL_NAME_LENGTH = 100
 DEFAULT_BANS_CHANNEL_ID = int(os.getenv("DEFAULT_BANS_CHANNEL_ID", "1487577447540195444"))
 
 bot_start_time = datetime.now(UTC)
+
+
+async def safe_defer(interaction: discord.Interaction, *, ephemeral: bool = True) -> None:
+    """Zabezpiecza interakcję przed timeoutem 'Aplikacja nie reaguje'."""
+    try:
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=ephemeral)
+    except discord.InteractionResponded:
+        pass
+
+
+async def safe_send(
+    interaction: discord.Interaction,
+    *,
+    content: str | None = None,
+    embed: discord.Embed | None = None,
+    view: discord.ui.View | None = None,
+    ephemeral: bool = False,
+    wait: bool = False,
+):
+    """Wyślij odpowiedź niezależnie od tego, czy interakcja została już odroczona."""
+    kwargs: dict[str, Any] = {"ephemeral": ephemeral}
+    if content is not None:
+        kwargs["content"] = content
+    if embed is not None:
+        kwargs["embed"] = embed
+    if view is not None:
+        kwargs["view"] = view
+
+    try:
+        if interaction.response.is_done():
+            return await interaction.followup.send(wait=wait, **kwargs)
+        return await interaction.response.send_message(**kwargs)
+    except discord.InteractionResponded:
+        return await interaction.followup.send(wait=wait, **kwargs)
 stats_update_tasks: dict[int, asyncio.Task] = {}
 channel_edit_locks: dict[int, asyncio.Lock] = {}
 last_midnight_reset_dates: dict[int, date] = {}
@@ -1710,11 +1745,14 @@ class GroupSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.guild is None or not isinstance(interaction.user, discord.Member):
-            await interaction.response.send_message(
-                tr(DEFAULT_LANGUAGE, "role_panel_server_only"),
+            await safe_send(
+                interaction,
+                content=tr(DEFAULT_LANGUAGE, "role_panel_server_only"),
                 ephemeral=True,
             )
             return
+
+        await safe_defer(interaction, ephemeral=True)
 
         selected_key = self.values[0]
         _ok, msg = await set_single_role_in_group(interaction.user, self.group_name, selected_key)
@@ -1735,8 +1773,12 @@ class GroupSelect(discord.ui.Select):
         private_embed = build_private_panel_embed(fresh_member)
         private_view = PrivateStatusPanelView(fresh_member)
 
-        await interaction.response.edit_message(embed=private_embed, view=private_view)
-        await interaction.followup.send(msg, ephemeral=True)
+        try:
+            await interaction.message.edit(embed=private_embed, view=private_view)
+        except Exception as e:
+            logging.warning("Nie udało się zaktualizować prywatnego panelu statusów: %s", e)
+
+        await safe_send(interaction, content=msg, ephemeral=True)
 
 
 class OpenPrivatePanelButton(discord.ui.Button):
@@ -1750,15 +1792,17 @@ class OpenPrivatePanelButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.guild is None or not isinstance(interaction.user, discord.Member):
-            await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
+            await safe_send(interaction, content=tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
             return
+
+        await safe_defer(interaction, ephemeral=True)
 
         lang = get_role_lang(interaction.guild.id)
         self.label = tr(lang, "open_private_panel")
 
         embed = build_private_panel_embed(interaction.user)
         view = PrivateStatusPanelView(interaction.user)
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        await safe_send(interaction, embed=embed, view=view, ephemeral=True)
 
 
 class PublicStatusPanelLauncherView(discord.ui.View):
@@ -1970,6 +2014,8 @@ async def city_autocomplete(interaction: discord.Interaction, current: str) -> l
 
 @bot.tree.command(name="help", description="Pokazuje pomoc bota")
 async def help_command(interaction: discord.Interaction):
+    await safe_defer(interaction, ephemeral=True)
+
     guild = interaction.guild
     cfg = get_guild_config(guild.id) if guild else None
     lang = get_lang_code(cfg)
@@ -1984,7 +2030,7 @@ async def help_command(interaction: discord.Interaction):
     embed.add_field(name=tr(lang, "help_delete"), value=tr(lang, "help_delete_value"), inline=False)
     embed.add_field(name=tr(lang, "help_start"), value=tr(lang, "help_start_value"), inline=False)
     embed.set_footer(text=tr(lang, "help_footer"))
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await safe_send(interaction, embed=embed, ephemeral=True)
 
 
 @bot.tree.command(name="setup", description="Tworzy kategorie i kanały bota")
@@ -2031,14 +2077,16 @@ async def refresh_command(interaction: discord.Interaction):
 
 @bot.tree.command(name="status", description="Pokazuje status konfiguracji bota")
 async def status_command(interaction: discord.Interaction):
+    await safe_defer(interaction, ephemeral=True)
+
     guild = interaction.guild
     if guild is None:
-        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "only_server"), ephemeral=True)
+        await safe_send(interaction, content=tr(DEFAULT_LANGUAGE, "only_server"), ephemeral=True)
         return
 
     cfg = get_guild_config(guild.id)
     if not cfg:
-        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "no_config"), ephemeral=True)
+        await safe_send(interaction, content=tr(DEFAULT_LANGUAGE, "no_config"), ephemeral=True)
         return
 
     lang = get_lang_code(cfg)
@@ -2056,11 +2104,13 @@ async def status_command(interaction: discord.Interaction):
     embed.add_field(name=tr(lang, "status_lon"), value=str(cfg.get("longitude", DEFAULT_LONGITUDE)), inline=True)
     embed.add_field(name=tr(lang, "status_timezone"), value=str(cfg.get("timezone", DEFAULT_TIMEZONE)), inline=False)
     embed.add_field(name=tr(lang, "status_language"), value=tr(lang, "lang_name"), inline=False)
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await safe_send(interaction, embed=embed, ephemeral=True)
 
 
 @bot.tree.command(name="info", description="Pokazuje informacje o bocie")
 async def info_command(interaction: discord.Interaction):
+    await safe_defer(interaction, ephemeral=False)
+
     guild = interaction.guild
     cfg = get_guild_config(guild.id) if guild else None
     lang = get_lang_code(cfg)
@@ -2088,7 +2138,7 @@ async def info_command(interaction: discord.Interaction):
     embed.add_field(name=tr(lang, "info_version"), value=f"**{tr(lang, 'bot_version')}**", inline=True)
     embed.add_field(name=tr(lang, "info_stability"), value=tr(lang, "info_stability_value"), inline=False)
     embed.set_footer(text=tr(lang, "info_footer"))
-    await interaction.response.send_message(embed=embed, ephemeral=False)
+    await safe_send(interaction, embed=embed, ephemeral=False)
 
 
 @bot.tree.command(name="pogoda", description="Pokazuje aktualną pogodę")
@@ -2184,13 +2234,15 @@ async def time_command(interaction: discord.Interaction):
 
 @bot.tree.command(name="ksiezyc", description="Pokazuje aktualną fazę księżyca")
 async def moon_command(interaction: discord.Interaction):
+    await safe_defer(interaction, ephemeral=True)
+
     guild = interaction.guild
     cfg = get_guild_config(guild.id) if guild else None
     lang = get_lang_code(cfg)
     timezone_name = cfg["timezone"] if cfg else DEFAULT_TIMEZONE
     timezone_obj = get_timezone_object(timezone_name)
     now = datetime.now(timezone_obj)
-    await interaction.response.send_message(moon_phase_name(now, lang), ephemeral=True)
+    await safe_send(interaction, content=moon_phase_name(now, lang), ephemeral=True)
 
 
 @bot.tree.command(name="miasto", description="Ustawia miasto dla pogody i zegara na tym serwerze")
@@ -2278,8 +2330,10 @@ async def language_command(interaction: discord.Interaction, code: str):
 @app_commands.checks.has_permissions(manage_guild=True)
 async def panel_statusow(interaction: discord.Interaction):
     if interaction.guild is None:
-        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
+        await safe_send(interaction, content=tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
         return
+
+    await safe_defer(interaction, ephemeral=False)
 
     lang = get_role_lang(interaction.guild.id)
     view = PublicStatusPanelLauncherView()
@@ -2288,10 +2342,11 @@ async def panel_statusow(interaction: discord.Interaction):
         button.label = tr(lang, "open_private_panel")
 
     embed = build_panel_embed(interaction.guild)
-    await interaction.response.send_message(embed=embed, view=view)
+    message = await safe_send(interaction, embed=embed, view=view, ephemeral=False, wait=True)
 
     try:
-        message = await interaction.original_response()
+        if message is None:
+            message = await interaction.original_response()
         cfg = get_guild_config(interaction.guild.id) or build_default_guild_config(interaction.guild.id)
         cfg["status_panel_message_id"] = message.id
         save_guild_config(interaction.guild.id, cfg)
@@ -2302,22 +2357,26 @@ async def panel_statusow(interaction: discord.Interaction):
 @bot.tree.command(name="moj_panel_statusu", description="Otwiera Twój prywatny panel statusów")
 async def moj_panel_statusu(interaction: discord.Interaction):
     if interaction.guild is None or not isinstance(interaction.user, discord.Member):
-        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
+        await safe_send(interaction, content=tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
         return
+
+    await safe_defer(interaction, ephemeral=True)
 
     embed = build_private_panel_embed(interaction.user)
     view = PrivateStatusPanelView(interaction.user)
-    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+    await safe_send(interaction, embed=embed, view=view, ephemeral=True)
 
 
 @bot.tree.command(name="pokaz_statusy", description="Pokazuje ile osób ma każdą rolę z panelu")
 async def pokaz_statusy(interaction: discord.Interaction):
     if interaction.guild is None:
-        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
+        await safe_send(interaction, content=tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
         return
 
+    await safe_defer(interaction, ephemeral=False)
+
     embed = build_role_stats_embed(interaction.guild)
-    await interaction.response.send_message(embed=embed, ephemeral=False)
+    await safe_send(interaction, embed=embed, ephemeral=False)
 
 
 @bot.tree.command(name="ustaw_status_swoj", description="Ustawia ręcznie swój status, nastrój albo aktywność")
@@ -2331,8 +2390,10 @@ async def pokaz_statusy(interaction: discord.Interaction):
 )
 async def ustaw_status_swoj(interaction: discord.Interaction, grupa: app_commands.Choice[str], opcja: str):
     if interaction.guild is None or not isinstance(interaction.user, discord.Member):
-        await interaction.response.send_message(tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
+        await safe_send(interaction, content=tr(DEFAULT_LANGUAGE, "role_panel_server_only"), ephemeral=True)
         return
+
+    await safe_defer(interaction, ephemeral=True)
 
     _ok, msg = await set_single_role_in_group(interaction.user, grupa.value, opcja)
 
@@ -2344,7 +2405,7 @@ async def ustaw_status_swoj(interaction: discord.Interaction, grupa: app_command
     embed = build_private_panel_embed(interaction.user)
     view = PrivateStatusPanelView(interaction.user)
 
-    await interaction.response.send_message(msg, ephemeral=True)
+    await safe_send(interaction, content=msg, ephemeral=True)
     await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
 
@@ -2668,10 +2729,7 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
         msg = f"❌ Wystąpił błąd komendy: {error}"
 
     try:
-        if interaction.response.is_done():
-            await interaction.followup.send(msg, ephemeral=True)
-        else:
-            await interaction.response.send_message(msg, ephemeral=True)
+        await safe_send(interaction, content=msg, ephemeral=True)
     except Exception as e:
         logging.warning("Nie udało się wysłać błędu komendy do użytkownika: %s", e)
 
