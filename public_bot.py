@@ -126,6 +126,9 @@ last_stats_payloads: dict[int, dict[str, str]] = {}
 last_status_panel_signatures: dict[int, str] = {}
 
 startup_full_refresh_done: set[int] = set()
+last_global_refresh_at: dict[int, float] = {}
+GLOBAL_REFRESH_COOLDOWN_SECONDS = 60.0
+
 
 
 
@@ -1190,8 +1193,21 @@ async def schedule_background_refresh(guild: discord.Guild, *, force_full: bool 
         await existing
         return
 
+    now_mono = monotonic()
+    last_run = last_global_refresh_at.get(guild.id, 0.0)
+
+    if not force_full and (now_mono - last_run) < GLOBAL_REFRESH_COOLDOWN_SECONDS:
+        wait_left = GLOBAL_REFRESH_COOLDOWN_SECONDS - (now_mono - last_run)
+        logging.info(
+            "[REFRESH] Pominięto odświeżenie dla serwera %s. Globalny cooldown aktywny jeszcze %.1fs.",
+            guild.name,
+            wait_left,
+        )
+        return
+
     async def runner():
         try:
+            last_global_refresh_at[guild.id] = monotonic()
             logging.info(
                 "[REFRESH] Start %sodświeżenia dla serwera %s",
                 "pełnego " if force_full else "",
@@ -2726,8 +2742,8 @@ def schedule_stats_refresh(guild: discord.Guild):
         try:
             await asyncio.sleep(STATS_REFRESH_DEBOUNCE_SECONDS)
             cfg = get_guild_config(guild.id)
-            if cfg:
-                await update_stats_channels(guild, cfg)
+            if cfg and cfg.get("channels"):
+                await schedule_background_refresh(guild, force_full=False)
         except Exception as e:
             logging.warning("Błąd odświeżania statystyk live dla %s: %s", guild.id, e)
         finally:
