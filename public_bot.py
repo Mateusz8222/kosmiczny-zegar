@@ -137,6 +137,7 @@ last_status_panel_signatures: dict[int, str] = {}
 startup_full_refresh_done: set[int] = set()
 last_global_refresh_at: dict[int, float] = {}
 GLOBAL_REFRESH_COOLDOWN_SECONDS = 10.0
+MIN_REFRESH_INTERVAL_SECONDS = 15.0
 GLOBAL_UPDATE_LOCK = asyncio.Lock()
 FAST_FIRST_SYNC_DELAY = 0.2
 NORMAL_CHANNEL_EDIT_DELAY = CHANNEL_EDIT_DELAY
@@ -1352,20 +1353,24 @@ async def ensure_guild_members_cached(guild: discord.Guild):
 async def schedule_background_refresh(guild: discord.Guild, *, force_full: bool = False):
     existing = background_refresh_tasks.get(guild.id)
     if existing and not existing.done():
-        if force_full:
-            logging.warning("[REFRESH] Anuluję poprzednie odświeżenie dla serwera %s, bo przyszło priorytetowe force_full.", guild.name)
-            existing.cancel()
-            try:
-                await existing
-            except Exception:
-                pass
-            background_refresh_tasks.pop(guild.id, None)
-        else:
-            await existing
-            return
+        logging.info(
+            "[REFRESH] Pominięto nowe żądanie odświeżenia dla serwera %s, bo poprzedni refresh nadal trwa.",
+            guild.name,
+        )
+        return
 
     now_mono = monotonic()
     last_run = last_global_refresh_at.get(guild.id, 0.0)
+
+    min_interval = 0.0 if force_full else MIN_REFRESH_INTERVAL_SECONDS
+    if (now_mono - last_run) < min_interval:
+        wait_left = min_interval - (now_mono - last_run)
+        logging.info(
+            "[REFRESH] Pominięto odświeżenie dla serwera %s. Minimalny odstęp aktywny jeszcze %.1fs.",
+            guild.name,
+            wait_left,
+        )
+        return
 
     if not force_full and (now_mono - last_run) < GLOBAL_REFRESH_COOLDOWN_SECONDS:
         wait_left = GLOBAL_REFRESH_COOLDOWN_SECONDS - (now_mono - last_run)
@@ -1381,6 +1386,7 @@ async def schedule_background_refresh(guild: discord.Guild, *, force_full: bool 
             async with GLOBAL_UPDATE_LOCK:
                 if force_full:
                     fast_first_sync_active.add(guild.id)
+
                 last_global_refresh_at[guild.id] = monotonic()
                 logging.info(
                     "[REFRESH] Start %sodświeżenia dla serwera %s",
@@ -1403,7 +1409,11 @@ async def schedule_background_refresh(guild: discord.Guild, *, force_full: bool 
 
     task = asyncio.create_task(runner())
     background_refresh_tasks[guild.id] = task
-    logging.info("[REFRESH] Zaplanowano %sodświeżenie w tle dla serwera %s", "pełne " if force_full else "", guild.name)
+    logging.info(
+        "[REFRESH] Zaplanowano %sodświeżenie w tle dla serwera %s",
+        "pełne " if force_full else "",
+        guild.name,
+    )
     await task
 
 
