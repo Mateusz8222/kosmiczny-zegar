@@ -57,14 +57,14 @@ DEFAULT_COUNTRY = "Polska"
 DEFAULT_TIMEZONE = "Europe/Warsaw"
 DEFAULT_LANGUAGE = "pl"
 
-WEATHER_REFRESH_MINUTES = 10
-CLOCK_REFRESH_SECONDS = 600
-STATS_FALLBACK_REFRESH_SECONDS = 600
+WEATHER_REFRESH_MINUTES = 5
+CLOCK_REFRESH_SECONDS = 300
+STATS_FALLBACK_REFRESH_SECONDS = 300
 STATUS_CLOCK_REFRESH_SECONDS = 60
-CHANNEL_EDIT_DELAY = 6.0
+CHANNEL_EDIT_DELAY = 1.5
 CHANNEL_EDIT_RETRY_COUNT = 3
-CHANNEL_EDIT_RETRY_DELAY = 30.0
-STATS_REFRESH_DEBOUNCE_SECONDS = 15
+CHANNEL_EDIT_RETRY_DELAY = 8.0
+STATS_REFRESH_DEBOUNCE_SECONDS = 5
 MAX_CHANNEL_NAME_LENGTH = 100
 
 DEFAULT_BANS_CHANNEL_ID = int(os.getenv("DEFAULT_BANS_CHANNEL_ID", "1487577447540195444"))
@@ -112,10 +112,10 @@ next_global_channel_edit_time: float = 0.0
 channel_edit_queue: asyncio.Queue[tuple[discord.abc.GuildChannel, str, asyncio.Future]] = asyncio.Queue()
 channel_edit_worker_task: asyncio.Task | None = None
 channel_edit_recent_timestamps: deque[float] = deque()
-CHANNEL_EDIT_BUCKET_LIMIT = 5
+CHANNEL_EDIT_BUCKET_LIMIT = 8
 CHANNEL_EDIT_BUCKET_WINDOW = 60.0
-QUEUE_INPUT_BATCH_SIZE = 2
-QUEUE_INPUT_BATCH_DELAY = 15.0
+QUEUE_INPUT_BATCH_SIZE = 3
+QUEUE_INPUT_BATCH_DELAY = 4.0
 last_midnight_reset_dates: dict[int, date] = {}
 weather_cache: dict[int, dict] = {}
 last_good_weather_cache: dict[int, dict] = {}
@@ -128,9 +128,9 @@ last_status_panel_signatures: dict[int, str] = {}
 
 startup_full_refresh_done: set[int] = set()
 last_global_refresh_at: dict[int, float] = {}
-GLOBAL_REFRESH_COOLDOWN_SECONDS = 60.0
+GLOBAL_REFRESH_COOLDOWN_SECONDS = 20.0
 GLOBAL_UPDATE_LOCK = asyncio.Lock()
-FAST_FIRST_SYNC_DELAY = 0.75
+FAST_FIRST_SYNC_DELAY = 0.35
 NORMAL_CHANNEL_EDIT_DELAY = CHANNEL_EDIT_DELAY
 fast_first_sync_active: set[int] = set()
 
@@ -1064,6 +1064,22 @@ async def channel_edit_worker() -> None:
             channel_edit_queue.task_done()
 
 
+async def clear_pending_channel_updates() -> int:
+    cleared = 0
+    while not channel_edit_queue.empty():
+        try:
+            _channel, _new_name, result_future = channel_edit_queue.get_nowait()
+            if not result_future.done():
+                result_future.set_result(False)
+            channel_edit_queue.task_done()
+            cleared += 1
+        except asyncio.QueueEmpty:
+            break
+
+    channel_edit_recent_timestamps.clear()
+    return cleared
+
+
 def ensure_channel_edit_worker_started() -> None:
     global channel_edit_worker_task
     if channel_edit_worker_task is None or channel_edit_worker_task.done():
@@ -1292,8 +1308,17 @@ async def ensure_guild_members_cached(guild: discord.Guild):
 async def schedule_background_refresh(guild: discord.Guild, *, force_full: bool = False):
     existing = background_refresh_tasks.get(guild.id)
     if existing and not existing.done():
-        await existing
-        return
+        if force_full:
+            logging.warning("[REFRESH] Anuluję poprzednie odświeżenie dla serwera %s, bo przyszło priorytetowe force_full.", guild.name)
+            existing.cancel()
+            try:
+                await existing
+            except Exception:
+                pass
+            background_refresh_tasks.pop(guild.id, None)
+        else:
+            await existing
+            return
 
     now_mono = monotonic()
     last_run = last_global_refresh_at.get(guild.id, 0.0)
@@ -2567,11 +2592,14 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
         last_good_weather_cache.pop(guild.id, None)
         last_weather_payloads.pop(guild.id, None)
         last_clock_payloads.pop(guild.id, None)
-        asyncio.create_task(schedule_background_refresh(guild, force_full=True))
+        last_stats_payloads.pop(guild.id, None)
+        cleared = await clear_pending_channel_updates()
+        last_global_refresh_at.pop(guild.id, None)
+        await schedule_background_refresh(guild, force_full=True)
 
         extra = f", {city['admin1']}" if city.get("admin1") else ""
         await interaction.followup.send(
-            tr(lang, "city_updated", city=f"{city['name']}{extra}, {city['country']}") + "\n🚀 Synchronizacja kanałów działa w tle.",
+            tr(lang, "city_updated", city=f"{city['name']}{extra}, {city['country']}") + f"\n⚡ Wymuszono natychmiastową synchronizację. Wyczyszczono z kolejki: {cleared}.",
             ephemeral=True,
         )
     except Exception as e:
