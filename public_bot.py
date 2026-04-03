@@ -1178,6 +1178,45 @@ async def apply_channel_name_updates_sequentially(
     logging.info("%s Zaktualizowano %s kanałów dla serwera %s", log_prefix, changed, guild.name)
     return changed
 
+
+async def apply_channel_name_updates_startup_fast(
+    guild: discord.Guild,
+    cfg: dict,
+    payload: dict[str, str],
+    *,
+    log_prefix: str,
+) -> int:
+    """Szybka pierwsza synchronizacja: bez batchy, bez kolejkowania zmian po 2 sztuki."""
+    changed = 0
+
+    for key, new_name in payload.items():
+        channel_id = cfg.get("channels", {}).get(key)
+        channel = get_channel_from_config(guild, cfg, key)
+
+        if channel_id and channel is None:
+            remove_missing_channel_from_config(guild.id, key, channel_id)
+            continue
+
+        if channel is None:
+            continue
+
+        after = trim_channel_name(new_name)
+        before = trim_channel_name(channel.name)
+        if before == after:
+            continue
+
+        try:
+            await channel.edit(name=after)
+            logging.info("%s [FAST START] %s -> %s (id=%s)", log_prefix, before, after, channel.id)
+            changed += 1
+        except discord.Forbidden:
+            logging.warning("%s [FAST START] Brak uprawnień do zmiany kanału %s", log_prefix, channel.id)
+        except discord.HTTPException as e:
+            logging.warning("%s [FAST START] Nie udało się zmienić kanału %s: %s", log_prefix, channel.id, e)
+
+    logging.info("%s [FAST START] Zaktualizowano %s kanałów dla serwera %s", log_prefix, changed, guild.name)
+    return changed
+
 async def create_or_get_category(guild: discord.Guild, name: str) -> discord.CategoryChannel:
     for category in guild.categories:
         if category.name == name:
@@ -2284,9 +2323,9 @@ async def setup_command(interaction: discord.Interaction):
         last_stats_payloads.pop(guild.id, None)
         weather_cache.pop(guild.id, None)
         last_good_weather_cache.pop(guild.id, None)
-        asyncio.create_task(schedule_background_refresh(guild, force_full=True))
+        await schedule_background_refresh(guild, force_full=True)
         startup_full_refresh_done.add(guild.id)
-        await interaction.followup.send("✅ Setup zakończony. Szybka synchronizacja kanałów ruszyła w tle.", ephemeral=True)
+        await interaction.followup.send("✅ Setup zakończony. Wszystkie kanały zostały szybko zsynchronizowane.", ephemeral=True)
     except Exception as e:
         await interaction.followup.send(tr(lang, "setup_error", error=e), ephemeral=True)
 
