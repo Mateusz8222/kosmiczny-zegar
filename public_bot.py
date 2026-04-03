@@ -943,6 +943,30 @@ def get_channel_from_config(guild: discord.Guild, cfg: dict, key: str):
     return ch if isinstance(ch, discord.VoiceChannel) else None
 
 
+def remove_missing_channel_from_config(guild_id: int, key: str, channel_id: int | None = None) -> None:
+    cfg = get_guild_config(guild_id)
+    if not cfg:
+        return
+
+    channels = dict(cfg.get("channels", {}))
+    existing_id = channels.get(key)
+    if existing_id is None:
+        return
+
+    if channel_id is not None and existing_id != channel_id:
+        return
+
+    channels.pop(key, None)
+    cfg["channels"] = channels
+    save_guild_config(guild_id, cfg)
+    logging.warning(
+        "[AUTO CLEAN] Usunięto nieistniejący kanał z configu | guild=%s key=%s channel_id=%s",
+        guild_id,
+        key,
+        existing_id,
+    )
+
+
 def find_voice_channel_in_category_by_name(
     category: discord.CategoryChannel | None, name: str
 ) -> discord.VoiceChannel | None:
@@ -1089,13 +1113,20 @@ async def apply_channel_name_updates_sequentially(
     *,
     log_prefix: str,
 ) -> int:
-    """Aktualizuje kanały bardzo ostrożnie: małe batche do kolejki, z przerwą między batchami."""
+    """Aktualizuje kanały ostrożnie i czyści config z nieistniejących kanałów."""
     pending_items: list[tuple[str, str]] = []
 
     for key, new_name in payload.items():
+        channel_id = cfg.get("channels", {}).get(key)
         channel = get_channel_from_config(guild, cfg, key)
+
+        if channel_id and channel is None:
+            remove_missing_channel_from_config(guild.id, key, channel_id)
+            continue
+
         if channel is None:
             continue
+
         before = trim_channel_name(channel.name)
         after = trim_channel_name(new_name)
         if before == after:
@@ -1120,9 +1151,16 @@ async def apply_channel_name_updates_sequentially(
         )
 
         for key, new_name in batch:
+            channel_id = cfg.get("channels", {}).get(key)
             channel = get_channel_from_config(guild, cfg, key)
+
+            if channel_id and channel is None:
+                remove_missing_channel_from_config(guild.id, key, channel_id)
+                continue
+
             if channel is None:
                 continue
+
             ok = await safe_edit_channel_name(channel, new_name)
             if ok:
                 changed += 1
