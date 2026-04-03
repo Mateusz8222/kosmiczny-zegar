@@ -114,6 +114,14 @@ channel_edit_worker_task: asyncio.Task | None = None
 channel_edit_recent_timestamps: deque[float] = deque()
 CHANNEL_EDIT_BUCKET_LIMIT = 20
 CHANNEL_EDIT_BUCKET_WINDOW = 60.0
+AUTO_LIMITER_ENABLED = True
+AUTO_LIMITER_MIN_DELAY = 1.0
+AUTO_LIMITER_MAX_DELAY = 8.0
+AUTO_LIMITER_STEP_UP = 0.4
+AUTO_LIMITER_STEP_DOWN = 0.1
+auto_limiter_delay = CHANNEL_EDIT_DELAY
+auto_limiter_bucket_limit = CHANNEL_EDIT_BUCKET_LIMIT
+auto_limiter_last_429_at: float | None = None
 QUEUE_INPUT_BATCH_SIZE = 5
 QUEUE_INPUT_BATCH_DELAY = 1.5
 last_midnight_reset_dates: dict[int, date] = {}
@@ -988,6 +996,40 @@ def format_uptime(delta: timedelta) -> str:
     return f"{hours}h {minutes}m {seconds}s"
 
 
+
+def auto_limiter_on_success() -> None:
+    global auto_limiter_delay, auto_limiter_bucket_limit
+
+    if not AUTO_LIMITER_ENABLED:
+        return
+
+    target_delay = max(AUTO_LIMITER_MIN_DELAY, auto_limiter_delay - AUTO_LIMITER_STEP_DOWN)
+    auto_limiter_delay = round(target_delay, 2)
+
+    if auto_limiter_bucket_limit < CHANNEL_EDIT_BUCKET_LIMIT:
+        auto_limiter_bucket_limit += 1
+
+
+def auto_limiter_on_429() -> None:
+    global auto_limiter_delay, auto_limiter_bucket_limit, auto_limiter_last_429_at
+
+    if not AUTO_LIMITER_ENABLED:
+        return
+
+    auto_limiter_last_429_at = monotonic()
+    target_delay = min(AUTO_LIMITER_MAX_DELAY, auto_limiter_delay + AUTO_LIMITER_STEP_UP)
+    auto_limiter_delay = round(target_delay, 2)
+
+    if auto_limiter_bucket_limit > 4:
+        auto_limiter_bucket_limit -= 1
+
+    logging.warning(
+        "[AUTO LIMITER] Zaostrzam limity: delay=%.2fs bucket_limit=%s",
+        auto_limiter_delay,
+        auto_limiter_bucket_limit,
+    )
+
+
 async def wait_for_global_channel_edit_slot() -> None:
     global next_global_channel_edit_time
 
@@ -998,8 +1040,8 @@ async def wait_for_global_channel_edit_slot() -> None:
             while channel_edit_recent_timestamps and (now - channel_edit_recent_timestamps[0]) >= CHANNEL_EDIT_BUCKET_WINDOW:
                 channel_edit_recent_timestamps.popleft()
 
-            effective_delay = FAST_FIRST_SYNC_DELAY if fast_first_sync_active else NORMAL_CHANNEL_EDIT_DELAY
-            effective_bucket_limit = 8 if fast_first_sync_active else CHANNEL_EDIT_BUCKET_LIMIT
+            effective_delay = FAST_FIRST_SYNC_DELAY if fast_first_sync_active else auto_limiter_delay
+            effective_bucket_limit = 8 if fast_first_sync_active else auto_limiter_bucket_limit
 
             spacing_wait = max(0.0, next_global_channel_edit_time - now)
 
@@ -1034,6 +1076,7 @@ async def channel_edit_worker() -> None:
                         await channel.edit(name=new_name)
                         logging.info("[KANAŁ] %s -> %s (id=%s)", old_name, new_name, channel.id)
                     success = True
+                    auto_limiter_on_success()
                     break
                 except discord.Forbidden:
                     logging.warning("Brak uprawnień do zmiany nazwy kanału %s", channel.id)
@@ -1041,6 +1084,7 @@ async def channel_edit_worker() -> None:
                 except discord.HTTPException as e:
                     status = getattr(e, "status", None)
                     if status == 429:
+                        auto_limiter_on_429()
                         wait_for = CHANNEL_EDIT_RETRY_DELAY * attempt
                         logging.warning(
                             "Rate limit 429 dla kanału %s przy próbie %s/%s. Czekam %.1fs i próbuję ponownie.",
@@ -3080,6 +3124,12 @@ async def on_ready():
 
     if not update_status_clock.is_running():
         update_status_clock.start()
+
+    logging.info(
+        "[AUTO LIMITER] Start: delay=%.2fs bucket_limit=%s",
+        auto_limiter_delay,
+        auto_limiter_bucket_limit,
+    )
 
     if not bot.synced_once:
         await sync_all_commands()
