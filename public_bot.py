@@ -112,18 +112,18 @@ next_global_channel_edit_time: float = 0.0
 channel_edit_queue: asyncio.Queue[tuple[discord.abc.GuildChannel, str, asyncio.Future]] = asyncio.Queue()
 channel_edit_worker_task: asyncio.Task | None = None
 channel_edit_recent_timestamps: deque[float] = deque()
-CHANNEL_EDIT_BUCKET_LIMIT = 20
+CHANNEL_EDIT_BUCKET_LIMIT = 12
 CHANNEL_EDIT_BUCKET_WINDOW = 60.0
 AUTO_LIMITER_ENABLED = True
-AUTO_LIMITER_MIN_DELAY = 1.0
-AUTO_LIMITER_MAX_DELAY = 8.0
-AUTO_LIMITER_STEP_UP = 0.4
-AUTO_LIMITER_STEP_DOWN = 0.1
+AUTO_LIMITER_MIN_DELAY = 1.3
+AUTO_LIMITER_MAX_DELAY = 12.0
+AUTO_LIMITER_STEP_UP = 0.8
+AUTO_LIMITER_STEP_DOWN = 0.05
 auto_limiter_delay = CHANNEL_EDIT_DELAY
 auto_limiter_bucket_limit = CHANNEL_EDIT_BUCKET_LIMIT
 auto_limiter_last_429_at: float | None = None
-QUEUE_INPUT_BATCH_SIZE = 5
-QUEUE_INPUT_BATCH_DELAY = 2.2
+QUEUE_INPUT_BATCH_SIZE = 3
+QUEUE_INPUT_BATCH_DELAY = 3.0
 last_midnight_reset_dates: dict[int, date] = {}
 weather_cache: dict[int, dict] = {}
 last_good_weather_cache: dict[int, dict] = {}
@@ -139,7 +139,7 @@ last_global_refresh_at: dict[int, float] = {}
 GLOBAL_REFRESH_COOLDOWN_SECONDS = 10.0
 MIN_REFRESH_INTERVAL_SECONDS = 15.0
 GLOBAL_UPDATE_LOCK = asyncio.Lock()
-FAST_FIRST_SYNC_DELAY = 0.2
+FAST_FIRST_SYNC_DELAY = 0.5
 NORMAL_CHANNEL_EDIT_DELAY = CHANNEL_EDIT_DELAY
 fast_first_sync_active: set[int] = set()
 
@@ -1055,7 +1055,9 @@ def auto_limiter_on_429() -> None:
     auto_limiter_delay = round(target_delay, 2)
 
     if auto_limiter_bucket_limit > 4:
-        auto_limiter_bucket_limit -= 1
+        auto_limiter_bucket_limit -= 2
+        if auto_limiter_bucket_limit < 4:
+            auto_limiter_bucket_limit = 4
 
     logging.warning(
         "[AUTO LIMITER] Zaostrzam limity: delay=%.2fs bucket_limit=%s",
@@ -1084,7 +1086,13 @@ async def wait_for_global_channel_edit_slot() -> None:
                 oldest = channel_edit_recent_timestamps[0]
                 bucket_wait = max(0.0, CHANNEL_EDIT_BUCKET_WINDOW - (now - oldest))
 
-            wait_for = max(spacing_wait, bucket_wait)
+            penalty_wait = 0.0
+            if auto_limiter_last_429_at is not None:
+                since_429 = now - auto_limiter_last_429_at
+                if since_429 < 120.0:
+                    penalty_wait = 120.0 - since_429
+
+            wait_for = max(spacing_wait, bucket_wait, penalty_wait)
 
             if wait_for <= 0:
                 now2 = monotonic()
