@@ -61,9 +61,9 @@ WEATHER_REFRESH_MINUTES = 5
 CLOCK_REFRESH_SECONDS = 300
 STATS_FALLBACK_REFRESH_SECONDS = 300
 STATUS_CLOCK_REFRESH_SECONDS = 60
-CHANNEL_EDIT_DELAY = 1.5
+CHANNEL_EDIT_DELAY = 1.0
 CHANNEL_EDIT_RETRY_COUNT = 3
-CHANNEL_EDIT_RETRY_DELAY = 8.0
+CHANNEL_EDIT_RETRY_DELAY = 6.0
 STATS_REFRESH_DEBOUNCE_SECONDS = 5
 MAX_CHANNEL_NAME_LENGTH = 100
 
@@ -112,10 +112,10 @@ next_global_channel_edit_time: float = 0.0
 channel_edit_queue: asyncio.Queue[tuple[discord.abc.GuildChannel, str, asyncio.Future]] = asyncio.Queue()
 channel_edit_worker_task: asyncio.Task | None = None
 channel_edit_recent_timestamps: deque[float] = deque()
-CHANNEL_EDIT_BUCKET_LIMIT = 8
+CHANNEL_EDIT_BUCKET_LIMIT = 20
 CHANNEL_EDIT_BUCKET_WINDOW = 60.0
-QUEUE_INPUT_BATCH_SIZE = 3
-QUEUE_INPUT_BATCH_DELAY = 4.0
+QUEUE_INPUT_BATCH_SIZE = 5
+QUEUE_INPUT_BATCH_DELAY = 1.5
 last_midnight_reset_dates: dict[int, date] = {}
 weather_cache: dict[int, dict] = {}
 last_good_weather_cache: dict[int, dict] = {}
@@ -128,9 +128,9 @@ last_status_panel_signatures: dict[int, str] = {}
 
 startup_full_refresh_done: set[int] = set()
 last_global_refresh_at: dict[int, float] = {}
-GLOBAL_REFRESH_COOLDOWN_SECONDS = 20.0
+GLOBAL_REFRESH_COOLDOWN_SECONDS = 10.0
 GLOBAL_UPDATE_LOCK = asyncio.Lock()
-FAST_FIRST_SYNC_DELAY = 0.35
+FAST_FIRST_SYNC_DELAY = 0.2
 NORMAL_CHANNEL_EDIT_DELAY = CHANNEL_EDIT_DELAY
 fast_first_sync_active: set[int] = set()
 
