@@ -118,6 +118,7 @@ QUEUE_INPUT_BATCH_SIZE = 2
 QUEUE_INPUT_BATCH_DELAY = 15.0
 last_midnight_reset_dates: dict[int, date] = {}
 weather_cache: dict[int, dict] = {}
+last_good_weather_cache: dict[int, dict] = {}
 background_refresh_tasks: dict[int, asyncio.Task] = {}
 last_presence_text: str | None = None
 last_weather_payloads: dict[int, dict[str, str]] = {}
@@ -1187,6 +1188,21 @@ def localized_alert_name(name: str, lang: str) -> str:
     return name
 
 
+def is_valid_weather_payload(weather: dict | None) -> bool:
+    if not weather or not isinstance(weather, dict):
+        return False
+
+    required_keys = ["temperature", "wind", "pressure", "sunrise", "sunset"]
+    for key in required_keys:
+        value = weather.get(key)
+        if value is None:
+            return False
+        if isinstance(value, str) and "--" in value:
+            return False
+
+    return True
+
+
 async def ensure_guild_members_cached(guild: discord.Guild):
     try:
         if not guild.chunked:
@@ -1241,6 +1257,7 @@ async def schedule_background_refresh(guild: discord.Guild, *, force_full: bool 
 
     task = asyncio.create_task(runner())
     background_refresh_tasks[guild.id] = task
+    logging.info("[REFRESH] Zaplanowano %sodświeżenie w tle dla serwera %s", "pełne " if force_full else "", guild.name)
     await task
 
 
@@ -2228,9 +2245,11 @@ async def setup_command(interaction: discord.Interaction):
         last_clock_payloads.pop(guild.id, None)
         last_stats_payloads.pop(guild.id, None)
         weather_cache.pop(guild.id, None)
-        await schedule_background_refresh(guild, force_full=True)
+    last_good_weather_cache.pop(guild.id, None)
+        last_good_weather_cache.pop(guild.id, None)
+        asyncio.create_task(schedule_background_refresh(guild, force_full=True))
         startup_full_refresh_done.add(guild.id)
-        await interaction.followup.send(tr(lang, "setup_ok"), ephemeral=True)
+        await interaction.followup.send("✅ Setup zakończony. Szybka synchronizacja kanałów ruszyła w tle.", ephemeral=True)
     except Exception as e:
         await interaction.followup.send(tr(lang, "setup_error", error=e), ephemeral=True)
 
@@ -2251,8 +2270,8 @@ async def refresh_command(interaction: discord.Interaction):
         if not cfg.get("channels"):
             await interaction.followup.send(tr(lang, "refresh_no_config"), ephemeral=True)
             return
-        await schedule_background_refresh(guild, force_full=False)
-        await interaction.followup.send(tr(lang, "refresh_ok"), ephemeral=True)
+        asyncio.create_task(schedule_background_refresh(guild, force_full=False))
+        await interaction.followup.send("✅ Odświeżanie zostało uruchomione w tle.", ephemeral=True)
     except Exception as e:
         await interaction.followup.send(tr(lang, "refresh_error", error=e), ephemeral=True)
 
@@ -2469,9 +2488,11 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
         save_guild_config(guild.id, cfg)
 
         weather_cache.pop(guild.id, None)
+    last_good_weather_cache.pop(guild.id, None)
+        last_good_weather_cache.pop(guild.id, None)
         last_weather_payloads.pop(guild.id, None)
         last_clock_payloads.pop(guild.id, None)
-        await schedule_background_refresh(guild, force_full=True)
+        asyncio.create_task(schedule_background_refresh(guild, force_full=True))
 
         extra = f", {city['admin1']}" if city.get("admin1") else ""
         await interaction.followup.send(
@@ -2503,11 +2524,11 @@ async def language_command(interaction: discord.Interaction, code: str):
 
     await interaction.response.defer(ephemeral=True)
     try:
-        await schedule_background_refresh(guild, force_full=True)
+        asyncio.create_task(schedule_background_refresh(guild, force_full=True))
     except Exception as e:
         logging.error("Błąd odświeżania po zmianie języka: %s", e)
 
-    await interaction.followup.send(tr(code, "language_set"), ephemeral=True)
+    await interaction.followup.send(tr(code, "language_set") + "\n⚡ Odświeżanie kanałów działa w tle.", ephemeral=True)
 
 
 @bot.tree.command(name="panel_statusow", description="Tworzy panel statusów, nastroju i aktywności")
