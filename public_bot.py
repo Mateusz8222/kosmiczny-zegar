@@ -2245,7 +2245,6 @@ async def setup_command(interaction: discord.Interaction):
         last_clock_payloads.pop(guild.id, None)
         last_stats_payloads.pop(guild.id, None)
         weather_cache.pop(guild.id, None)
-    last_good_weather_cache.pop(guild.id, None)
         last_good_weather_cache.pop(guild.id, None)
         asyncio.create_task(schedule_background_refresh(guild, force_full=True))
         startup_full_refresh_done.add(guild.id)
@@ -2488,7 +2487,6 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
         save_guild_config(guild.id, cfg)
 
         weather_cache.pop(guild.id, None)
-    last_good_weather_cache.pop(guild.id, None)
         last_good_weather_cache.pop(guild.id, None)
         last_weather_payloads.pop(guild.id, None)
         last_clock_payloads.pop(guild.id, None)
