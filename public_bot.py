@@ -2323,9 +2323,9 @@ async def setup_command(interaction: discord.Interaction):
         last_stats_payloads.pop(guild.id, None)
         weather_cache.pop(guild.id, None)
         last_good_weather_cache.pop(guild.id, None)
-        await schedule_background_refresh(guild, force_full=True)
+        asyncio.create_task(schedule_background_refresh(guild, force_full=True))
         startup_full_refresh_done.add(guild.id)
-        await interaction.followup.send("✅ Setup zakończony. Wszystkie kanały zostały szybko zsynchronizowane.", ephemeral=True)
+        await interaction.followup.send("🚀 Setup uruchomiony. Kanały synchronizują się teraz w tle.", ephemeral=True)
     except Exception as e:
         await interaction.followup.send(tr(lang, "setup_error", error=e), ephemeral=True)
 
@@ -2347,7 +2347,7 @@ async def refresh_command(interaction: discord.Interaction):
             await interaction.followup.send(tr(lang, "refresh_no_config"), ephemeral=True)
             return
         asyncio.create_task(schedule_background_refresh(guild, force_full=False))
-        await interaction.followup.send("✅ Odświeżanie zostało uruchomione w tle.", ephemeral=True)
+        await interaction.followup.send("🚀 Odświeżanie uruchomione. Zmiany lecą w tle.", ephemeral=True)
     except Exception as e:
         await interaction.followup.send(tr(lang, "refresh_error", error=e), ephemeral=True)
 
@@ -2571,7 +2571,7 @@ async def city_command(interaction: discord.Interaction, nazwa: str):
 
         extra = f", {city['admin1']}" if city.get("admin1") else ""
         await interaction.followup.send(
-            tr(lang, "city_updated", city=f"{city['name']}{extra}, {city['country']}"),
+            tr(lang, "city_updated", city=f"{city['name']}{extra}, {city['country']}") + "\n🚀 Synchronizacja kanałów działa w tle.",
             ephemeral=True,
         )
     except Exception as e:
@@ -2603,7 +2603,7 @@ async def language_command(interaction: discord.Interaction, code: str):
     except Exception as e:
         logging.error("Błąd odświeżania po zmianie języka: %s", e)
 
-    await interaction.followup.send(tr(code, "language_set") + "\n⚡ Odświeżanie kanałów działa w tle.", ephemeral=True)
+    await interaction.followup.send(tr(code, "language_set") + "\n🚀 Odświeżanie kanałów działa w tle.", ephemeral=True)
 
 
 @bot.tree.command(name="panel_statusow", description="Tworzy panel statusów, nastroju i aktywności")
@@ -3036,10 +3036,10 @@ async def on_ready():
             cfg = get_guild_config(guild.id)
             if cfg and cfg.get("channels"):
                 force_full = guild.id not in startup_full_refresh_done
-                await schedule_background_refresh(guild, force_full=force_full)
+                asyncio.create_task(schedule_background_refresh(guild, force_full=force_full))
                 startup_full_refresh_done.add(guild.id)
         except Exception as e:
-            logging.warning("Nie udało się zrobić początkowego odświeżenia dla %s: %s", guild.id, e)
+            logging.warning("Nie udało się zaplanować początkowego odświeżenia dla %s: %s", guild.id, e)
 
     if not auto_refresh.is_running():
         auto_refresh.start()
