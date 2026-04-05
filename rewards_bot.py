@@ -26,7 +26,7 @@ except ImportError as exc:
 load_dotenv(dotenv_path=Path(__file__).with_name(".env"))
 
 # ================================
-# KOSMICZNY ZEGAR PUBLIC - BOT v25
+# KOSMICZNY ZEGAR PUBLIC - BOT v27
 # MULTILANGUAGE: PL / EN
 # FULL + SYSTEM STATUSÓW
 # ================================
@@ -113,21 +113,22 @@ channel_edit_queue: asyncio.Queue[tuple[discord.abc.GuildChannel, str, asyncio.F
 channel_edit_worker_task: asyncio.Task | None = None
 channel_edit_recent_timestamps: deque[float] = deque()
 pending_channel_edits: dict[int, dict[str, Any]] = {}
-CHANNEL_EDIT_BUCKET_LIMIT = 10
+CHANNEL_EDIT_BUCKET_LIMIT = 6
 CHANNEL_EDIT_BUCKET_WINDOW = 60.0
 AUTO_LIMITER_ENABLED = True
-AUTO_LIMITER_MIN_DELAY = 2.2
-AUTO_LIMITER_MAX_DELAY = 20.0
-AUTO_LIMITER_STEP_UP = 1.2
-AUTO_LIMITER_STEP_DOWN = 0.03
-AUTO_LIMITER_429_COOLDOWN_SECONDS = 180.0
-AUTO_LIMITER_RECOVERY_SUCCESS_STREAK = 8
+AUTO_LIMITER_MIN_DELAY = 3.0
+AUTO_LIMITER_MAX_DELAY = 30.0
+AUTO_LIMITER_STEP_UP = 2.0
+AUTO_LIMITER_STEP_DOWN = 0.02
+AUTO_LIMITER_429_COOLDOWN_SECONDS = 600.0
+AUTO_LIMITER_RECOVERY_SUCCESS_STREAK = 12
 auto_limiter_delay = AUTO_LIMITER_MIN_DELAY
 auto_limiter_bucket_limit = CHANNEL_EDIT_BUCKET_LIMIT
 auto_limiter_last_429_at: float | None = None
 auto_limiter_success_streak = 0
-QUEUE_INPUT_BATCH_SIZE = 2
-QUEUE_INPUT_BATCH_DELAY = 4.0
+GLOBAL_RATE_LIMIT_UNTIL: float = 0.0
+QUEUE_INPUT_BATCH_SIZE = 1
+QUEUE_INPUT_BATCH_DELAY = 8.0
 last_midnight_reset_dates: dict[int, date] = {}
 weather_cache: dict[int, dict] = {}
 last_good_weather_cache: dict[int, dict] = {}
@@ -143,7 +144,7 @@ last_global_refresh_at: dict[int, float] = {}
 GLOBAL_REFRESH_COOLDOWN_SECONDS = 10.0
 MIN_REFRESH_INTERVAL_SECONDS = 15.0
 GLOBAL_UPDATE_LOCK = asyncio.Lock()
-FAST_FIRST_SYNC_DELAY = 0.5
+FAST_FIRST_SYNC_DELAY = AUTO_LIMITER_MIN_DELAY
 NORMAL_CHANNEL_EDIT_DELAY = CHANNEL_EDIT_DELAY
 fast_first_sync_active: set[int] = set()
 
@@ -346,7 +347,7 @@ LANGUAGES = {
     "pl": {
         "lang_name": "Polski",
         "creator": "Mati",
-        "bot_version": "v25",
+        "bot_version": "v27",
         "cat_weather": "🌤️ Pogoda",
         "cat_clock": "🛰️ Kosmiczny Zegar",
         "cat_stats": "📊 Statystyki",
@@ -576,7 +577,7 @@ LANGUAGES = {
     "en": {
         "lang_name": "English",
         "creator": "Mati",
-        "bot_version": "v25",
+        "bot_version": "v27",
         "cat_weather": "🌤️ Weather",
         "cat_clock": "🛰️ Cosmic Clock",
         "cat_stats": "📊 Statistics",
@@ -1086,9 +1087,10 @@ async def wait_for_global_channel_edit_slot() -> None:
             while channel_edit_recent_timestamps and (now - channel_edit_recent_timestamps[0]) >= CHANNEL_EDIT_BUCKET_WINDOW:
                 channel_edit_recent_timestamps.popleft()
 
-            effective_delay = FAST_FIRST_SYNC_DELAY if fast_first_sync_active else auto_limiter_delay
-            effective_bucket_limit = 8 if fast_first_sync_active else auto_limiter_bucket_limit
+            effective_delay = auto_limiter_delay
+            effective_bucket_limit = auto_limiter_bucket_limit
 
+            hard_block_wait = max(0.0, GLOBAL_RATE_LIMIT_UNTIL - now)
             spacing_wait = max(0.0, next_global_channel_edit_time - now)
 
             bucket_wait = 0.0
@@ -1102,7 +1104,7 @@ async def wait_for_global_channel_edit_slot() -> None:
                 if since_429 < AUTO_LIMITER_429_COOLDOWN_SECONDS:
                     penalty_wait = AUTO_LIMITER_429_COOLDOWN_SECONDS - since_429
 
-            wait_for = max(spacing_wait, bucket_wait, penalty_wait)
+            wait_for = max(hard_block_wait, spacing_wait, bucket_wait, penalty_wait)
 
             if wait_for <= 0:
                 now2 = monotonic()
@@ -1110,11 +1112,16 @@ async def wait_for_global_channel_edit_slot() -> None:
                 channel_edit_recent_timestamps.append(now2)
                 return
 
-            logging.info("[QUEUE] Globalny limiter kanałów aktywny. Czekam %.1fs przed następną zmianą.", wait_for)
+            if hard_block_wait > 0:
+                logging.warning("[GLOBAL BLOCK] Twarda blokada po 429. Czekam %.1fs przed kolejną zmianą kanału.", wait_for)
+            else:
+                logging.info("[QUEUE] Globalny limiter kanałów aktywny. Czekam %.1fs przed następną zmianą.", wait_for)
             await asyncio.sleep(wait_for)
 
 
 async def channel_edit_worker() -> None:
+    global GLOBAL_RATE_LIMIT_UNTIL
+
     while True:
         channel, new_name, result_future = await channel_edit_queue.get()
         try:
@@ -1150,9 +1157,11 @@ async def channel_edit_worker() -> None:
                             retry_after = getattr(getattr(e, "response", None), "retry_after", None)
                         if retry_after is None:
                             retry_after = CHANNEL_EDIT_RETRY_DELAY * attempt
-                        wait_for = max(float(retry_after), auto_limiter_delay)
-                        logging.warning(
-                            "Rate limit 429 dla kanału %s przy próbie %s/%s. Czekam %.1fs i próbuję ponownie.",
+
+                        wait_for = max(float(retry_after), auto_limiter_delay, AUTO_LIMITER_429_COOLDOWN_SECONDS)
+                        GLOBAL_RATE_LIMIT_UNTIL = monotonic() + wait_for
+                        logging.error(
+                            "[RATE LIMIT HARD] Kanał %s przy próbie %s/%s. Blokuję globalne zmiany na %.1fs.",
                             channel.id,
                             attempt,
                             CHANNEL_EDIT_RETRY_COUNT,
