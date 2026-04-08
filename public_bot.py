@@ -1112,6 +1112,26 @@ def find_voice_channel_in_category_by_name(
     return None
 
 
+async def create_or_get_category(guild: discord.Guild, name: str) -> discord.CategoryChannel:
+    for category in guild.categories:
+        if category.name == name:
+            return category
+    category = await guild.create_category(name)
+    logging.info("[SETUP] Utworzono kategorię %s na serwerze %s", name, guild.name)
+    return category
+
+
+async def create_or_get_voice_channel(
+    category: discord.CategoryChannel, name: str
+) -> discord.VoiceChannel:
+    existing = find_voice_channel_in_category_by_name(category, name)
+    if existing:
+        return existing
+    channel = await category.create_voice_channel(name)
+    logging.info("[SETUP] Utworzono kanał %s w kategorii %s", name, category.name)
+    return channel
+
+
 def format_uptime(delta: timedelta) -> str:
     total_seconds = int(delta.total_seconds())
     days, rem = divmod(total_seconds, 86400)
