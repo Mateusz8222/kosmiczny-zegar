@@ -28,7 +28,7 @@ except ImportError as exc:
 load_dotenv(dotenv_path=Path(__file__).with_name(".env"))
 
 # ================================
-# KOSMICZNY ZEGAR PUBLIC - BOT v26
+# KOSMICZNY ZEGAR PUBLIC - BOT v27 PRO
 # MULTILANGUAGE: PL / EN
 # ================================
 
@@ -81,19 +81,21 @@ DEFAULT_COUNTRY = "Polska"
 DEFAULT_TIMEZONE = "Europe/Warsaw"
 DEFAULT_LANGUAGE = "pl"
 
-WEATHER_REFRESH_MINUTES = 5
-CLOCK_REFRESH_SECONDS = 300
-STATS_FALLBACK_REFRESH_SECONDS = 300
+WEATHER_REFRESH_MINUTES = 15
+CLOCK_REFRESH_SECONDS = 1800
+STATS_FALLBACK_REFRESH_SECONDS = 1800
 STATUS_CLOCK_REFRESH_SECONDS = 60
-CHANNEL_EDIT_DELAY = 1.3
+CHANNEL_EDIT_DELAY = 8.0
 CHANNEL_EDIT_RETRY_COUNT = 3
-CHANNEL_EDIT_RETRY_DELAY = 6.0
-STATS_REFRESH_DEBOUNCE_SECONDS = 5
+CHANNEL_EDIT_RETRY_DELAY = 45.0
+STATS_REFRESH_DEBOUNCE_SECONDS = 60
 MAX_CHANNEL_NAME_LENGTH = 100
-WEATHER_CACHE_TTL_SECONDS = 240
-BANS_REFRESH_TTL_SECONDS = 1800
+WEATHER_CACHE_TTL_SECONDS = 840
+BANS_REFRESH_TTL_SECONDS = 3600
 HTTP_TOTAL_TIMEOUT_SECONDS = 20
 HTTP_CONNECT_TIMEOUT_SECONDS = 10
+PER_CHANNEL_EDIT_COOLDOWN_SECONDS = 180.0
+MIN_STATS_EVENT_REFRESH_SECONDS = 120.0
 
 bot_start_time = datetime.now(UTC)
 
@@ -129,6 +131,9 @@ last_clock_payloads: dict[int, dict[str, str]] = {}
 last_stats_payloads: dict[int, dict[str, str]] = {}
 last_status_panel_signatures: dict[int, str] = {}
 last_bans_cache: dict[int, tuple[float, int]] = {}
+queued_channel_targets: dict[int, str] = {}
+channel_last_edit_at: dict[int, float] = {}
+guild_last_stats_event_refresh_at: dict[int, float] = {}
 
 startup_full_refresh_done: set[int] = set()
 last_global_refresh_at: dict[int, float] = {}
@@ -354,7 +359,7 @@ LANGUAGES = {
     "pl": {
         "lang_name": "Polski",
         "creator": "Mati",
-        "bot_version": "v26",
+        "bot_version": "v27 PRO",
         "cat_weather": "🌤️ Pogoda",
         "cat_clock": "🛰️ Kosmiczny Zegar",
         "cat_stats": "📊 Statystyki",
@@ -598,7 +603,7 @@ LANGUAGES = {
     "en": {
         "lang_name": "English",
         "creator": "Mati",
-        "bot_version": "v26",
+        "bot_version": "v27 PRO",
         "cat_weather": "🌤️ Weather",
         "cat_clock": "🛰️ Cosmic Clock",
         "cat_stats": "📊 Statistics",
@@ -1007,6 +1012,15 @@ def cleanup_guild_runtime(guild_id: int) -> None:
     fast_first_sync_active.discard(guild_id)
     stats_update_tasks.pop(guild_id, None)
     last_bans_cache.pop(guild_id, None)
+    guild_last_stats_event_refresh_at.pop(guild_id, None)
+
+    channel_ids_to_remove = []
+    for channel_id in list(channel_edit_locks.keys()):
+        channel_ids_to_remove.append(channel_id)
+    for channel_id in channel_ids_to_remove:
+        queued_channel_targets.pop(channel_id, None)
+        channel_last_edit_at.pop(channel_id, None)
+        channel_edit_locks.pop(channel_id, None)
 
 
 def get_lang_code(cfg: dict[str, Any] | None) -> str:
@@ -1264,6 +1278,7 @@ async def channel_edit_worker() -> None:
                 if not result_future.done():
                     result_future.set_exception(e)
             finally:
+                queued_channel_targets.pop(channel.id, None)
                 channel_edit_queue.task_done()
     except asyncio.CancelledError:
         raise
@@ -1310,9 +1325,22 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
         if channel.name == new_name:
             return True
 
+        queued_target = queued_channel_targets.get(channel.id)
+        if queued_target == new_name:
+            logging.info("[QUEUE] Pomijam duplikat kolejki dla kanału %s -> %s", channel.id, new_name)
+            return True
+
+        last_edit_at = channel_last_edit_at.get(channel.id, 0.0)
+        since_last_edit = monotonic() - last_edit_at
+        if since_last_edit < PER_CHANNEL_EDIT_COOLDOWN_SECONDS:
+            wait_left = PER_CHANNEL_EDIT_COOLDOWN_SECONDS - since_last_edit
+            logging.info("[QUEUE] Pomijam zmianę kanału %s -> %s. Cooldown kanału aktywny jeszcze %.1fs", channel.id, new_name, wait_left)
+            return False
+
         ensure_channel_edit_worker_started()
         loop = asyncio.get_running_loop()
         result_future: asyncio.Future[bool] = loop.create_future()
+        queued_channel_targets[channel.id] = new_name
         await channel_edit_queue.put((channel, new_name, result_future))
         logging.info("[QUEUE] Dodano zmianę kanału %s do kolejki. Aktualny rozmiar kolejki: %s", channel.id, channel_edit_queue.qsize())
         return await result_future
@@ -3001,6 +3029,13 @@ async def delete_all_command(interaction: discord.Interaction):
 # ================================
 
 def schedule_stats_refresh(guild: discord.Guild) -> None:
+    now = monotonic()
+    last_event_refresh = guild_last_stats_event_refresh_at.get(guild.id, 0.0)
+    if (now - last_event_refresh) < MIN_STATS_EVENT_REFRESH_SECONDS:
+        wait_left = MIN_STATS_EVENT_REFRESH_SECONDS - (now - last_event_refresh)
+        logging.info("[STATYSTYKI] Pomijam event refresh dla %s. Cooldown aktywny jeszcze %.1fs", guild.id, wait_left)
+        return
+
     if guild.id in stats_update_tasks and not stats_update_tasks[guild.id].done():
         return
 
@@ -3009,6 +3044,7 @@ def schedule_stats_refresh(guild: discord.Guild) -> None:
             await asyncio.sleep(STATS_REFRESH_DEBOUNCE_SECONDS)
             cfg = get_guild_config(guild.id)
             if cfg and cfg.get("channels"):
+                guild_last_stats_event_refresh_at[guild.id] = monotonic()
                 await schedule_background_refresh(guild, force_full=False)
         except Exception as e:
             logging.warning("Błąd odświeżania statystyk live dla %s: %s", guild.id, e)
@@ -3073,8 +3109,8 @@ async def auto_refresh():
     for guild in bot.guilds:
         try:
             cfg = get_guild_config(guild.id)
-            if cfg:
-                await refresh_existing_panel(guild)
+            if cfg and cfg.get("channels"):
+                await schedule_background_refresh(guild, force_full=False)
         except Exception as e:
             logging.warning("Błąd auto_refresh dla serwera %s: %s", guild.id, e)
 
