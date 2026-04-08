@@ -28,7 +28,7 @@ except ImportError as exc:
 load_dotenv(dotenv_path=Path(__file__).with_name(".env"))
 
 # ================================
-# KOSMICZNY ZEGAR PUBLIC - BOT v27 PRO
+# KOSMICZNY ZEGAR PUBLIC - BOT v26
 # MULTILANGUAGE: PL / EN
 # ================================
 
@@ -81,22 +81,19 @@ DEFAULT_COUNTRY = "Polska"
 DEFAULT_TIMEZONE = "Europe/Warsaw"
 DEFAULT_LANGUAGE = "pl"
 
-WEATHER_REFRESH_MINUTES = 20
-CLOCK_REFRESH_SECONDS = 1800
-STATS_FALLBACK_REFRESH_SECONDS = 1800
+WEATHER_REFRESH_MINUTES = 10
+CLOCK_REFRESH_SECONDS = 600
+STATS_FALLBACK_REFRESH_SECONDS = 600
 STATUS_CLOCK_REFRESH_SECONDS = 60
-CHANNEL_EDIT_DELAY = 45.0
+CHANNEL_EDIT_DELAY = 8.0
 CHANNEL_EDIT_RETRY_COUNT = 3
-CHANNEL_EDIT_RETRY_DELAY = 90.0
+CHANNEL_EDIT_RETRY_DELAY = 30.0
 STATS_REFRESH_DEBOUNCE_SECONDS = 60
 MAX_CHANNEL_NAME_LENGTH = 100
-WEATHER_CACHE_TTL_SECONDS = 1200
-WEATHER_API_429_BACKOFF_SECONDS = 900
-BANS_REFRESH_TTL_SECONDS = 3600
+WEATHER_CACHE_TTL_SECONDS = 900
+BANS_REFRESH_TTL_SECONDS = 1800
 HTTP_TOTAL_TIMEOUT_SECONDS = 20
 HTTP_CONNECT_TIMEOUT_SECONDS = 10
-PER_CHANNEL_EDIT_COOLDOWN_SECONDS = 900.0
-MIN_STATS_EVENT_REFRESH_SECONDS = 120.0
 
 bot_start_time = datetime.now(UTC)
 
@@ -112,21 +109,19 @@ next_global_channel_edit_time: float = 0.0
 channel_edit_queue: asyncio.Queue[tuple[discord.abc.GuildChannel, str, asyncio.Future]] = asyncio.Queue()
 channel_edit_worker_task: asyncio.Task | None = None
 channel_edit_recent_timestamps: deque[float] = deque()
-CHANNEL_EDIT_BUCKET_LIMIT = 2
-CHANNEL_EDIT_BUCKET_WINDOW = 600.0
+CHANNEL_EDIT_BUCKET_LIMIT = 4
+CHANNEL_EDIT_BUCKET_WINDOW = 60.0
 AUTO_LIMITER_ENABLED = True
-AUTO_LIMITER_MIN_DELAY = 45.0
-AUTO_LIMITER_MAX_DELAY = 180.0
-AUTO_LIMITER_STEP_UP = 15.0
-AUTO_LIMITER_STEP_DOWN = 5.0
+AUTO_LIMITER_MIN_DELAY = 1.3
+AUTO_LIMITER_MAX_DELAY = 12.0
+AUTO_LIMITER_STEP_UP = 0.8
+AUTO_LIMITER_STEP_DOWN = 0.05
 auto_limiter_delay = CHANNEL_EDIT_DELAY
 auto_limiter_bucket_limit = CHANNEL_EDIT_BUCKET_LIMIT
 auto_limiter_last_429_at: float | None = None
 QUEUE_INPUT_BATCH_SIZE = 1
-QUEUE_INPUT_BATCH_DELAY = 20.0
+QUEUE_INPUT_BATCH_DELAY = 10.0
 weather_cache: dict[int, dict[str, Any]] = {}
-last_good_weather_cache: dict[int, dict[str, Any]] = {}
-weather_api_blocked_until: float = 0.0
 background_refresh_tasks: dict[int, asyncio.Task] = {}
 last_presence_text: str | None = None
 last_weather_payloads: dict[int, dict[str, str]] = {}
@@ -134,17 +129,18 @@ last_clock_payloads: dict[int, dict[str, str]] = {}
 last_stats_payloads: dict[int, dict[str, str]] = {}
 last_status_panel_signatures: dict[int, str] = {}
 last_bans_cache: dict[int, tuple[float, int]] = {}
-queued_channel_targets: dict[int, str] = {}
-channel_last_edit_at: dict[int, float] = {}
-channel_edit_blocked_until: float = 0.0
-guild_last_stats_event_refresh_at: dict[int, float] = {}
+last_channel_edit_at: dict[int, float] = {}
+pending_channel_update_targets: dict[int, str] = {}
+open_meteo_backoff_until: float = 0.0
+OPEN_METEO_429_BACKOFF_SECONDS = 600.0
+CHANNEL_EDIT_PER_CHANNEL_COOLDOWN_SECONDS = 900.0
 
 startup_full_refresh_done: set[int] = set()
 last_global_refresh_at: dict[int, float] = {}
-GLOBAL_REFRESH_COOLDOWN_SECONDS = 300.0
-MIN_REFRESH_INTERVAL_SECONDS = 15.0
+GLOBAL_REFRESH_COOLDOWN_SECONDS = 30.0
+MIN_REFRESH_INTERVAL_SECONDS = 60.0
 GLOBAL_UPDATE_LOCK = asyncio.Lock()
-FAST_FIRST_SYNC_DELAY = 45.0
+FAST_FIRST_SYNC_DELAY = CHANNEL_EDIT_DELAY
 fast_first_sync_active: set[int] = set()
 
 
@@ -363,7 +359,7 @@ LANGUAGES = {
     "pl": {
         "lang_name": "Polski",
         "creator": "Mati",
-        "bot_version": "v27 PRO",
+        "bot_version": "v26",
         "cat_weather": "🌤️ Pogoda",
         "cat_clock": "🛰️ Kosmiczny Zegar",
         "cat_stats": "📊 Statystyki",
@@ -607,7 +603,7 @@ LANGUAGES = {
     "en": {
         "lang_name": "English",
         "creator": "Mati",
-        "bot_version": "v27 PRO",
+        "bot_version": "v26",
         "cat_weather": "🌤️ Weather",
         "cat_clock": "🛰️ Cosmic Clock",
         "cat_stats": "📊 Statistics",
@@ -1016,15 +1012,6 @@ def cleanup_guild_runtime(guild_id: int) -> None:
     fast_first_sync_active.discard(guild_id)
     stats_update_tasks.pop(guild_id, None)
     last_bans_cache.pop(guild_id, None)
-    guild_last_stats_event_refresh_at.pop(guild_id, None)
-
-    channel_ids_to_remove = []
-    for channel_id in list(channel_edit_locks.keys()):
-        channel_ids_to_remove.append(channel_id)
-    for channel_id in channel_ids_to_remove:
-        queued_channel_targets.pop(channel_id, None)
-        channel_last_edit_at.pop(channel_id, None)
-        channel_edit_locks.pop(channel_id, None)
 
 
 def get_lang_code(cfg: dict[str, Any] | None) -> str:
@@ -1182,25 +1169,21 @@ def auto_limiter_on_success() -> None:
         auto_limiter_bucket_limit += 1
 
 
-def auto_limiter_on_429(retry_after: float | None = None) -> None:
-    global auto_limiter_delay, auto_limiter_bucket_limit, auto_limiter_last_429_at, channel_edit_blocked_until
+def auto_limiter_on_429() -> None:
+    global auto_limiter_delay, auto_limiter_bucket_limit, auto_limiter_last_429_at
 
     if not AUTO_LIMITER_ENABLED:
         return
 
-    now = monotonic()
-    auto_limiter_last_429_at = now
-    if retry_after is None:
-        retry_after = CHANNEL_EDIT_RETRY_DELAY
-
-    channel_edit_blocked_until = max(channel_edit_blocked_until, now + retry_after + 5.0)
-    target_delay = min(AUTO_LIMITER_MAX_DELAY, max(auto_limiter_delay + AUTO_LIMITER_STEP_UP, retry_after / 4))
+    auto_limiter_last_429_at = monotonic()
+    target_delay = min(AUTO_LIMITER_MAX_DELAY, auto_limiter_delay + AUTO_LIMITER_STEP_UP)
     auto_limiter_delay = round(target_delay, 2)
-    auto_limiter_bucket_limit = 1
+
+    if auto_limiter_bucket_limit > 4:
+        auto_limiter_bucket_limit = max(4, auto_limiter_bucket_limit - 2)
 
     logging.warning(
-        "[AUTO LIMITER] 429 od Discord. Blokuję edycje na %.1fs | delay=%.2fs bucket_limit=%s",
-        retry_after,
+        "[AUTO LIMITER] Zaostrzam limity: delay=%.2fs bucket_limit=%s",
         auto_limiter_delay,
         auto_limiter_bucket_limit,
     )
@@ -1216,8 +1199,8 @@ async def wait_for_global_channel_edit_slot() -> None:
             while channel_edit_recent_timestamps and (now - channel_edit_recent_timestamps[0]) >= CHANNEL_EDIT_BUCKET_WINDOW:
                 channel_edit_recent_timestamps.popleft()
 
-            effective_delay = auto_limiter_delay
-            effective_bucket_limit = auto_limiter_bucket_limit
+            effective_delay = FAST_FIRST_SYNC_DELAY if fast_first_sync_active else auto_limiter_delay
+            effective_bucket_limit = 8 if fast_first_sync_active else auto_limiter_bucket_limit
 
             spacing_wait = max(0.0, next_global_channel_edit_time - now)
 
@@ -1229,12 +1212,10 @@ async def wait_for_global_channel_edit_slot() -> None:
             penalty_wait = 0.0
             if auto_limiter_last_429_at is not None:
                 since_429 = now - auto_limiter_last_429_at
-                if since_429 < 300.0:
-                    penalty_wait = 300.0 - since_429
+                if since_429 < 120.0:
+                    penalty_wait = 120.0 - since_429
 
-            blocked_wait = max(0.0, channel_edit_blocked_until - now)
-
-            wait_for = max(spacing_wait, bucket_wait, penalty_wait, blocked_wait)
+            wait_for = max(spacing_wait, bucket_wait, penalty_wait)
             if wait_for <= 0:
                 now2 = monotonic()
                 next_global_channel_edit_time = now2 + effective_delay
@@ -1260,7 +1241,6 @@ async def channel_edit_worker() -> None:
                             await channel.edit(name=new_name)
                             logging.info("[KANAŁ] %s -> %s (id=%s)", old_name, new_name, channel.id)
                         success = True
-                        channel_last_edit_at[channel.id] = monotonic()
                         auto_limiter_on_success()
                         break
                     except discord.Forbidden:
@@ -1268,18 +1248,19 @@ async def channel_edit_worker() -> None:
                         break
                     except discord.HTTPException as e:
                         if getattr(e, "status", None) == 429:
-                            retry_after = float(getattr(e, "retry_after", 0.0) or 0.0)
-                            if retry_after <= 0:
+                            auto_limiter_on_429()
+                            retry_after = getattr(e, "retry_after", None)
+                            if retry_after is None:
                                 retry_after = CHANNEL_EDIT_RETRY_DELAY * attempt
-                            auto_limiter_on_429(retry_after)
+                            wait_for = max(float(retry_after), CHANNEL_EDIT_RETRY_DELAY)
                             logging.warning(
                                 "Rate limit 429 dla kanału %s przy próbie %s/%s. Czekam %.1fs i próbuję ponownie.",
                                 channel.id,
                                 attempt,
                                 CHANNEL_EDIT_RETRY_COUNT,
-                                retry_after,
+                                wait_for,
                             )
-                            await asyncio.sleep(retry_after + 2.0)
+                            await asyncio.sleep(wait_for)
                             continue
 
                         logging.warning("Nie udało się zmienić nazwy kanału %s: %s", channel.id, e)
@@ -1291,7 +1272,7 @@ async def channel_edit_worker() -> None:
                 if not result_future.done():
                     result_future.set_exception(e)
             finally:
-                queued_channel_targets.pop(channel.id, None)
+                pending_channel_update_targets.pop(getattr(channel, "id", None), None)
                 channel_edit_queue.task_done()
     except asyncio.CancelledError:
         raise
@@ -1302,6 +1283,7 @@ async def clear_pending_channel_updates() -> int:
     while not channel_edit_queue.empty():
         try:
             _channel, _new_name, result_future = channel_edit_queue.get_nowait()
+            pending_channel_update_targets.pop(getattr(_channel, "id", None), None)
             if not result_future.done():
                 result_future.set_result(False)
             channel_edit_queue.task_done()
@@ -1333,27 +1315,29 @@ async def safe_edit_channel_name(channel: discord.abc.GuildChannel | None, new_n
     if channel.name == new_name:
         return True
 
+    last_edit = last_channel_edit_at.get(channel.id, 0.0)
+    cooldown_left = CHANNEL_EDIT_PER_CHANNEL_COOLDOWN_SECONDS - (monotonic() - last_edit)
+    if cooldown_left > 0:
+        logging.info("[QUEUE] Pomijam kanał %s. Cooldown aktywny jeszcze %.1fs", channel.id, cooldown_left)
+        return False
+
     lock = get_channel_lock(channel.id)
     async with lock:
         if channel.name == new_name:
             return True
 
-        queued_target = queued_channel_targets.get(channel.id)
-        if queued_target == new_name:
-            logging.info("[QUEUE] Pomijam duplikat kolejki dla kanału %s -> %s", channel.id, new_name)
-            return True
-
-        last_edit_at = channel_last_edit_at.get(channel.id, 0.0)
-        since_last_edit = monotonic() - last_edit_at
-        if since_last_edit < PER_CHANNEL_EDIT_COOLDOWN_SECONDS:
-            wait_left = PER_CHANNEL_EDIT_COOLDOWN_SECONDS - since_last_edit
-            logging.info("[QUEUE] Pomijam zmianę kanału %s -> %s. Cooldown kanału aktywny jeszcze %.1fs", channel.id, new_name, wait_left)
+        existing_target = pending_channel_update_targets.get(channel.id)
+        if existing_target == new_name:
+            logging.info("[QUEUE] Kanał %s ma już identyczną zmianę w kolejce. Pomijam duplikat.", channel.id)
+            return False
+        if existing_target is not None:
+            logging.info("[QUEUE] Kanał %s ma już inną zmianę w kolejce. Czekam na kolejną turę.", channel.id)
             return False
 
         ensure_channel_edit_worker_started()
         loop = asyncio.get_running_loop()
         result_future: asyncio.Future[bool] = loop.create_future()
-        queued_channel_targets[channel.id] = new_name
+        pending_channel_update_targets[channel.id] = new_name
         await channel_edit_queue.put((channel, new_name, result_future))
         logging.info("[QUEUE] Dodano zmianę kanału %s do kolejki. Aktualny rozmiar kolejki: %s", channel.id, channel_edit_queue.qsize())
         return await result_future
@@ -1474,49 +1458,44 @@ async def apply_channel_name_updates_startup_fast(
 # ================================
 
 async def fetch_json(url: str) -> dict[str, Any]:
-    global weather_api_blocked_until
+    global open_meteo_backoff_until
+
+    if "open-meteo.com" in url and open_meteo_backoff_until > monotonic():
+        raise RuntimeError(f"Open-Meteo cooldown aktywny jeszcze {round(open_meteo_backoff_until - monotonic(), 1)}s")
 
     if bot.http_session is None or bot.http_session.closed:
         timeout = aiohttp.ClientTimeout(total=HTTP_TOTAL_TIMEOUT_SECONDS, connect=HTTP_CONNECT_TIMEOUT_SECONDS)
         bot.http_session = aiohttp.ClientSession(timeout=timeout)
 
-    if "open-meteo.com" in url and monotonic() < weather_api_blocked_until:
-        remaining = int(weather_api_blocked_until - monotonic())
-        raise RuntimeError(f"Weather API backoff active for {remaining}s")
-
     last_error: Exception | None = None
     for attempt in range(1, 3):
         try:
             async with bot.http_session.get(url, headers={"User-Agent": "KosmicznyZegar/26"}) as response:
+                if response.status == 429 and "open-meteo.com" in url:
+                    retry_after = response.headers.get("Retry-After")
+                    backoff = OPEN_METEO_429_BACKOFF_SECONDS
+                    if retry_after:
+                        try:
+                            backoff = max(backoff, float(retry_after))
+                        except ValueError:
+                            pass
+                    open_meteo_backoff_until = monotonic() + backoff
+                    raise RuntimeError(f"Open-Meteo 429. Backoff {backoff:.0f}s")
                 response.raise_for_status()
                 text = await response.text()
                 lowered = text.lower()
                 if text.startswith("<!DOCTYPE") or "<html" in lowered:
                     raise RuntimeError("API returned HTML instead of JSON")
                 return json.loads(text)
-        except aiohttp.ClientResponseError as e:
-            last_error = e
-            if e.status == 429 and "open-meteo.com" in url:
-                retry_after = 0.0
-                try:
-                    retry_after = float(e.headers.get("Retry-After", "0") or 0)
-                except Exception:
-                    retry_after = 0.0
-                block_for = max(WEATHER_API_429_BACKOFF_SECONDS, retry_after)
-                weather_api_blocked_until = monotonic() + block_for
-                raise RuntimeError(f"Weather API 429 - backoff {int(block_for)}s") from e
-            if attempt < 2:
-                await asyncio.sleep(1.5 * attempt)
-            else:
-                break
         except (aiohttp.ClientError, asyncio.TimeoutError, json.JSONDecodeError, RuntimeError) as e:
             last_error = e
-            if attempt < 2:
-                await asyncio.sleep(1.0 * attempt)
+            if attempt < 2 and "429" not in str(e):
+                await asyncio.sleep(1.0)
             else:
                 break
 
     raise RuntimeError(f"Failed to fetch JSON: {last_error}")
+
 
 async def geocode_city(city_query: str, count: int = 10, language: str = DEFAULT_LANGUAGE) -> list[dict[str, Any]]:
     city_query = city_query.strip()
@@ -1810,19 +1789,12 @@ async def get_weather_data(
     use_cache: bool = True,
     guild_id: int | None = None,
 ) -> dict[str, Any]:
-    global weather_api_blocked_until
-
     if use_cache and guild_id is not None:
         cached = weather_cache.get(guild_id)
         if cached:
             fetched_at = float(cached.get("_fetched_at", 0.0))
             if monotonic() - fetched_at < WEATHER_CACHE_TTL_SECONDS:
                 return cached
-
-    if guild_id is not None and monotonic() < weather_api_blocked_until:
-        fallback = weather_cache.get(guild_id) or last_good_weather_cache.get(guild_id)
-        if fallback:
-            return fallback
 
     encoded_timezone = quote(timezone_name)
     weather_url = (
@@ -1836,24 +1808,31 @@ async def get_weather_data(
         "https://air-quality-api.open-meteo.com/v1/air-quality"
         f"?latitude={latitude}&longitude={longitude}"
         "&current=european_aqi"
+        f"&timezone={encoded_timezone}"
+    )
+    pollen_url = (
+        "https://air-quality-api.open-meteo.com/v1/air-quality"
+        f"?latitude={latitude}&longitude={longitude}"
         "&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen"
         f"&timezone={encoded_timezone}"
     )
 
     try:
-        weather_data, air_data = await asyncio.gather(fetch_json(weather_url), fetch_json(air_url))
+        weather_data, air_data, pollen_data = await asyncio.gather(
+            fetch_json(weather_url), fetch_json(air_url), fetch_json(pollen_url)
+        )
     except Exception:
         if guild_id is not None:
-            fallback = weather_cache.get(guild_id) or last_good_weather_cache.get(guild_id)
-            if fallback:
-                logging.warning("[POGODA] Używam ostatnich dobrych danych pogodowych dla serwera %s.", guild_id)
-                return fallback
+            cached = weather_cache.get(guild_id)
+            if cached:
+                logging.warning("[POGODA] Używam ostatnich zapisanych danych dla serwera %s po błędzie API.", guild_id)
+                return cached
         raise
 
     current = weather_data.get("current") or {}
     daily = weather_data.get("daily") or {}
     air_current = air_data.get("current") or {}
-    hourly = air_data.get("hourly") or {}
+    hourly = pollen_data.get("hourly") or {}
     hourly_time = hourly.get("time") or []
     current_time = current.get("time")
 
@@ -1917,10 +1896,31 @@ async def get_weather_data(
     }
 
     if guild_id is not None:
-        weather_cache[guild_id] = dict(result)
-        last_good_weather_cache[guild_id] = dict(result)
-
+        weather_cache[guild_id] = result
     return result
+
+
+# ================================
+# KANAŁY / SETUP
+# ================================
+
+async def create_or_get_category(guild: discord.Guild, name: str) -> discord.CategoryChannel:
+    for category in guild.categories:
+        if category.name == name:
+            return category
+    category = await guild.create_category(name)
+    logging.info("[SETUP] Utworzono kategorię %s na serwerze %s", name, guild.name)
+    return category
+
+
+async def create_or_get_voice_channel(category: discord.CategoryChannel, name: str) -> discord.VoiceChannel:
+    existing = find_voice_channel_in_category_by_name(category, name)
+    if existing:
+        return existing
+    channel = await category.create_voice_channel(name)
+    logging.info("[SETUP] Utworzono kanał %s w kategorii %s", name, category.name)
+    return channel
+
 
 async def setup_categories_and_channels(guild: discord.Guild) -> dict[str, Any]:
     cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
@@ -2101,29 +2101,94 @@ async def refresh_existing_panel(guild: discord.Guild, *, force_full: bool = Fal
         return False
 
     lang = get_lang_code(cfg)
-    weather: dict[str, Any] | None = None
+    weather = await get_weather_data(
+        cfg["city_name"],
+        cfg["latitude"],
+        cfg["longitude"],
+        cfg.get("timezone", DEFAULT_TIMEZONE),
+        lang,
+        use_cache=not force_full,
+        guild_id=guild.id,
+    )
 
-    try:
-        weather = await get_weather_data(
-            cfg["city_name"],
-            cfg["latitude"],
-            cfg["longitude"],
-            cfg.get("timezone", DEFAULT_TIMEZONE),
-            lang,
-            use_cache=True,
-            guild_id=guild.id,
-        )
-    except Exception as e:
-        logging.warning("[POGODA] Nie udało się pobrać świeżej pogody dla serwera %s: %s", guild.id, e)
-        weather = weather_cache.get(guild.id) or last_good_weather_cache.get(guild.id)
-
-    tasks_to_run = [update_stats_channels(guild, cfg)]
-    if weather is not None:
-        tasks_to_run.append(update_weather_channels(guild, cfg, weather))
-    tasks_to_run.append(update_clock_channels(guild, cfg, weather))
-
-    await asyncio.gather(*tasks_to_run)
+    fast_start = force_full and guild.id in fast_first_sync_active
+    await asyncio.gather(
+        update_weather_channels(guild, cfg, weather, fast_start=fast_start),
+        update_clock_channels(guild, cfg, weather, fast_start=fast_start),
+        update_stats_channels(guild, cfg, fast_start=fast_start),
+    )
     return True
+
+
+async def schedule_background_refresh(guild: discord.Guild, *, force_full: bool = False) -> None:
+    existing = background_refresh_tasks.get(guild.id)
+    if existing and not existing.done():
+        logging.info(
+            "[REFRESH] Pominięto nowe żądanie odświeżenia dla serwera %s, bo poprzedni refresh nadal trwa.",
+            guild.name,
+        )
+        return
+
+    now_mono = monotonic()
+    last_run = last_global_refresh_at.get(guild.id, 0.0)
+
+    min_interval = 0.0 if force_full else MIN_REFRESH_INTERVAL_SECONDS
+    if (now_mono - last_run) < min_interval:
+        wait_left = min_interval - (now_mono - last_run)
+        logging.info(
+            "[REFRESH] Pominięto odświeżenie dla serwera %s. Minimalny odstęp aktywny jeszcze %.1fs.",
+            guild.name,
+            wait_left,
+        )
+        return
+
+    if not force_full and (now_mono - last_run) < GLOBAL_REFRESH_COOLDOWN_SECONDS:
+        wait_left = GLOBAL_REFRESH_COOLDOWN_SECONDS - (now_mono - last_run)
+        logging.info(
+            "[REFRESH] Pominięto odświeżenie dla serwera %s. Globalny cooldown aktywny jeszcze %.1fs.",
+            guild.name,
+            wait_left,
+        )
+        return
+
+    async def runner() -> None:
+        try:
+            async with GLOBAL_UPDATE_LOCK:
+                if force_full:
+                    fast_first_sync_active.add(guild.id)
+
+                last_global_refresh_at[guild.id] = monotonic()
+                logging.info(
+                    "[REFRESH] Start %sodświeżenia dla serwera %s",
+                    "pełnego " if force_full else "",
+                    guild.name,
+                )
+                await ensure_guild_members_cached(guild)
+                await refresh_existing_panel(guild, force_full=force_full)
+                await refresh_status_panel_message(guild)
+                logging.info(
+                    "[REFRESH] Koniec %sodświeżenia dla serwera %s",
+                    "pełnego " if force_full else "",
+                    guild.name,
+                )
+        except Exception as e:
+            logging.warning("Błąd background refresh dla serwera %s: %s", guild.id, e)
+        finally:
+            fast_first_sync_active.discard(guild.id)
+            background_refresh_tasks.pop(guild.id, None)
+
+    task = asyncio.create_task(runner())
+    background_refresh_tasks[guild.id] = task
+    logging.info(
+        "[REFRESH] Zaplanowano %sodświeżenie w tle dla serwera %s",
+        "pełne " if force_full else "",
+        guild.name,
+    )
+
+
+# ================================
+# PANEL STATUSÓW / ROLE
+# ================================
 
 def get_panel_role(guild: discord.Guild, role_id: int) -> discord.Role | None:
     return guild.get_role(role_id) if role_id else None
@@ -2984,13 +3049,6 @@ async def delete_all_command(interaction: discord.Interaction):
 # ================================
 
 def schedule_stats_refresh(guild: discord.Guild) -> None:
-    now = monotonic()
-    last_event_refresh = guild_last_stats_event_refresh_at.get(guild.id, 0.0)
-    if (now - last_event_refresh) < MIN_STATS_EVENT_REFRESH_SECONDS:
-        wait_left = MIN_STATS_EVENT_REFRESH_SECONDS - (now - last_event_refresh)
-        logging.info("[STATYSTYKI] Pomijam event refresh dla %s. Cooldown aktywny jeszcze %.1fs", guild.id, wait_left)
-        return
-
     if guild.id in stats_update_tasks and not stats_update_tasks[guild.id].done():
         return
 
@@ -2999,7 +3057,6 @@ def schedule_stats_refresh(guild: discord.Guild) -> None:
             await asyncio.sleep(STATS_REFRESH_DEBOUNCE_SECONDS)
             cfg = get_guild_config(guild.id)
             if cfg and cfg.get("channels"):
-                guild_last_stats_event_refresh_at[guild.id] = monotonic()
                 await update_stats_channels(guild, cfg)
                 await refresh_status_panel_message(guild)
         except Exception as e:
@@ -3065,8 +3122,8 @@ async def auto_refresh():
     for guild in bot.guilds:
         try:
             cfg = get_guild_config(guild.id)
-            if cfg and cfg.get("channels"):
-                await schedule_background_refresh(guild, force_full=False)
+            if cfg:
+                await refresh_existing_panel(guild)
         except Exception as e:
             logging.warning("Błąd auto_refresh dla serwera %s: %s", guild.id, e)
 
