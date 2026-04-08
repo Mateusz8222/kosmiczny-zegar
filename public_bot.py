@@ -84,7 +84,7 @@ DEFAULT_LANGUAGE = "pl"
 WEATHER_REFRESH_MINUTES = 10
 CLOCK_REFRESH_SECONDS = 600
 STATS_FALLBACK_REFRESH_SECONDS = 600
-STATUS_CLOCK_REFRESH_SECONDS = 60
+STATUS_CLOCK_REFRESH_SECONDS = 1
 CHANNEL_EDIT_DELAY = 8.0
 CHANNEL_EDIT_RETRY_COUNT = 3
 CHANNEL_EDIT_RETRY_DELAY = 30.0
@@ -1039,6 +1039,27 @@ def get_timezone_object(timezone_name: str):
         return pytz.timezone(DEFAULT_TIMEZONE)
 
 
+def get_precise_now(timezone_name: str = DEFAULT_TIMEZONE) -> datetime:
+    tz = get_timezone_object(timezone_name)
+    return datetime.now(tz)
+
+
+async def sleep_until_next_second() -> None:
+    now = datetime.now()
+    delay = 1.0 - (now.microsecond / 1_000_000)
+    if delay < 0.001:
+        delay = 0.001
+    await asyncio.sleep(delay)
+
+
+async def sleep_until_next_minute() -> None:
+    now = datetime.now()
+    delay = 60 - now.second - (now.microsecond / 1_000_000)
+    if delay < 0.01:
+        delay = 0.01
+    await asyncio.sleep(delay)
+
+
 def trim_channel_name(text: str) -> str:
     text = " ".join(str(text).split())
     return text[:MAX_CHANNEL_NAME_LENGTH].strip()
@@ -1987,8 +2008,7 @@ async def update_weather_channels(guild: discord.Guild, cfg: dict[str, Any], wea
 
 async def update_clock_channels(guild: discord.Guild, cfg: dict[str, Any], weather: dict[str, Any] | None = None, *, fast_start: bool = False) -> None:
     lang = get_lang_code(cfg)
-    timezone_obj = get_timezone_object(cfg.get("timezone", DEFAULT_TIMEZONE))
-    now = datetime.now(timezone_obj)
+    now = get_precise_now(cfg.get("timezone", DEFAULT_TIMEZONE))
     weekdays = LANGUAGES[lang]["weekday_short"]
 
     cached_weather = weather or weather_cache.get(guild.id, {})
