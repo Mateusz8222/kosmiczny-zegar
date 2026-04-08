@@ -2135,6 +2135,73 @@ async def refresh_existing_panel(guild: discord.Guild, *, force_full: bool = Fal
     await asyncio.gather(*tasks_to_run)
     return True
 
+async def schedule_background_refresh(guild: discord.Guild, *, force_full: bool = False) -> None:
+    existing = background_refresh_tasks.get(guild.id)
+    if existing and not existing.done():
+        logging.info(
+            "[REFRESH] Pominięto nowe żądanie odświeżenia dla serwera %s, bo poprzedni refresh nadal trwa.",
+            guild.name,
+        )
+        return
+
+    now_mono = monotonic()
+    last_run = last_global_refresh_at.get(guild.id, 0.0)
+
+    min_interval = 0.0 if force_full else MIN_REFRESH_INTERVAL_SECONDS
+    if (now_mono - last_run) < min_interval:
+        wait_left = min_interval - (now_mono - last_run)
+        logging.info(
+            "[REFRESH] Pominięto odświeżenie dla serwera %s. Minimalny odstęp aktywny jeszcze %.1fs.",
+            guild.name,
+            wait_left,
+        )
+        return
+
+    if not force_full and (now_mono - last_run) < GLOBAL_REFRESH_COOLDOWN_SECONDS:
+        wait_left = GLOBAL_REFRESH_COOLDOWN_SECONDS - (now_mono - last_run)
+        logging.info(
+            "[REFRESH] Pominięto odświeżenie dla serwera %s. Globalny cooldown aktywny jeszcze %.1fs.",
+            guild.name,
+            wait_left,
+        )
+        return
+
+    async def runner() -> None:
+        try:
+            async with GLOBAL_UPDATE_LOCK:
+                if force_full:
+                    fast_first_sync_active.add(guild.id)
+
+                last_global_refresh_at[guild.id] = monotonic()
+                logging.info(
+                    "[REFRESH] Start %sodświeżenia dla serwera %s",
+                    "pełnego " if force_full else "",
+                    guild.name,
+                )
+                await ensure_guild_members_cached(guild)
+                await refresh_existing_panel(guild, force_full=force_full)
+                await refresh_status_panel_message(guild)
+                logging.info(
+                    "[REFRESH] Koniec %sodświeżenia dla serwera %s",
+                    "pełnego " if force_full else "",
+                    guild.name,
+                )
+        except Exception as e:
+            logging.warning("Błąd background refresh dla serwera %s: %s", guild.id, e)
+        finally:
+            fast_first_sync_active.discard(guild.id)
+            background_refresh_tasks.pop(guild.id, None)
+
+    task = asyncio.create_task(runner())
+    background_refresh_tasks[guild.id] = task
+    logging.info(
+        "[REFRESH] Zaplanowano %sodświeżenie w tle dla serwera %s",
+        "pełne " if force_full else "",
+        guild.name,
+    )
+
+
+
 def get_panel_role(guild: discord.Guild, role_id: int) -> discord.Role | None:
     return guild.get_role(role_id) if role_id else None
 
