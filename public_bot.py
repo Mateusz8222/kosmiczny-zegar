@@ -85,9 +85,9 @@ WEATHER_REFRESH_MINUTES = 20
 CLOCK_REFRESH_SECONDS = 1800
 STATS_FALLBACK_REFRESH_SECONDS = 1800
 STATUS_CLOCK_REFRESH_SECONDS = 60
-CHANNEL_EDIT_DELAY = 8.0
+CHANNEL_EDIT_DELAY = 45.0
 CHANNEL_EDIT_RETRY_COUNT = 3
-CHANNEL_EDIT_RETRY_DELAY = 45.0
+CHANNEL_EDIT_RETRY_DELAY = 90.0
 STATS_REFRESH_DEBOUNCE_SECONDS = 60
 MAX_CHANNEL_NAME_LENGTH = 100
 WEATHER_CACHE_TTL_SECONDS = 1200
@@ -95,7 +95,7 @@ WEATHER_API_429_BACKOFF_SECONDS = 900
 BANS_REFRESH_TTL_SECONDS = 3600
 HTTP_TOTAL_TIMEOUT_SECONDS = 20
 HTTP_CONNECT_TIMEOUT_SECONDS = 10
-PER_CHANNEL_EDIT_COOLDOWN_SECONDS = 180.0
+PER_CHANNEL_EDIT_COOLDOWN_SECONDS = 900.0
 MIN_STATS_EVENT_REFRESH_SECONDS = 120.0
 
 bot_start_time = datetime.now(UTC)
@@ -112,18 +112,18 @@ next_global_channel_edit_time: float = 0.0
 channel_edit_queue: asyncio.Queue[tuple[discord.abc.GuildChannel, str, asyncio.Future]] = asyncio.Queue()
 channel_edit_worker_task: asyncio.Task | None = None
 channel_edit_recent_timestamps: deque[float] = deque()
-CHANNEL_EDIT_BUCKET_LIMIT = 12
-CHANNEL_EDIT_BUCKET_WINDOW = 60.0
+CHANNEL_EDIT_BUCKET_LIMIT = 2
+CHANNEL_EDIT_BUCKET_WINDOW = 600.0
 AUTO_LIMITER_ENABLED = True
-AUTO_LIMITER_MIN_DELAY = 1.3
-AUTO_LIMITER_MAX_DELAY = 12.0
-AUTO_LIMITER_STEP_UP = 0.8
-AUTO_LIMITER_STEP_DOWN = 0.05
+AUTO_LIMITER_MIN_DELAY = 45.0
+AUTO_LIMITER_MAX_DELAY = 180.0
+AUTO_LIMITER_STEP_UP = 15.0
+AUTO_LIMITER_STEP_DOWN = 5.0
 auto_limiter_delay = CHANNEL_EDIT_DELAY
 auto_limiter_bucket_limit = CHANNEL_EDIT_BUCKET_LIMIT
 auto_limiter_last_429_at: float | None = None
-QUEUE_INPUT_BATCH_SIZE = 3
-QUEUE_INPUT_BATCH_DELAY = 3.0
+QUEUE_INPUT_BATCH_SIZE = 1
+QUEUE_INPUT_BATCH_DELAY = 20.0
 weather_cache: dict[int, dict[str, Any]] = {}
 last_good_weather_cache: dict[int, dict[str, Any]] = {}
 weather_api_blocked_until: float = 0.0
@@ -136,14 +136,15 @@ last_status_panel_signatures: dict[int, str] = {}
 last_bans_cache: dict[int, tuple[float, int]] = {}
 queued_channel_targets: dict[int, str] = {}
 channel_last_edit_at: dict[int, float] = {}
+channel_edit_blocked_until: float = 0.0
 guild_last_stats_event_refresh_at: dict[int, float] = {}
 
 startup_full_refresh_done: set[int] = set()
 last_global_refresh_at: dict[int, float] = {}
-GLOBAL_REFRESH_COOLDOWN_SECONDS = 60.0
+GLOBAL_REFRESH_COOLDOWN_SECONDS = 300.0
 MIN_REFRESH_INTERVAL_SECONDS = 15.0
 GLOBAL_UPDATE_LOCK = asyncio.Lock()
-FAST_FIRST_SYNC_DELAY = 0.5
+FAST_FIRST_SYNC_DELAY = 45.0
 fast_first_sync_active: set[int] = set()
 
 
@@ -1112,26 +1113,6 @@ def find_voice_channel_in_category_by_name(
     return None
 
 
-async def create_or_get_category(guild: discord.Guild, name: str) -> discord.CategoryChannel:
-    for category in guild.categories:
-        if category.name == name:
-            return category
-    category = await guild.create_category(name)
-    logging.info("[SETUP] Utworzono kategorię %s na serwerze %s", name, guild.name)
-    return category
-
-
-async def create_or_get_voice_channel(
-    category: discord.CategoryChannel, name: str
-) -> discord.VoiceChannel:
-    existing = find_voice_channel_in_category_by_name(category, name)
-    if existing:
-        return existing
-    channel = await category.create_voice_channel(name)
-    logging.info("[SETUP] Utworzono kanał %s w kategorii %s", name, category.name)
-    return channel
-
-
 def format_uptime(delta: timedelta) -> str:
     total_seconds = int(delta.total_seconds())
     days, rem = divmod(total_seconds, 86400)
@@ -1201,21 +1182,25 @@ def auto_limiter_on_success() -> None:
         auto_limiter_bucket_limit += 1
 
 
-def auto_limiter_on_429() -> None:
-    global auto_limiter_delay, auto_limiter_bucket_limit, auto_limiter_last_429_at
+def auto_limiter_on_429(retry_after: float | None = None) -> None:
+    global auto_limiter_delay, auto_limiter_bucket_limit, auto_limiter_last_429_at, channel_edit_blocked_until
 
     if not AUTO_LIMITER_ENABLED:
         return
 
-    auto_limiter_last_429_at = monotonic()
-    target_delay = min(AUTO_LIMITER_MAX_DELAY, auto_limiter_delay + AUTO_LIMITER_STEP_UP)
-    auto_limiter_delay = round(target_delay, 2)
+    now = monotonic()
+    auto_limiter_last_429_at = now
+    if retry_after is None:
+        retry_after = CHANNEL_EDIT_RETRY_DELAY
 
-    if auto_limiter_bucket_limit > 4:
-        auto_limiter_bucket_limit = max(4, auto_limiter_bucket_limit - 2)
+    channel_edit_blocked_until = max(channel_edit_blocked_until, now + retry_after + 5.0)
+    target_delay = min(AUTO_LIMITER_MAX_DELAY, max(auto_limiter_delay + AUTO_LIMITER_STEP_UP, retry_after / 4))
+    auto_limiter_delay = round(target_delay, 2)
+    auto_limiter_bucket_limit = 1
 
     logging.warning(
-        "[AUTO LIMITER] Zaostrzam limity: delay=%.2fs bucket_limit=%s",
+        "[AUTO LIMITER] 429 od Discord. Blokuję edycje na %.1fs | delay=%.2fs bucket_limit=%s",
+        retry_after,
         auto_limiter_delay,
         auto_limiter_bucket_limit,
     )
@@ -1231,8 +1216,8 @@ async def wait_for_global_channel_edit_slot() -> None:
             while channel_edit_recent_timestamps and (now - channel_edit_recent_timestamps[0]) >= CHANNEL_EDIT_BUCKET_WINDOW:
                 channel_edit_recent_timestamps.popleft()
 
-            effective_delay = FAST_FIRST_SYNC_DELAY if fast_first_sync_active else auto_limiter_delay
-            effective_bucket_limit = 8 if fast_first_sync_active else auto_limiter_bucket_limit
+            effective_delay = auto_limiter_delay
+            effective_bucket_limit = auto_limiter_bucket_limit
 
             spacing_wait = max(0.0, next_global_channel_edit_time - now)
 
@@ -1244,10 +1229,12 @@ async def wait_for_global_channel_edit_slot() -> None:
             penalty_wait = 0.0
             if auto_limiter_last_429_at is not None:
                 since_429 = now - auto_limiter_last_429_at
-                if since_429 < 120.0:
-                    penalty_wait = 120.0 - since_429
+                if since_429 < 300.0:
+                    penalty_wait = 300.0 - since_429
 
-            wait_for = max(spacing_wait, bucket_wait, penalty_wait)
+            blocked_wait = max(0.0, channel_edit_blocked_until - now)
+
+            wait_for = max(spacing_wait, bucket_wait, penalty_wait, blocked_wait)
             if wait_for <= 0:
                 now2 = monotonic()
                 next_global_channel_edit_time = now2 + effective_delay
@@ -1273,6 +1260,7 @@ async def channel_edit_worker() -> None:
                             await channel.edit(name=new_name)
                             logging.info("[KANAŁ] %s -> %s (id=%s)", old_name, new_name, channel.id)
                         success = True
+                        channel_last_edit_at[channel.id] = monotonic()
                         auto_limiter_on_success()
                         break
                     except discord.Forbidden:
@@ -1280,16 +1268,18 @@ async def channel_edit_worker() -> None:
                         break
                     except discord.HTTPException as e:
                         if getattr(e, "status", None) == 429:
-                            auto_limiter_on_429()
-                            wait_for = CHANNEL_EDIT_RETRY_DELAY * attempt
+                            retry_after = float(getattr(e, "retry_after", 0.0) or 0.0)
+                            if retry_after <= 0:
+                                retry_after = CHANNEL_EDIT_RETRY_DELAY * attempt
+                            auto_limiter_on_429(retry_after)
                             logging.warning(
                                 "Rate limit 429 dla kanału %s przy próbie %s/%s. Czekam %.1fs i próbuję ponownie.",
                                 channel.id,
                                 attempt,
                                 CHANNEL_EDIT_RETRY_COUNT,
-                                wait_for,
+                                retry_after,
                             )
-                            await asyncio.sleep(wait_for)
+                            await asyncio.sleep(retry_after + 2.0)
                             continue
 
                         logging.warning("Nie udało się zmienić nazwy kanału %s: %s", channel.id, e)
@@ -2134,73 +2124,6 @@ async def refresh_existing_panel(guild: discord.Guild, *, force_full: bool = Fal
 
     await asyncio.gather(*tasks_to_run)
     return True
-
-async def schedule_background_refresh(guild: discord.Guild, *, force_full: bool = False) -> None:
-    existing = background_refresh_tasks.get(guild.id)
-    if existing and not existing.done():
-        logging.info(
-            "[REFRESH] Pominięto nowe żądanie odświeżenia dla serwera %s, bo poprzedni refresh nadal trwa.",
-            guild.name,
-        )
-        return
-
-    now_mono = monotonic()
-    last_run = last_global_refresh_at.get(guild.id, 0.0)
-
-    min_interval = 0.0 if force_full else MIN_REFRESH_INTERVAL_SECONDS
-    if (now_mono - last_run) < min_interval:
-        wait_left = min_interval - (now_mono - last_run)
-        logging.info(
-            "[REFRESH] Pominięto odświeżenie dla serwera %s. Minimalny odstęp aktywny jeszcze %.1fs.",
-            guild.name,
-            wait_left,
-        )
-        return
-
-    if not force_full and (now_mono - last_run) < GLOBAL_REFRESH_COOLDOWN_SECONDS:
-        wait_left = GLOBAL_REFRESH_COOLDOWN_SECONDS - (now_mono - last_run)
-        logging.info(
-            "[REFRESH] Pominięto odświeżenie dla serwera %s. Globalny cooldown aktywny jeszcze %.1fs.",
-            guild.name,
-            wait_left,
-        )
-        return
-
-    async def runner() -> None:
-        try:
-            async with GLOBAL_UPDATE_LOCK:
-                if force_full:
-                    fast_first_sync_active.add(guild.id)
-
-                last_global_refresh_at[guild.id] = monotonic()
-                logging.info(
-                    "[REFRESH] Start %sodświeżenia dla serwera %s",
-                    "pełnego " if force_full else "",
-                    guild.name,
-                )
-                await ensure_guild_members_cached(guild)
-                await refresh_existing_panel(guild, force_full=force_full)
-                await refresh_status_panel_message(guild)
-                logging.info(
-                    "[REFRESH] Koniec %sodświeżenia dla serwera %s",
-                    "pełnego " if force_full else "",
-                    guild.name,
-                )
-        except Exception as e:
-            logging.warning("Błąd background refresh dla serwera %s: %s", guild.id, e)
-        finally:
-            fast_first_sync_active.discard(guild.id)
-            background_refresh_tasks.pop(guild.id, None)
-
-    task = asyncio.create_task(runner())
-    background_refresh_tasks[guild.id] = task
-    logging.info(
-        "[REFRESH] Zaplanowano %sodświeżenie w tle dla serwera %s",
-        "pełne " if force_full else "",
-        guild.name,
-    )
-
-
 
 def get_panel_role(guild: discord.Guild, role_id: int) -> discord.Role | None:
     return guild.get_role(role_id) if role_id else None
