@@ -81,7 +81,7 @@ DEFAULT_COUNTRY = "Polska"
 DEFAULT_TIMEZONE = "Europe/Warsaw"
 DEFAULT_LANGUAGE = "pl"
 
-WEATHER_REFRESH_MINUTES = 15
+WEATHER_REFRESH_MINUTES = 20
 CLOCK_REFRESH_SECONDS = 1800
 STATS_FALLBACK_REFRESH_SECONDS = 1800
 STATUS_CLOCK_REFRESH_SECONDS = 60
@@ -90,7 +90,8 @@ CHANNEL_EDIT_RETRY_COUNT = 3
 CHANNEL_EDIT_RETRY_DELAY = 45.0
 STATS_REFRESH_DEBOUNCE_SECONDS = 60
 MAX_CHANNEL_NAME_LENGTH = 100
-WEATHER_CACHE_TTL_SECONDS = 840
+WEATHER_CACHE_TTL_SECONDS = 1200
+WEATHER_API_429_BACKOFF_SECONDS = 900
 BANS_REFRESH_TTL_SECONDS = 3600
 HTTP_TOTAL_TIMEOUT_SECONDS = 20
 HTTP_CONNECT_TIMEOUT_SECONDS = 10
@@ -124,6 +125,8 @@ auto_limiter_last_429_at: float | None = None
 QUEUE_INPUT_BATCH_SIZE = 3
 QUEUE_INPUT_BATCH_DELAY = 3.0
 weather_cache: dict[int, dict[str, Any]] = {}
+last_good_weather_cache: dict[int, dict[str, Any]] = {}
+weather_api_blocked_until: float = 0.0
 background_refresh_tasks: dict[int, asyncio.Task] = {}
 last_presence_text: str | None = None
 last_weather_payloads: dict[int, dict[str, str]] = {}
@@ -137,7 +140,7 @@ guild_last_stats_event_refresh_at: dict[int, float] = {}
 
 startup_full_refresh_done: set[int] = set()
 last_global_refresh_at: dict[int, float] = {}
-GLOBAL_REFRESH_COOLDOWN_SECONDS = 10.0
+GLOBAL_REFRESH_COOLDOWN_SECONDS = 60.0
 MIN_REFRESH_INTERVAL_SECONDS = 15.0
 GLOBAL_UPDATE_LOCK = asyncio.Lock()
 FAST_FIRST_SYNC_DELAY = 0.5
@@ -1461,9 +1464,15 @@ async def apply_channel_name_updates_startup_fast(
 # ================================
 
 async def fetch_json(url: str) -> dict[str, Any]:
+    global weather_api_blocked_until
+
     if bot.http_session is None or bot.http_session.closed:
         timeout = aiohttp.ClientTimeout(total=HTTP_TOTAL_TIMEOUT_SECONDS, connect=HTTP_CONNECT_TIMEOUT_SECONDS)
         bot.http_session = aiohttp.ClientSession(timeout=timeout)
+
+    if "open-meteo.com" in url and monotonic() < weather_api_blocked_until:
+        remaining = int(weather_api_blocked_until - monotonic())
+        raise RuntimeError(f"Weather API backoff active for {remaining}s")
 
     last_error: Exception | None = None
     for attempt in range(1, 3):
@@ -1475,15 +1484,29 @@ async def fetch_json(url: str) -> dict[str, Any]:
                 if text.startswith("<!DOCTYPE") or "<html" in lowered:
                     raise RuntimeError("API returned HTML instead of JSON")
                 return json.loads(text)
+        except aiohttp.ClientResponseError as e:
+            last_error = e
+            if e.status == 429 and "open-meteo.com" in url:
+                retry_after = 0.0
+                try:
+                    retry_after = float(e.headers.get("Retry-After", "0") or 0)
+                except Exception:
+                    retry_after = 0.0
+                block_for = max(WEATHER_API_429_BACKOFF_SECONDS, retry_after)
+                weather_api_blocked_until = monotonic() + block_for
+                raise RuntimeError(f"Weather API 429 - backoff {int(block_for)}s") from e
+            if attempt < 2:
+                await asyncio.sleep(1.5 * attempt)
+            else:
+                break
         except (aiohttp.ClientError, asyncio.TimeoutError, json.JSONDecodeError, RuntimeError) as e:
             last_error = e
             if attempt < 2:
-                await asyncio.sleep(1.0)
+                await asyncio.sleep(1.0 * attempt)
             else:
                 break
 
     raise RuntimeError(f"Failed to fetch JSON: {last_error}")
-
 
 async def geocode_city(city_query: str, count: int = 10, language: str = DEFAULT_LANGUAGE) -> list[dict[str, Any]]:
     city_query = city_query.strip()
@@ -1777,12 +1800,19 @@ async def get_weather_data(
     use_cache: bool = True,
     guild_id: int | None = None,
 ) -> dict[str, Any]:
+    global weather_api_blocked_until
+
     if use_cache and guild_id is not None:
         cached = weather_cache.get(guild_id)
         if cached:
             fetched_at = float(cached.get("_fetched_at", 0.0))
             if monotonic() - fetched_at < WEATHER_CACHE_TTL_SECONDS:
                 return cached
+
+    if guild_id is not None and monotonic() < weather_api_blocked_until:
+        fallback = weather_cache.get(guild_id) or last_good_weather_cache.get(guild_id)
+        if fallback:
+            return fallback
 
     encoded_timezone = quote(timezone_name)
     weather_url = (
@@ -1796,23 +1826,24 @@ async def get_weather_data(
         "https://air-quality-api.open-meteo.com/v1/air-quality"
         f"?latitude={latitude}&longitude={longitude}"
         "&current=european_aqi"
-        f"&timezone={encoded_timezone}"
-    )
-    pollen_url = (
-        "https://air-quality-api.open-meteo.com/v1/air-quality"
-        f"?latitude={latitude}&longitude={longitude}"
         "&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen"
         f"&timezone={encoded_timezone}"
     )
 
-    weather_data, air_data, pollen_data = await asyncio.gather(
-        fetch_json(weather_url), fetch_json(air_url), fetch_json(pollen_url)
-    )
+    try:
+        weather_data, air_data = await asyncio.gather(fetch_json(weather_url), fetch_json(air_url))
+    except Exception:
+        if guild_id is not None:
+            fallback = weather_cache.get(guild_id) or last_good_weather_cache.get(guild_id)
+            if fallback:
+                logging.warning("[POGODA] Używam ostatnich dobrych danych pogodowych dla serwera %s.", guild_id)
+                return fallback
+        raise
 
     current = weather_data.get("current") or {}
     daily = weather_data.get("daily") or {}
     air_current = air_data.get("current") or {}
-    hourly = pollen_data.get("hourly") or {}
+    hourly = air_data.get("hourly") or {}
     hourly_time = hourly.get("time") or []
     current_time = current.get("time")
 
@@ -1876,31 +1907,10 @@ async def get_weather_data(
     }
 
     if guild_id is not None:
-        weather_cache[guild_id] = result
+        weather_cache[guild_id] = dict(result)
+        last_good_weather_cache[guild_id] = dict(result)
+
     return result
-
-
-# ================================
-# KANAŁY / SETUP
-# ================================
-
-async def create_or_get_category(guild: discord.Guild, name: str) -> discord.CategoryChannel:
-    for category in guild.categories:
-        if category.name == name:
-            return category
-    category = await guild.create_category(name)
-    logging.info("[SETUP] Utworzono kategorię %s na serwerze %s", name, guild.name)
-    return category
-
-
-async def create_or_get_voice_channel(category: discord.CategoryChannel, name: str) -> discord.VoiceChannel:
-    existing = find_voice_channel_in_category_by_name(category, name)
-    if existing:
-        return existing
-    channel = await category.create_voice_channel(name)
-    logging.info("[SETUP] Utworzono kanał %s w kategorii %s", name, category.name)
-    return channel
-
 
 async def setup_categories_and_channels(guild: discord.Guild) -> dict[str, Any]:
     cfg = get_guild_config(guild.id) or build_default_guild_config(guild.id)
@@ -2081,94 +2091,29 @@ async def refresh_existing_panel(guild: discord.Guild, *, force_full: bool = Fal
         return False
 
     lang = get_lang_code(cfg)
-    weather = await get_weather_data(
-        cfg["city_name"],
-        cfg["latitude"],
-        cfg["longitude"],
-        cfg.get("timezone", DEFAULT_TIMEZONE),
-        lang,
-        use_cache=not force_full,
-        guild_id=guild.id,
-    )
+    weather: dict[str, Any] | None = None
 
-    fast_start = force_full and guild.id in fast_first_sync_active
-    await asyncio.gather(
-        update_weather_channels(guild, cfg, weather, fast_start=fast_start),
-        update_clock_channels(guild, cfg, weather, fast_start=fast_start),
-        update_stats_channels(guild, cfg, fast_start=fast_start),
-    )
+    try:
+        weather = await get_weather_data(
+            cfg["city_name"],
+            cfg["latitude"],
+            cfg["longitude"],
+            cfg.get("timezone", DEFAULT_TIMEZONE),
+            lang,
+            use_cache=True,
+            guild_id=guild.id,
+        )
+    except Exception as e:
+        logging.warning("[POGODA] Nie udało się pobrać świeżej pogody dla serwera %s: %s", guild.id, e)
+        weather = weather_cache.get(guild.id) or last_good_weather_cache.get(guild.id)
+
+    tasks_to_run = [update_stats_channels(guild, cfg)]
+    if weather is not None:
+        tasks_to_run.append(update_weather_channels(guild, cfg, weather))
+    tasks_to_run.append(update_clock_channels(guild, cfg, weather))
+
+    await asyncio.gather(*tasks_to_run)
     return True
-
-
-async def schedule_background_refresh(guild: discord.Guild, *, force_full: bool = False) -> None:
-    existing = background_refresh_tasks.get(guild.id)
-    if existing and not existing.done():
-        logging.info(
-            "[REFRESH] Pominięto nowe żądanie odświeżenia dla serwera %s, bo poprzedni refresh nadal trwa.",
-            guild.name,
-        )
-        return
-
-    now_mono = monotonic()
-    last_run = last_global_refresh_at.get(guild.id, 0.0)
-
-    min_interval = 0.0 if force_full else MIN_REFRESH_INTERVAL_SECONDS
-    if (now_mono - last_run) < min_interval:
-        wait_left = min_interval - (now_mono - last_run)
-        logging.info(
-            "[REFRESH] Pominięto odświeżenie dla serwera %s. Minimalny odstęp aktywny jeszcze %.1fs.",
-            guild.name,
-            wait_left,
-        )
-        return
-
-    if not force_full and (now_mono - last_run) < GLOBAL_REFRESH_COOLDOWN_SECONDS:
-        wait_left = GLOBAL_REFRESH_COOLDOWN_SECONDS - (now_mono - last_run)
-        logging.info(
-            "[REFRESH] Pominięto odświeżenie dla serwera %s. Globalny cooldown aktywny jeszcze %.1fs.",
-            guild.name,
-            wait_left,
-        )
-        return
-
-    async def runner() -> None:
-        try:
-            async with GLOBAL_UPDATE_LOCK:
-                if force_full:
-                    fast_first_sync_active.add(guild.id)
-
-                last_global_refresh_at[guild.id] = monotonic()
-                logging.info(
-                    "[REFRESH] Start %sodświeżenia dla serwera %s",
-                    "pełnego " if force_full else "",
-                    guild.name,
-                )
-                await ensure_guild_members_cached(guild)
-                await refresh_existing_panel(guild, force_full=force_full)
-                await refresh_status_panel_message(guild)
-                logging.info(
-                    "[REFRESH] Koniec %sodświeżenia dla serwera %s",
-                    "pełnego " if force_full else "",
-                    guild.name,
-                )
-        except Exception as e:
-            logging.warning("Błąd background refresh dla serwera %s: %s", guild.id, e)
-        finally:
-            fast_first_sync_active.discard(guild.id)
-            background_refresh_tasks.pop(guild.id, None)
-
-    task = asyncio.create_task(runner())
-    background_refresh_tasks[guild.id] = task
-    logging.info(
-        "[REFRESH] Zaplanowano %sodświeżenie w tle dla serwera %s",
-        "pełne " if force_full else "",
-        guild.name,
-    )
-
-
-# ================================
-# PANEL STATUSÓW / ROLE
-# ================================
 
 def get_panel_role(guild: discord.Guild, role_id: int) -> discord.Role | None:
     return guild.get_role(role_id) if role_id else None
@@ -3045,7 +2990,8 @@ def schedule_stats_refresh(guild: discord.Guild) -> None:
             cfg = get_guild_config(guild.id)
             if cfg and cfg.get("channels"):
                 guild_last_stats_event_refresh_at[guild.id] = monotonic()
-                await schedule_background_refresh(guild, force_full=False)
+                await update_stats_channels(guild, cfg)
+                await refresh_status_panel_message(guild)
         except Exception as e:
             logging.warning("Błąd odświeżania statystyk live dla %s: %s", guild.id, e)
         finally:
