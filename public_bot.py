@@ -2584,14 +2584,50 @@ async def setup_command(interaction: discord.Interaction):
     lang = get_lang_code(cfg)
 
     await interaction.response.defer(ephemeral=True)
-    try:
-        await setup_categories_and_channels(guild)
-        cleanup_guild_runtime(guild.id)
-        asyncio.create_task(schedule_background_refresh(guild, force_full=True))
-        startup_full_refresh_done.add(guild.id)
-        await interaction.followup.send(tr(lang, "setup_ok_bg"), ephemeral=True)
-    except Exception as e:
-        await interaction.followup.send(tr(lang, "setup_error", error=e), ephemeral=True)
+
+    bot_member = guild.me or guild.get_member(bot.user.id) if bot.user else None
+    if bot_member is not None:
+        perms = bot_member.guild_permissions
+        if not perms.manage_channels:
+            await interaction.followup.send(
+                "❌ Bot nie ma uprawnienia **Zarządzanie kanałami**. "
+                "Nadaj je roli bota i przesuń rolę bota wyżej w hierarchii ról.",
+                ephemeral=True,
+            )
+            return
+
+    await interaction.followup.send(tr(lang, "setup_ok_bg"), ephemeral=True)
+
+    async def run_setup_in_background():
+        try:
+            logging.info("[SETUP] Start setupu w tle dla serwera %s (%s)", guild.name, guild.id)
+            await setup_categories_and_channels(guild)
+            cleanup_guild_runtime(guild.id)
+            asyncio.create_task(schedule_background_refresh(guild, force_full=True))
+            startup_full_refresh_done.add(guild.id)
+            logging.info("[SETUP] Setup zakończony dla serwera %s (%s)", guild.name, guild.id)
+        except discord.Forbidden as e:
+            logging.error(
+                "[SETUP] Brak uprawnień dla serwera %s (%s): status=%s code=%s text=%s",
+                guild.name,
+                guild.id,
+                getattr(e, "status", None),
+                getattr(e, "code", None),
+                getattr(e, "text", str(e)),
+            )
+        except discord.HTTPException as e:
+            logging.error(
+                "[SETUP] Błąd Discord API dla serwera %s (%s): status=%s code=%s text=%s",
+                guild.name,
+                guild.id,
+                getattr(e, "status", None),
+                getattr(e, "code", None),
+                getattr(e, "text", str(e)),
+            )
+        except Exception as e:
+            logging.exception("[SETUP] Nieoczekiwany błąd setupu w tle dla serwera %s (%s): %s", guild.name, guild.id, e)
+
+    asyncio.create_task(run_setup_in_background())
 
 
 @bot.tree.command(name="refresh", description="Odświeża wszystkie kanały bota")
@@ -3121,6 +3157,7 @@ async def on_member_update(before: discord.Member, after: discord.Member):
 @bot.event
 async def on_guild_join(guild: discord.Guild):
     try:
+        bot.tree.copy_global_to(guild=guild)
         synced = await bot.tree.sync(guild=guild)
         logging.info("Zsynchronizowano %s komend slash dla nowego serwera %s", len(synced), guild.id)
     except Exception as e:
